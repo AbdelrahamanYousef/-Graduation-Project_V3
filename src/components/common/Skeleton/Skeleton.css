@@ -1,0 +1,98 @@
+/* Skeleton Component Styles */
+
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--color-neutral-200) 25%,
+            var(--color-neutral-100) 50%,
+            var(--color-neutral-200) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+/* Variants */
+.skeleton--text {
+    height: 16px;
+    width: 100%;
+    border-radius: var(--radius-sm);
+}
+
+.skeleton--title {
+    height: 24px;
+    width: 60%;
+    border-radius: var(--radius-sm);
+}
+
+.skeleton--avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+}
+
+.skeleton--image {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: var(--radius-lg);
+}
+
+.skeleton--button {
+    height: 44px;
+    width: 120px;
+    border-radius: var(--radius-md);
+}
+
+.skeleton--circle {
+    border-radius: var(--radius-full);
+}
+
+/* Groups */
+.skeleton-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+/* Card Pattern */
+.skeleton-card {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.skeleton-card__content {
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+/* List Pattern */
+.skeleton-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.skeleton-list__item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.skeleton-list__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}

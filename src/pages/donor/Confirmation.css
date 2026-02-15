@@ -1,0 +1,184 @@
+/* Confirmation Page Styles */
+
+.confirmation-page {
+    padding: var(--space-8) 0 var(--space-12);
+    min-height: calc(100vh - var(--header-height));
+    background: var(--color-bg-tertiary);
+    display: flex;
+    align-items: center;
+}
+
+.confirmation-card {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: var(--space-8);
+    text-align: center;
+}
+
+/* Success Icon */
+.confirmation-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-success-50);
+    border-radius: var(--radius-full);
+    animation: scaleIn 0.5s ease;
+}
+
+.confirmation-icon svg {
+    width: 48px;
+    height: 48px;
+    color: var(--color-success-500);
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+
+    50% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Title */
+.confirmation-title {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-bold);
+    color: var(--color-success-500);
+    margin-bottom: var(--space-2);
+}
+
+.confirmation-subtitle {
+    font-size: var(--text-lg);
+    color: var(--color-neutral-700);
+    margin-bottom: var(--space-2);
+}
+
+.confirmation-message {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-500);
+    margin-bottom: var(--space-6);
+}
+
+/* Receipt Details */
+.receipt-details {
+    background: var(--color-neutral-50);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4);
+    margin-bottom: var(--space-6);
+    text-align: start;
+}
+
+.receipt-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.receipt-row:last-child {
+    border-bottom: none;
+}
+
+.receipt-label {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-500);
+}
+
+.receipt-value {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--color-neutral-800);
+}
+
+.receipt-amount {
+    font-size: var(--text-base);
+    color: var(--color-primary-500);
+    font-weight: var(--font-bold);
+}
+
+/* Actions */
+.confirmation-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+}
+
+.share-buttons {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+}
+
+.share-btn {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.share-btn svg {
+    width: 24px;
+    height: 24px;
+}
+
+.share-btn:hover {
+    transform: scale(1.1);
+}
+
+.share-btn--whatsapp {
+    background: #25D366;
+    color: white;
+}
+
+.share-btn--facebook {
+    background: #1877F2;
+    color: white;
+}
+
+.share-btn--twitter {
+    background: #1DA1F2;
+    color: white;
+}
+
+/* Navigation Links */
+.confirmation-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+/* Print Styles */
+@media print {
+    .confirmation-page {
+        background: white;
+        padding: 0;
+    }
+
+    .confirmation-actions,
+    .confirmation-links,
+    .share-buttons {
+        display: none;
+    }
+
+    .confirmation-card {
+        box-shadow: none;
+        border: 1px solid var(--color-neutral-200);
+    }
+}

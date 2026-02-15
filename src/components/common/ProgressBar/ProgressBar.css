@@ -1,0 +1,107 @@
+/* ProgressBar Component Styles */
+
+.progress {
+    width: 100%;
+}
+
+.progress__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-2);
+}
+
+.progress__amount {
+    font-size: var(--text-sm);
+    color: var(--color-neutral-600);
+}
+
+.progress__current {
+    font-weight: var(--font-semibold);
+    color: var(--color-primary-500);
+}
+
+.progress__separator {
+    color: var(--color-neutral-400);
+}
+
+.progress__goal {
+    color: var(--color-neutral-500);
+}
+
+.progress__percentage {
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    color: var(--color-neutral-700);
+}
+
+/* Track */
+.progress__track {
+    width: 100%;
+    background: var(--color-neutral-200);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+
+/* Size Variants */
+.progress--sm .progress__track {
+    height: 6px;
+}
+
+.progress--md .progress__track {
+    height: 10px;
+}
+
+.progress--lg .progress__track {
+    height: 14px;
+}
+
+/* Fill */
+.progress__fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 0.5s ease-out;
+}
+
+/* Color Variants */
+.progress--primary .progress__fill {
+    background: linear-gradient(90deg, var(--color-primary-400), var(--color-primary-500));
+}
+
+.progress--success .progress__fill {
+    background: linear-gradient(90deg, var(--color-success-500), #22c55e);
+}
+
+.progress--accent .progress__fill {
+    background: linear-gradient(90deg, var(--color-accent-400), var(--color-accent-500));
+}
+
+/* Animated Shimmer */
+.progress--animated .progress__fill {
+    position: relative;
+    overflow: hidden;
+}
+
+.progress--animated .progress__fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.3),
+            transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
+}

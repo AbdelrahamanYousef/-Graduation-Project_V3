@@ -1,0 +1,5 @@
+/* Global resets - tokens.css handles the rest */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}

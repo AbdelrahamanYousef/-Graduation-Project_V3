@@ -1,0 +1,106 @@
+/* Card Component Styles */
+
+.card {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: all var(--transition-base);
+    border: 1px solid var(--color-neutral-100);
+}
+
+/* Padding Variants */
+.card--padding-none {
+    padding: 0;
+}
+
+.card--padding-sm {
+    padding: var(--space-3);
+}
+
+.card--padding-md {
+    padding: var(--space-4);
+}
+
+.card--padding-lg {
+    padding: var(--space-6);
+}
+
+/* Card Variants */
+.card--default {
+    background: var(--color-bg-secondary);
+}
+
+.card--elevated {
+    box-shadow: var(--shadow-lg);
+}
+
+.card--outlined {
+    box-shadow: none;
+    border: 1.5px solid var(--color-neutral-200);
+}
+
+.card--filled {
+    background: var(--color-neutral-50);
+    border: none;
+}
+
+/* Interactive States */
+.card--hoverable:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.card--clickable {
+    cursor: pointer;
+    width: 100%;
+    text-align: inherit;
+    font: inherit;
+    color: inherit;
+}
+
+.card--clickable:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+}
+
+/* Card Sections */
+.card__header {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--color-neutral-100);
+}
+
+.card__body {
+    padding: var(--space-4);
+}
+
+.card__footer {
+    padding: var(--space-4);
+    border-top: 1px solid var(--color-neutral-100);
+    background: var(--color-neutral-50);
+}
+
+/* No padding on card = sections provide own padding */
+.card--padding-none .card__header,
+.card--padding-none .card__body,
+.card--padding-none .card__footer {
+    padding: var(--space-4);
+}
+
+/* Card Image */
+.card__image {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-neutral-100);
+}
+
+.card__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-slow);
+}
+
+.card--hoverable:hover .card__image img {
+    transform: scale(1.05);
+}
