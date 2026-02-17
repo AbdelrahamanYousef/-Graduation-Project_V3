@@ -104,13 +104,15 @@ const StatCard = styled(Card)(({ theme }) => ({
     minHeight: 220,
 
     borderRadius: 16,
-    boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
+    border: `2px solid ${theme.palette.divider}`,
+    boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
 
     transition: 'all 0.3s ease',
 
     '&:hover': {
         transform: 'translateY(-6px)',
-        boxShadow: '0 16px 32px rgba(0,0,0,0.12)',
+        boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
+        borderColor: theme.palette.primary.main,
     }
 }));
 
@@ -348,24 +350,33 @@ function Home() {
 
             {/* ========== IMPACT STATS ========== */}
             <Box sx={{ py: sectionPy, bgcolor: 'background.default' }}>
-                <Container>
-                    <Grid container spacing={3}>
-                        {statsArray.map((stat, i) => (
-                            <Grid item xs={6} md={3} key={i}>
-                                <StatCard elevation={0}>
-                                    <StatIcon className="stat-icon">
-                                        <i className={stat.icon}></i>
-                                    </StatIcon>
-                                    <Typography variant="h4" fontWeight="bold" gutterBottom>
-                                        {formatNumber(stat.value)}+
-                                    </Typography>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {stat.label}
-                                    </Typography>
-                                </StatCard>
-                            </Grid>
-                        ))}
-                    </Grid>
+                <Container maxWidth="lg">
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        width: '100%'
+                    }}>
+                        <Grid container spacing={3} sx={{
+                            maxWidth: '1000px',
+                            margin: '0 auto'
+                        }}>
+                            {statsArray.map((stat, i) => (
+                                <Grid item xs={6} md={3} key={i}>
+                                    <StatCard elevation={0}>
+                                        <StatIcon className="stat-icon">
+                                            <i className={stat.icon}></i>
+                                        </StatIcon>
+                                        <Typography variant="h4" fontWeight="bold" gutterBottom>
+                                            {formatNumber(stat.value)}+
+                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">
+                                            {stat.label}
+                                        </Typography>
+                                    </StatCard>
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Box>
                 </Container>
             </Box>
 
