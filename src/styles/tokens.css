@@ -299,13 +299,13 @@ body {
 }
 
 /* Links */
-a {
+a:not(.MuiButtonBase-root) {
   color: var(--color-primary-500);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
-a:hover {
+a:not(.MuiButtonBase-root):hover {
   color: var(--color-primary-600);
 }
 

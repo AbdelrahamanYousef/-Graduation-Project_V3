@@ -204,9 +204,9 @@ function DonorLayout({ children, scrolled }) {
                         </Box>
 
                         {/* Logo */}
-                        <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', color: 'inherit', flexGrow: { xs: 1, md: 0 } }}>
-                            <i className="fa-solid fa-moon" style={{ fontSize: '1.75rem', color: theme.palette.common.white }}></i>
-                            <Typography variant="h5" color="inherit" fontWeight="bold" sx={{ display: { xs: 'none', sm: 'block' } }}>نور</Typography>
+                        <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit', flexGrow: { xs: 1, md: 0 } }}>
+                            <i className="fa-solid fa-moon" style={{ fontSize: '1.5rem', color: '#fff' }}></i>
+                            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' }, color: '#fff', fontWeight: 800, fontSize: '1.4rem', letterSpacing: '0.03em' }}>نور</Typography>
                         </Box>
 
                         {/* Desktop Nav */}
