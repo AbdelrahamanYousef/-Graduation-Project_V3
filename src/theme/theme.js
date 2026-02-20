@@ -260,14 +260,18 @@ export function createNourTheme(mode = 'light', direction = 'ltr') {
                 dark: accentPalette[700],
                 contrastText: '#ffffff',
             },
-            // Footer palette — avoids hardcoded grey values in components
+            // Footer palette — premium redesign with teal harmony
             footer: {
-                bg: isLight ? '#111827' : '#071515',
-                text: isLight ? '#D1D5DB' : '#9CA3AF',
-                textMuted: isLight ? '#6B7280' : '#6B7280',
-                heading: '#FFFFFF',
-                divider: isLight ? '#1F2937' : '#0f2a2a',
-                iconBg: isLight ? '#1F2937' : '#0f2a2a',
+                bg: isLight ? '#1A2E3B' : '#0C1B1B',
+                topBorder: isLight ? 'rgba(11,107,107,0.25)' : 'rgba(38,152,152,0.15)',
+                text: isLight ? '#B0BEC5' : '#90A4AE',
+                textMuted: isLight ? '#78909C' : '#607D8B',
+                heading: isLight ? '#E0F2F1' : '#B2DFDB',
+                divider: isLight ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.06)',
+                iconBg: isLight ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.05)',
+                iconHover: isLight ? primaryPalette[500] : primaryPalette[400],
+                linkHover: isLight ? '#4DB6AC' : '#80CBC4',
+                copyrightBg: isLight ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.2)',
             },
             // Hero section palette — specific user request
             hero: {

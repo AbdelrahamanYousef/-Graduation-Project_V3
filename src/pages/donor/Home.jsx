@@ -39,7 +39,7 @@ const HeroSection = styled(Box)(({ theme }) => ({
     position: 'relative',
     background: `radial-gradient(circle at 30% 40%, ${theme.palette.hero.overlay}, transparent 40%), linear-gradient(135deg, ${theme.palette.hero.base} 0%, ${theme.palette.hero.dark} 100%)`,
     color: theme.palette.common.white,
-    padding: theme.spacing(8, 0),
+    padding: theme.spacing(6, 0),
     overflow: 'hidden',
     minHeight: '90vh',
     display: 'flex',
@@ -99,33 +99,53 @@ const StatCard = styled(Card)(({ theme }) => ({
     alignItems: 'center',
     justifyContent: 'center',
     textAlign: 'center',
-
+    height: '100%',
     padding: theme.spacing(4),
-    minHeight: 220,
-
-    borderRadius: 16,
-    border: `2px solid ${theme.palette.divider}`,
-    boxShadow: '0 12px 28px rgba(0,0,0,0.12)',
-
-    transition: 'all 0.3s ease',
-
+    gap: theme.spacing(0.5),
+    borderRadius: theme.custom.radius.lg,
+    border: `1.5px solid ${theme.palette.divider}`,
+    boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
+    transition: 'all 280ms ease',
+    position: 'relative',
+    overflow: 'hidden',
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        bottom: 0,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 0,
+        height: 3,
+        borderRadius: '3px 3px 0 0',
+        backgroundColor: theme.palette.primary.main,
+        transition: 'width 300ms ease',
+    },
     '&:hover': {
-        transform: 'translateY(-6px)',
-        boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
-        borderColor: theme.palette.primary.main,
-    }
+        transform: 'translateY(-4px)',
+        boxShadow: `0 8px 24px rgba(0,0,0,0.08), 0 0 0 1.5px ${alpha(theme.palette.primary.main, 0.3)}`,
+        backgroundColor: alpha(theme.palette.primary.main, 0.03),
+        '&::after': {
+            width: '60%',
+        },
+        '& .stat-icon': {
+            color: theme.palette.primary.main,
+            backgroundColor: alpha(theme.palette.primary.main, 0.1),
+        },
+    },
 }));
 
 const StatIcon = styled(Box)(({ theme }) => ({
-    display: 'flex', // Changed from inline-flex for better block centering logic
+    display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
-    height: 80,
-    fontSize: '3rem',
-    marginBottom: theme.spacing(3),
-    color: '#1F2D3D', // Navy
-    transition: 'all 0.3s ease',
+    width: 72,
+    height: 72,
+    borderRadius: '50%',
+    fontSize: '2.4rem',
+    flexShrink: 0,
+    color: theme.palette.mode === 'light' ? '#1F2D3D' : theme.palette.primary.light,
+    backgroundColor: alpha(theme.palette.primary.main, 0.06),
+    transition: 'all 280ms ease',
 }));
 
 const ProgramCard = styled(Card)(({ theme, color }) => ({
@@ -250,7 +270,7 @@ function Home() {
                                     variant="body2"
                                     sx={{
                                         mb: 4,
-                                        color: alpha(theme.palette.common.white, 0.7),
+                                        color: alpha(theme.palette.common.white, 0.8),
                                         display: 'block',
                                         fontSize: '0.875rem'
                                     }}
@@ -268,12 +288,12 @@ function Home() {
                                         component={Link}
                                         to="/donate"
                                         variant="contained"
-                                        color="secondary" // Use secondary for contrast
+                                        color="primary"
                                         size="large"
                                         sx={{
                                             boxShadow: '0 4px 14px 0 rgba(0,0,0,0.3)',
-                                            bgcolor: 'secondary.main',
-                                            '&:hover': { bgcolor: 'secondary.dark' }
+                                            bgcolor: 'primary.dark',
+                                            '&:hover': { bgcolor: 'primary.800' }
                                         }}
                                     >
                                         {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
@@ -302,12 +322,26 @@ function Home() {
                                 <HeroCircle size={400} color={theme.palette.hero.glow} delay="0s" />
                                 <HeroCircle size={280} color={theme.palette.hero.glow} delay="1s" />
                                 <HeroCircle size={150} color={theme.palette.hero.glow} delay="2s" />
+                                {/* Soft radial glow behind illustration */}
+                                <Box
+                                    sx={{
+                                        position: 'absolute',
+                                        width: 320,
+                                        height: 320,
+                                        borderRadius: '50%',
+                                        background: 'radial-gradient(circle, rgba(77,182,172,0.18) 0%, transparent 70%)',
+                                        pointerEvents: 'none',
+                                        zIndex: 0,
+                                    }}
+                                />
                                 <Box
                                     sx={{
                                         fontSize: '8rem',
                                         color: 'common.white',
                                         filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.2))',
-                                        animation: `${float} 4s ease-in-out infinite`
+                                        animation: `${float} 4s ease-in-out infinite`,
+                                        position: 'relative',
+                                        zIndex: 1,
                                     }}
                                 >
                                     <i className="fa-solid fa-hand-holding-heart"></i>
@@ -351,32 +385,23 @@ function Home() {
             {/* ========== IMPACT STATS ========== */}
             <Box sx={{ py: sectionPy, bgcolor: 'background.default' }}>
                 <Container maxWidth="lg">
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        width: '100%'
-                    }}>
-                        <Grid container spacing={3} sx={{
-                            maxWidth: '1000px',
-                            margin: '0 auto'
-                        }}>
-                            {statsArray.map((stat, i) => (
-                                <Grid item xs={6} md={3} key={i}>
-                                    <StatCard elevation={0}>
-                                        <StatIcon className="stat-icon">
-                                            <i className={stat.icon}></i>
-                                        </StatIcon>
-                                        <Typography variant="h4" fontWeight="bold" gutterBottom>
-                                            {formatNumber(stat.value)}+
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {stat.label}
-                                        </Typography>
-                                    </StatCard>
-                                </Grid>
-                            ))}
-                        </Grid>
-                    </Box>
+                    <Grid container spacing={3} justifyContent="center">
+                        {statsArray.map((stat, i) => (
+                            <Grid item xs={6} md={3} key={i} sx={{ display: 'flex' }}>
+                                <StatCard elevation={0}>
+                                    <StatIcon className="stat-icon">
+                                        <i className={stat.icon}></i>
+                                    </StatIcon>
+                                    <Typography variant="h3" fontWeight="900" sx={{ lineHeight: 1.1 }}>
+                                        {formatNumber(stat.value)}+
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', letterSpacing: '0.02em' }}>
+                                        {stat.label}
+                                    </Typography>
+                                </StatCard>
+                            </Grid>
+                        ))}
+                    </Grid>
                 </Container>
             </Box>
 
