@@ -204,9 +204,9 @@ function DonorLayout({ children, scrolled }) {
                         </Box>
 
                         {/* Logo */}
-                        <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1.5, textDecoration: 'none', color: 'inherit', flexGrow: { xs: 1, md: 0 } }}>
-                            <i className="fa-solid fa-moon" style={{ fontSize: '1.5rem', color: '#fff' }}></i>
-                            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' }, color: '#fff', fontWeight: 800, fontSize: '1.4rem', letterSpacing: '0.03em' }}>نور</Typography>
+                        <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1.2, textDecoration: 'none', color: 'inherit', flexGrow: { xs: 1, md: 0 } }}>
+                            <i className="fa-solid fa-moon" style={{ fontSize: '1.6rem', color: '#fff', filter: isDark ? 'drop-shadow(0 0 6px rgba(255,255,255,0.25))' : 'none', transition: 'filter 0.3s ease' }}></i>
+                            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' }, color: '#fff', fontWeight: 800, fontSize: '1.4rem', letterSpacing: '0.04em' }}>نور</Typography>
                         </Box>
 
                         {/* Desktop Nav */}
@@ -338,7 +338,26 @@ function DonorLayout({ children, scrolled }) {
                                     </Menu>
                                 </>
                             ) : (
-                                <Button component={Link} to="/login" variant="text" color="inherit" sx={{ display: { xs: 'none', md: 'flex' } }}>
+                                <Button
+                                    component={Link}
+                                    to="/login"
+                                    variant="text"
+                                    color="inherit"
+                                    sx={{
+                                        display: { xs: 'none', md: 'flex' },
+                                        position: 'relative',
+                                        borderRadius: 2,
+                                        px: 2.5,
+                                        transition: 'all 280ms ease',
+                                        '&:hover': {
+                                            bgcolor: 'rgba(255,255,255,0.10)',
+                                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                                            textShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                                            letterSpacing: '0.04em',
+                                            background: 'radial-gradient(ellipse at center, rgba(77,182,172,0.12) 0%, transparent 70%)',
+                                        },
+                                    }}
+                                >
                                     {t('nav.login')}
                                 </Button>
                             )}
@@ -391,48 +410,75 @@ function DonorLayout({ children, scrolled }) {
             </Box>
 
             {/* Footer */}
-            <Box component="footer" sx={{ bgcolor: (t) => t.palette.footer.bg, color: (t) => t.palette.footer.text, py: 8 }}>
+            <Box
+                component="footer"
+                sx={{
+                    bgcolor: (t) => t.palette.footer.bg,
+                    color: (t) => t.palette.footer.text,
+                    py: 8,
+                    borderTop: (t) => `3px solid ${t.palette.footer.topBorder}`,
+                    position: 'relative',
+                }}
+            >
                 <Container>
-                    <Grid container spacing={4}>
+                    <Grid container spacing={{ xs: 4, md: 6 }}>
                         {/* About */}
                         <Grid item xs={12} md={3}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                 <i className="fa-solid fa-moon" style={{ color: theme.palette.primary.main, fontSize: '1.5rem' }}></i>
                                 <Typography variant="h6" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold">نور</Typography>
                             </Box>
-                            <Typography variant="body2" sx={{ color: (t) => t.palette.footer.textMuted, mb: 2 }}>
+                            <Typography variant="body2" sx={{ color: (t) => t.palette.footer.textMuted, mb: 2, lineHeight: 1.8 }}>
                                 {t('footer.aboutText')}
                             </Typography>
                         </Grid>
 
                         {/* Quick Links */}
                         <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold" gutterBottom textTransform="uppercase">
+                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading, letterSpacing: '0.08em' }} fontWeight="bold" gutterBottom textTransform="uppercase">
                                 {t('footer.quickLinks')}
                             </Typography>
-                            <Stack spacing={1}>
-                                <Link to="/campaigns" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>{t('nav.campaigns')}</Typography></Link>
-                                <Link to="/volunteer" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>{t('nav.volunteer')}</Typography></Link>
-                                <Link to="/zakat" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>{t('nav.zakatCalc')}</Typography></Link>
-                                <Link to="/about" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="body2" sx={{ '&:hover': { color: 'primary.main' } }}>{t('nav.about')}</Typography></Link>
+                            <Stack spacing={1.5} sx={{ mt: 1 }}>
+                                {[
+                                    { to: '/campaigns', label: t('nav.campaigns') },
+                                    { to: '/volunteer', label: t('nav.volunteer') },
+                                    { to: '/zakat', label: t('nav.zakatCalc') },
+                                    { to: '/about', label: t('nav.about') },
+                                ].map((link) => (
+                                    <Link key={link.to} to={link.to} style={{ textDecoration: 'none', color: 'inherit' }}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{
+                                                transition: 'color 0.25s ease, transform 0.25s ease',
+                                                display: 'inline-block',
+                                                '&:hover': {
+                                                    color: (t) => t.palette.footer.linkHover,
+                                                    transform: 'translateX(4px)',
+                                                },
+                                            }}
+                                        >
+                                            {link.label}
+                                        </Typography>
+                                    </Link>
+                                ))}
                             </Stack>
                         </Grid>
 
                         {/* Contact */}
                         <Grid item xs={6} md={3}>
-                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold" gutterBottom textTransform="uppercase">
+                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading, letterSpacing: '0.08em' }} fontWeight="bold" gutterBottom textTransform="uppercase">
                                 {t('footer.contact')}
                             </Typography>
-                            <Stack spacing={2}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-envelope" style={{ fontSize: '0.9rem' }}></i>
                                     <Typography variant="body2">info@nour-charity.org</Typography>
                                 </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-phone" style={{ fontSize: '0.9rem' }}></i>
                                     <Typography variant="body2">+20 2 1234 5678</Typography>
                                 </Box>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-location-dot" style={{ fontSize: '0.9rem' }}></i>
                                     <Typography variant="body2">القاهرة، مصر</Typography>
                                 </Box>
@@ -441,12 +487,28 @@ function DonorLayout({ children, scrolled }) {
 
                         {/* Social */}
                         <Grid item xs={12} md={3}>
-                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold" gutterBottom textTransform="uppercase">
+                            <Typography variant="subtitle2" sx={{ color: (t) => t.palette.footer.heading, letterSpacing: '0.08em' }} fontWeight="bold" gutterBottom textTransform="uppercase">
                                 {t('footer.followUs')}
                             </Typography>
-                            <Stack direction="row" spacing={1}>
+                            <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
                                 {['facebook-f', 'x-twitter', 'instagram', 'youtube'].map((icon) => (
-                                    <IconButton key={icon} sx={{ bgcolor: (t) => t.palette.footer.iconBg, color: (t) => t.palette.footer.textMuted, width: 40, height: 40, '&:hover': { bgcolor: 'primary.main', color: 'white' } }}>
+                                    <IconButton
+                                        key={icon}
+                                        sx={{
+                                            bgcolor: (t) => t.palette.footer.iconBg,
+                                            color: (t) => t.palette.footer.textMuted,
+                                            width: 42,
+                                            height: 42,
+                                            borderRadius: '10px',
+                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            '&:hover': {
+                                                bgcolor: (t) => t.palette.footer.iconHover,
+                                                color: 'white',
+                                                transform: 'scale(1.15)',
+                                                boxShadow: (t) => `0 4px 14px ${alpha(t.palette.primary.main, 0.4)}`,
+                                            },
+                                        }}
+                                    >
                                         <i className={`fa-brands fa-${icon}`}></i>
                                     </IconButton>
                                 ))}
@@ -454,15 +516,33 @@ function DonorLayout({ children, scrolled }) {
                         </Grid>
                     </Grid>
 
-                    <Divider sx={{ my: 4, borderColor: (t) => t.palette.footer.divider }} />
+                    <Divider sx={{ my: 5, borderColor: (t) => t.palette.footer.divider }} />
 
-                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: 'center', gap: 2, textAlign: 'center' }}>
+                    {/* Copyright Strip */}
+                    <Box
+                        sx={{
+                            bgcolor: (t) => t.palette.footer.copyrightBg,
+                            borderRadius: 2,
+                            px: 3,
+                            py: 2,
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: 2,
+                            textAlign: 'center',
+                        }}
+                    >
                         <Typography variant="caption" sx={{ color: (t) => t.palette.footer.textMuted }}>
                             © 2024 نور. {t('footer.rights')}
                         </Typography>
                         <Stack direction="row" spacing={3}>
-                            <Link to="/privacy" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="caption" sx={{ '&:hover': { color: 'white' } }}>{t('footer.privacy')}</Typography></Link>
-                            <Link to="/terms" style={{ textDecoration: 'none', color: 'inherit' }}><Typography variant="caption" sx={{ '&:hover': { color: 'white' } }}>{t('footer.terms')}</Typography></Link>
+                            <Link to="/privacy" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <Typography variant="caption" sx={{ transition: 'color 0.25s ease', '&:hover': { color: (t) => t.palette.footer.linkHover } }}>{t('footer.privacy')}</Typography>
+                            </Link>
+                            <Link to="/terms" style={{ textDecoration: 'none', color: 'inherit' }}>
+                                <Typography variant="caption" sx={{ transition: 'color 0.25s ease', '&:hover': { color: (t) => t.palette.footer.linkHover } }}>{t('footer.terms')}</Typography>
+                            </Link>
                         </Stack>
                     </Box>
                 </Container>
