@@ -216,6 +216,7 @@ const PillButton = styled(Button)(({ theme }) => ({
 
 function Home() {
     const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
     const [selectedAmount, setSelectedAmount] = useState(null);
     const lang = getLanguage();
     const isEn = lang === 'en';
@@ -468,33 +469,71 @@ function Home() {
             {/* ========== QUICK DONATE ========== */}
             <QuickDonateSection>
                 <Container maxWidth="md">
-                    <Box sx={{ textAlign: 'center', mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold" gutterBottom color="primary.main">{t('home.quickDonate')}</Typography>
-                        <Typography variant="h6" color="text.secondary">{t('home.chooseAmount')}</Typography>
+                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                        <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                            {t('home.quickDonate')}
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 420, mx: 'auto', lineHeight: 1.7, fontWeight: 400 }}>
+                            {t('home.chooseAmount')}
+                        </Typography>
                     </Box>
 
-                    <Card sx={{ p: { xs: 3, md: 4 }, borderRadius: (t) => `${t.custom.radius.xl}px`, boxShadow: theme.shadows[5] }}>
-                        <Grid container spacing={2} sx={{ mb: 4 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            p: { xs: 3, md: 4 },
+                            borderRadius: (t) => `${t.custom.radius.xl}px`,
+                            border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.06)' : alpha(theme.palette.primary.main, 0.10)}`,
+                            bgcolor: isDark ? '#152b2b' : '#fff',
+                            boxShadow: isDark
+                                ? '0 4px 24px rgba(0,0,0,0.30)'
+                                : '0 4px 24px rgba(11,107,107,0.08)',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 4, justifyContent: 'center' }}>
                             {donationAmounts.map(amount => (
-                                <Grid item xs={4} sm={2} key={amount}>
-                                    <Button
-                                        variant={selectedAmount === amount ? "contained" : "outlined"}
-                                        color="primary"
-                                        fullWidth
-                                        onClick={() => setSelectedAmount(amount)}
-                                        sx={{
-                                            borderRadius: (t) => `${t.custom.radius.md}px`,
-                                            py: 1.5,
-                                            borderWidth: 2,
-                                            fontWeight: 'bold',
-                                            '&:hover': { borderWidth: 2 }
-                                        }}
-                                    >
-                                        {formatNumber(amount)}
-                                    </Button>
-                                </Grid>
+                                <Button
+                                    key={amount}
+                                    variant={selectedAmount === amount ? 'contained' : 'outlined'}
+                                    color="primary"
+                                    onClick={() => setSelectedAmount(amount)}
+                                    sx={{
+                                        minWidth: { xs: 'calc(33.33% - 12px)', sm: 100 },
+                                        height: 48,
+                                        borderRadius: '14px',
+                                        fontWeight: 700,
+                                        fontSize: '1rem',
+                                        transition: 'all 250ms ease',
+                                        border: selectedAmount === amount
+                                            ? `2px solid ${theme.palette.primary.main}`
+                                            : `1.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : alpha(theme.palette.primary.main, 0.20)}`,
+                                        bgcolor: selectedAmount === amount
+                                            ? (isDark ? alpha(theme.palette.primary.main, 0.22) : alpha(theme.palette.primary.main, 0.10))
+                                            : 'transparent',
+                                        color: selectedAmount === amount
+                                            ? (isDark ? theme.palette.primary.light : theme.palette.primary.dark)
+                                            : 'text.primary',
+                                        boxShadow: selectedAmount === amount
+                                            ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}`
+                                            : 'none',
+                                        '&:hover': {
+                                            transform: 'translateY(-2px)',
+                                            borderColor: theme.palette.primary.main,
+                                            bgcolor: selectedAmount === amount
+                                                ? (isDark ? alpha(theme.palette.primary.main, 0.28) : alpha(theme.palette.primary.main, 0.15))
+                                                : alpha(theme.palette.primary.main, 0.04),
+                                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                                        },
+                                        '&:focus-visible': {
+                                            outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                                            outlineOffset: 2,
+                                        },
+                                    }}
+                                >
+                                    {formatNumber(amount)}
+                                </Button>
                             ))}
-                        </Grid>
+                        </Box>
                         <Button
                             component={Link}
                             to={`/donate${selectedAmount ? `?amount=${selectedAmount}` : ''}`}
@@ -505,7 +544,32 @@ function Home() {
                             sx={{
                                 height: 56,
                                 fontSize: '1.1rem',
+                                fontWeight: 700,
                                 borderRadius: (t) => `${t.custom.radius.pill}px`,
+                                textTransform: 'none',
+                                transition: 'all 250ms ease',
+                                ...(!selectedAmount ? {} : {
+                                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                    boxShadow: isDark
+                                        ? '0 4px 16px rgba(0,0,0,0.35)'
+                                        : `0 4px 16px ${alpha(theme.palette.primary.main, 0.30)}`,
+                                }),
+                                '&:hover:not(:disabled)': {
+                                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                                    boxShadow: isDark
+                                        ? '0 6px 24px rgba(0,0,0,0.45)'
+                                        : `0 6px 24px ${alpha(theme.palette.primary.main, 0.35)}`,
+                                },
+                                '&:active:not(:disabled)': {
+                                    transform: 'scale(0.985)',
+                                },
+                                '&:focus-visible': {
+                                    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}`,
+                                },
+                                '&.Mui-disabled': {
+                                    bgcolor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)',
+                                    color: isDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.30)',
+                                },
                             }}
                         >
                             {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
