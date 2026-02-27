@@ -295,7 +295,19 @@
             "phone": "Phone Number (Optional)",
             "subject": "Subject",
             "message": "Your Message",
-            "send": "Send Message"
+            "send": "Send Message",
+            "sending": "Sending...",
+            "errors": {
+                "nameRequired": "This field is required",
+                "nameMin": "Name must be at least 3 characters",
+                "emailRequired": "This field is required",
+                "emailInvalid": "Invalid email address",
+                "phoneInvalid": "Invalid phone number (10–15 digits)",
+                "subjectRequired": "This field is required",
+                "subjectMin": "Subject must be at least 3 characters",
+                "messageRequired": "This field is required",
+                "messageMin": "Message must be at least 10 characters"
+            }
         },
         "info": {
             "address": "Cairo, Egypt - Tahrir Street",
