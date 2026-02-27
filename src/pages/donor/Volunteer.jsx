@@ -48,7 +48,14 @@ const HeroSection = styled(Box)(({ theme }) => ({
     background: `linear-gradient(135deg, ${theme.palette.hero.base} 0%, ${theme.palette.hero.dark} 100%)`,
     color: theme.palette.common.white,
     textAlign: 'center',
-    padding: theme.spacing(12, 2),
+    padding: theme.spacing(14, 2),
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at 50% 100%, rgba(255,255,255,0.07) 0%, transparent 60%)',
+        pointerEvents: 'none',
+    },
 }));
 
 const Particle = styled(Box)(({ top, left, size, delay }) => ({
@@ -71,11 +78,20 @@ const ImpactCard = styled(Paper)(({ theme }) => ({
     flexDirection: 'column',
     alignItems: 'center',
     gap: theme.spacing(1),
-    transition: 'all 0.3s ease',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
     height: '100%',
+    border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.08)' : 'none',
     '&:hover': {
-        transform: 'translateY(-5px)',
-        boxShadow: theme.shadows[10],
+        transform: 'translateY(-3px)',
+        boxShadow: theme.palette.mode === 'dark'
+            ? `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${alpha(theme.palette.primary.main, 0.2)}`
+            : '0 8px 24px rgba(0,0,0,0.1)',
+    },
+    '&:hover i': {
+        transform: 'scale(1.05)',
+    },
+    '& i': {
+        transition: 'transform 0.3s ease',
     },
 }));
 
@@ -84,12 +100,20 @@ const WhyCard = styled(Paper)(({ theme }) => ({
     textAlign: 'center',
     borderRadius: theme.shape.borderRadius * 2,
     border: `1px solid ${theme.palette.divider}`,
-    transition: 'all 0.3s ease',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
     height: '100%',
     '&:hover': {
-        borderColor: theme.palette.primary.light,
-        boxShadow: theme.shadows[4],
         transform: 'translateY(-3px)',
+        borderColor: alpha(theme.palette.primary.main, 0.4),
+        boxShadow: theme.palette.mode === 'dark'
+            ? `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${alpha(theme.palette.primary.main, 0.2)}`
+            : '0 8px 24px rgba(0,0,0,0.1)',
+    },
+    '&:hover i': {
+        transform: 'scale(1.05)',
+    },
+    '& i': {
+        transition: 'transform 0.3s ease',
     },
 }));
 
@@ -98,25 +122,38 @@ const OpportunityCard = styled(Box)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius * 2,
     padding: theme.spacing(4),
     textAlign: 'center',
-    border: '2px solid transparent',
-    transition: 'all 0.3s ease',
+    border: `1px solid ${theme.palette.divider}`,
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
     cursor: 'pointer',
     height: '100%',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     '&:hover': {
-        borderColor: alpha(theme.palette.primary.main, 0.3),
-        transform: 'scale(1.03)',
-        boxShadow: theme.shadows[4],
+        transform: 'translateY(-3px)',
+        borderColor: alpha(theme.palette.primary.main, 0.4),
+        boxShadow: theme.palette.mode === 'dark'
+            ? `0 4px 20px rgba(0,0,0,0.35), 0 0 0 1px ${alpha(theme.palette.primary.main, 0.2)}`
+            : '0 8px 24px rgba(0,0,0,0.1)',
+    },
+    '&:hover i': {
+        transform: 'scale(1.05)',
+    },
+    '& i': {
+        transition: 'transform 0.3s ease',
     },
 }));
 
 const SignupSection = styled(Paper)(({ theme }) => ({
     borderRadius: theme.shape.borderRadius * 3,
     overflow: 'hidden',
-    boxShadow: theme.shadows[10],
-    background: theme.palette.background.paper,
+    boxShadow: theme.palette.mode === 'dark'
+        ? '0 8px 32px rgba(0,0,0,0.4)'
+        : theme.shadows[10],
+    background: theme.palette.mode === 'dark'
+        ? `linear-gradient(180deg, rgba(255,255,255,0.03) 0%, ${theme.palette.background.paper} 100%)`
+        : theme.palette.background.paper,
+    border: theme.palette.mode === 'dark' ? '1px solid rgba(255,255,255,0.08)' : 'none',
 }));
 
 const SignupInfo = styled(Box)(({ theme }) => ({
@@ -135,6 +172,33 @@ function Volunteer() {
     const isEn = getLanguage() === 'en';
     const [form, setForm] = useState({ name: '', email: '', phone: '', area: '', message: '' });
     const [submitted, setSubmitted] = useState(false);
+    const [touched, setTouched] = useState({});
+
+    const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
+    const isEmailValid = (email) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPhoneValid = (phone) => {
+        if (!phone) return false;
+        const digits = phone.replace(/\D/g, '');
+        return digits.length >= 10 && digits.length <= 15;
+    };
+    const getError = (field) => {
+        if (!touched[field]) return false;
+        if (field === 'name') return !form.name || form.name.trim().length < 3;
+        if (field === 'email') return !form.email || !isEmailValid(form.email);
+        if (field === 'phone') return !form.phone || !isPhoneValid(form.phone);
+        if (field === 'area') return !form[field];
+        return false;
+    };
+    const getHelper = (field) => {
+        if (!getError(field)) return ' ';
+        if (field === 'name' && form.name && form.name.trim().length < 3)
+            return isEn ? 'Name must be at least 3 characters' : 'الاسم يجب أن يكون 3 أحرف على الأقل';
+        if (field === 'email' && form.email)
+            return isEn ? 'Enter a valid email' : 'أدخل بريدًا صالحًا';
+        if (field === 'phone' && form.phone)
+            return isEn ? 'Enter a valid phone (10–15 digits)' : 'أدخل رقمًا صالحًا (10–15 رقم)';
+        return isEn ? 'This field is required' : 'هذا الحقل مطلوب';
+    };
 
     const volunteerAreas = [
         { id: 'medical', icon: 'fa-solid fa-hospital', label: isEn ? 'Medical' : 'طبي', desc: isEn ? 'Participate in medical convoys and health awareness' : 'المشاركة في القوافل الطبية والتوعية الصحية' },
@@ -161,9 +225,21 @@ function Volunteer() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        // Mark all required fields touched on submit
+        const allTouched = { name: true, email: true, phone: true, area: true };
+        setTouched(allTouched);
+        // Check validity
+        const hasErrors = ['name', 'email', 'phone', 'area'].some(f => {
+            if (f === 'name') return !form.name || form.name.trim().length < 3;
+            if (f === 'email') return !form.email || !isEmailValid(form.email);
+            if (f === 'phone') return !form.phone || !isPhoneValid(form.phone);
+            return !form[f];
+        });
+        if (hasErrors) return;
         setSubmitted(true);
         setTimeout(() => setSubmitted(false), 3000);
         setForm({ name: '', email: '', phone: '', area: '', message: '' });
+        setTouched({});
     };
 
     const particles = [
@@ -185,21 +261,43 @@ function Volunteer() {
                 <Container sx={{ position: 'relative', zIndex: 1 }}>
                     <Typography
                         variant="h3"
-                        fontWeight="bold"
-                        gutterBottom
-                        sx={{ animation: `${fadeInUp} 0.6s ease forwards` }}
+                        sx={{
+                            fontWeight: 800,
+                            fontSize: { xs: '1.75rem', md: '2.25rem' },
+                            lineHeight: 1.15,
+                            letterSpacing: '-0.02em',
+                            mb: 3,
+                            animation: `${fadeInUp} 0.6s ease forwards`,
+                        }}
                     >
                         {t('volunteer.title')}
                     </Typography>
                     <Typography
                         variant="h6"
-                        sx={{ maxWidth: 600, mx: 'auto', mb: 2, animation: `${fadeInUp} 0.6s ease forwards 0.2s`, opacity: 0, animationFillMode: 'forwards' }}
+                        sx={{
+                            maxWidth: 640,
+                            mx: 'auto',
+                            mb: 2.5,
+                            lineHeight: 1.55,
+                            color: 'rgba(255,255,255,0.9)',
+                            animation: `${fadeInUp} 0.6s ease forwards 0.2s`,
+                            opacity: 0,
+                            animationFillMode: 'forwards',
+                        }}
                     >
                         {t('volunteer.subtitle')}
                     </Typography>
                     <Typography
                         variant="body1"
-                        sx={{ maxWidth: 800, mx: 'auto', animation: `${fadeInUp} 0.6s ease forwards 0.3s`, opacity: 0, animationFillMode: 'forwards' }}
+                        sx={{
+                            maxWidth: 800,
+                            mx: 'auto',
+                            lineHeight: 1.7,
+                            color: 'rgba(255,255,255,0.85)',
+                            animation: `${fadeInUp} 0.6s ease forwards 0.3s`,
+                            opacity: 0,
+                            animationFillMode: 'forwards',
+                        }}
                     >
                         {t('volunteer.description')}
                     </Typography>
@@ -227,8 +325,18 @@ function Volunteer() {
                 </Grid>
 
                 {/* Why Volunteer */}
-                <Box sx={{ mb: 12 }}>
-                    <Typography variant="h4" textAlign="center" gutterBottom sx={{ mb: 6 }}>
+                <Box sx={{
+                    mb: 10,
+                    py: 8,
+                    mx: -3,
+                    px: 3,
+                    borderRadius: 3,
+                    background: (theme) =>
+                        theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.015)'
+                            : 'rgba(11,107,107,0.02)',
+                }}>
+                    <Typography variant="h4" textAlign="center" gutterBottom sx={{ mb: 7 }}>
                         {t('volunteer.whyVolunteer')}
                     </Typography>
                     <Grid container spacing={4}>
@@ -251,8 +359,8 @@ function Volunteer() {
                 </Box>
 
                 {/* Opportunities */}
-                <Box sx={{ mb: 12 }}>
-                    <Typography variant="h4" textAlign="center" gutterBottom sx={{ mb: 6 }}>
+                <Box sx={{ mb: 10 }}>
+                    <Typography variant="h4" textAlign="center" gutterBottom sx={{ mb: 7 }}>
                         {t('volunteer.opportunities')}
                     </Typography>
                     <Grid container spacing={3}>
@@ -291,13 +399,29 @@ function Volunteer() {
                             </SignupInfo>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                            <Box sx={{ p: 6 }}>
+                            <Box sx={{
+                                p: 6,
+                                '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: 'primary.main',
+                                    boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.12)}`,
+                                },
+                                '& .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline': {
+                                    boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.error.main, 0.1)}`,
+                                },
+                                '& .MuiFormHelperText-root.Mui-error': {
+                                    fontSize: '0.78rem',
+                                    mt: 0.5,
+                                },
+                            }}>
                                 <form onSubmit={handleSubmit}>
-                                    <Stack spacing={3}>
+                                    <Stack spacing={3.5}>
                                         <TextField
                                             label={t('volunteer.name')}
                                             value={form.name}
                                             onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                                            onBlur={() => handleBlur('name')}
+                                            error={getError('name')}
+                                            helperText={getHelper('name')}
                                             required
                                             fullWidth
                                             variant="outlined"
@@ -307,6 +431,9 @@ function Volunteer() {
                                             type="email"
                                             value={form.email}
                                             onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                                            onBlur={() => handleBlur('email')}
+                                            error={getError('email')}
+                                            helperText={getHelper('email')}
                                             required
                                             fullWidth
                                         />
@@ -315,21 +442,30 @@ function Volunteer() {
                                             type="tel"
                                             value={form.phone}
                                             onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                                            onBlur={() => handleBlur('phone')}
+                                            error={getError('phone')}
+                                            helperText={getHelper('phone')}
                                             required
                                             fullWidth
                                         />
-                                        <FormControl fullWidth required>
+                                        <FormControl fullWidth required error={getError('area')}>
                                             <InputLabel>{t('volunteer.area')}</InputLabel>
                                             <Select
                                                 value={form.area}
                                                 label={t('volunteer.area')}
                                                 onChange={e => setForm(p => ({ ...p, area: e.target.value }))}
+                                                onBlur={() => handleBlur('area')}
                                             >
                                                 <MenuItem value="">{t('volunteer.areaPlaceholder')}</MenuItem>
                                                 {volunteerAreas.map(a => (
                                                     <MenuItem key={a.id} value={a.id}>{a.label}</MenuItem>
                                                 ))}
                                             </Select>
+                                            {getError('area') && (
+                                                <Typography variant="caption" color="error" sx={{ mt: 0.5, mx: 1.75, fontSize: '0.78rem' }}>
+                                                    {getHelper('area')}
+                                                </Typography>
+                                            )}
                                         </FormControl>
                                         <TextField
                                             label={t('volunteer.message')}
@@ -345,7 +481,19 @@ function Volunteer() {
                                             size="large"
                                             fullWidth
                                             disabled={submitted}
-                                            sx={{ mt: 2 }}
+                                            sx={{
+                                                mt: 2,
+                                                transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+                                                '&:hover:not(:disabled)': {
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: (t) => `0 6px 20px ${alpha(t.palette.primary.main, 0.35)}`,
+                                                },
+                                                '&.Mui-disabled': {
+                                                    opacity: 0.65,
+                                                    color: (t) => t.palette.primary.contrastText,
+                                                    backgroundColor: (t) => alpha(t.palette.primary.main, 0.5),
+                                                },
+                                            }}
                                         >
                                             {submitted ? (
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
