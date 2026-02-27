@@ -179,32 +179,38 @@ const QuickDonateSection = styled(Box)(({ theme }) => ({
     overflow: 'hidden',
 }));
 
-const TestimonialCard = styled(Card)(({ theme }) => ({
-    height: '100%',
-    padding: theme.spacing(4),
-    borderRadius: 24, // Use specific radius fro design
-    backgroundColor: theme.palette.common.white,
-    position: 'relative',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-    '&:hover': {
-        transform: 'translateY(-5px)',
-        boxShadow: '0 8px 30px rgba(0,0,0,0.1)',
-    },
-    '&::before': {
-        content: '"\\201C"',
-        position: 'absolute',
-        top: theme.spacing(2),
-        left: theme.spacing(3), // Always on left for decorative purpose or based on Lang?
-        // Let's make it consistent with the image which shows it on the left (for RTL reading it might be end, but image shows left)
-        // Actually in the image for "قالوا عن نور" (RTL), the quote marks are on the Left side.
-        fontSize: '6rem',
-        color: '#E0F2F1', // Light Teal/Mint
-        lineHeight: 1,
-        fontFamily: 'serif',
-        zIndex: 0
-    }
-}));
+const TestimonialCard = styled(Card)(({ theme }) => {
+    const isDark = theme.palette.mode === 'dark';
+    return {
+        height: '100%',
+        padding: theme.spacing(4),
+        borderRadius: 24,
+        backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : theme.palette.common.white,
+        position: 'relative',
+        boxShadow: isDark
+            ? '0 2px 12px rgba(0,0,0,0.25)'
+            : '0 4px 20px rgba(0,0,0,0.05)',
+        border: isDark ? '1px solid rgba(255,255,255,0.08)' : 'none',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+            transform: 'translateY(-5px)',
+            boxShadow: isDark
+                ? '0 8px 28px rgba(0,0,0,0.35)'
+                : '0 8px 30px rgba(0,0,0,0.1)',
+        },
+        '&::before': {
+            content: '"\\201C"',
+            position: 'absolute',
+            top: theme.spacing(2),
+            left: theme.spacing(3),
+            fontSize: '6rem',
+            color: isDark ? 'rgba(255,255,255,0.06)' : '#E0F2F1',
+            lineHeight: 1,
+            fontFamily: 'serif',
+            zIndex: 0,
+        },
+    };
+});
 
 const PillButton = styled(Button)(({ theme }) => ({
     borderRadius: theme.custom.radius.pill,
@@ -216,6 +222,7 @@ const PillButton = styled(Button)(({ theme }) => ({
 
 function Home() {
     const theme = useTheme();
+    const isDark = theme.palette.mode === 'dark';
     const [selectedAmount, setSelectedAmount] = useState(null);
     const lang = getLanguage();
     const isEn = lang === 'en';
@@ -468,33 +475,71 @@ function Home() {
             {/* ========== QUICK DONATE ========== */}
             <QuickDonateSection>
                 <Container maxWidth="md">
-                    <Box sx={{ textAlign: 'center', mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold" gutterBottom color="primary.main">{t('home.quickDonate')}</Typography>
-                        <Typography variant="h6" color="text.secondary">{t('home.chooseAmount')}</Typography>
+                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                        <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: 'primary.main' }}>
+                            {t('home.quickDonate')}
+                        </Typography>
+                        <Typography variant="body1" sx={{ color: 'text.secondary', maxWidth: 420, mx: 'auto', lineHeight: 1.7, fontWeight: 400 }}>
+                            {t('home.chooseAmount')}
+                        </Typography>
                     </Box>
 
-                    <Card sx={{ p: { xs: 3, md: 4 }, borderRadius: (t) => `${t.custom.radius.xl}px`, boxShadow: theme.shadows[5] }}>
-                        <Grid container spacing={2} sx={{ mb: 4 }}>
+                    <Card
+                        elevation={0}
+                        sx={{
+                            p: { xs: 3, md: 4 },
+                            borderRadius: (t) => `${t.custom.radius.xl}px`,
+                            border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.09)' : alpha(theme.palette.primary.main, 0.10)}`,
+                            bgcolor: isDark ? 'rgba(255,255,255,0.045)' : '#fff',
+                            boxShadow: isDark
+                                ? '0 2px 12px rgba(0,0,0,0.20)'
+                                : '0 4px 24px rgba(11,107,107,0.08)',
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, mb: 4, justifyContent: 'center' }}>
                             {donationAmounts.map(amount => (
-                                <Grid item xs={4} sm={2} key={amount}>
-                                    <Button
-                                        variant={selectedAmount === amount ? "contained" : "outlined"}
-                                        color="primary"
-                                        fullWidth
-                                        onClick={() => setSelectedAmount(amount)}
-                                        sx={{
-                                            borderRadius: (t) => `${t.custom.radius.md}px`,
-                                            py: 1.5,
-                                            borderWidth: 2,
-                                            fontWeight: 'bold',
-                                            '&:hover': { borderWidth: 2 }
-                                        }}
-                                    >
-                                        {formatNumber(amount)}
-                                    </Button>
-                                </Grid>
+                                <Button
+                                    key={amount}
+                                    variant={selectedAmount === amount ? 'contained' : 'outlined'}
+                                    color="primary"
+                                    onClick={() => setSelectedAmount(amount)}
+                                    sx={{
+                                        minWidth: { xs: 'calc(33.33% - 12px)', sm: 100 },
+                                        height: 48,
+                                        borderRadius: '14px',
+                                        fontWeight: 700,
+                                        fontSize: '1rem',
+                                        transition: 'all 250ms ease',
+                                        border: selectedAmount === amount
+                                            ? `2px solid ${theme.palette.primary.main}`
+                                            : `1.5px solid ${isDark ? 'rgba(255,255,255,0.10)' : alpha(theme.palette.primary.main, 0.20)}`,
+                                        bgcolor: selectedAmount === amount
+                                            ? (isDark ? alpha(theme.palette.primary.main, 0.22) : alpha(theme.palette.primary.main, 0.10))
+                                            : 'transparent',
+                                        color: selectedAmount === amount
+                                            ? (isDark ? theme.palette.primary.light : theme.palette.primary.dark)
+                                            : 'text.primary',
+                                        boxShadow: selectedAmount === amount
+                                            ? `0 0 0 3px ${alpha(theme.palette.primary.main, 0.12)}`
+                                            : 'none',
+                                        '&:hover': {
+                                            transform: 'translateY(-2px)',
+                                            borderColor: theme.palette.primary.main,
+                                            bgcolor: selectedAmount === amount
+                                                ? (isDark ? alpha(theme.palette.primary.main, 0.28) : alpha(theme.palette.primary.main, 0.15))
+                                                : alpha(theme.palette.primary.main, 0.04),
+                                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                                        },
+                                        '&:focus-visible': {
+                                            outline: `2px solid ${alpha(theme.palette.primary.main, 0.5)}`,
+                                            outlineOffset: 2,
+                                        },
+                                    }}
+                                >
+                                    {formatNumber(amount)}
+                                </Button>
                             ))}
-                        </Grid>
+                        </Box>
                         <Button
                             component={Link}
                             to={`/donate${selectedAmount ? `?amount=${selectedAmount}` : ''}`}
@@ -505,7 +550,32 @@ function Home() {
                             sx={{
                                 height: 56,
                                 fontSize: '1.1rem',
+                                fontWeight: 700,
                                 borderRadius: (t) => `${t.custom.radius.pill}px`,
+                                textTransform: 'none',
+                                transition: 'all 250ms ease',
+                                ...(!selectedAmount ? {} : {
+                                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                    boxShadow: isDark
+                                        ? '0 4px 16px rgba(0,0,0,0.35)'
+                                        : `0 4px 16px ${alpha(theme.palette.primary.main, 0.30)}`,
+                                }),
+                                '&:hover:not(:disabled)': {
+                                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                                    boxShadow: isDark
+                                        ? '0 6px 24px rgba(0,0,0,0.45)'
+                                        : `0 6px 24px ${alpha(theme.palette.primary.main, 0.35)}`,
+                                },
+                                '&:active:not(:disabled)': {
+                                    transform: 'scale(0.985)',
+                                },
+                                '&:focus-visible': {
+                                    boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}`,
+                                },
+                                '&.Mui-disabled': {
+                                    bgcolor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
+                                    color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.30)',
+                                },
                             }}
                         >
                             {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
@@ -515,7 +585,11 @@ function Home() {
             </QuickDonateSection>
 
             {/* ========== TESTIMONIALS ========== */}
-            <Box sx={{ py: sectionPy }}>
+            <Box sx={{
+                pt: sectionPy,
+                pb: { xs: 4, md: 6 },
+                bgcolor: isDark ? 'rgba(255,255,255,0.015)' : undefined,
+            }}>
                 <Container>
                     <Typography variant="h3" fontWeight="bold" textAlign="center" sx={{ mb: 6 }}>
                         {t('home.testimonials')}
@@ -537,58 +611,122 @@ function Home() {
             </Box>
 
             {/* ========== LATEST UPDATES ========== */}
-            <Box sx={{ py: sectionPy, bgcolor: 'background.default' }}>
+            <Box sx={{
+                py: sectionPy,
+                bgcolor: isDark
+                    ? 'rgba(255,255,255,0.025)'
+                    : alpha(theme.palette.primary.main, 0.025),
+            }}>
                 <Container>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold">{t('home.latestUpdates')}</Typography>
-                        <Button component={Link} to="/updates" endIcon={isEn ? '→' : '←'}>
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        mb: 4,
+                    }}>
+                        <Typography
+                            variant="h3"
+                            sx={{ fontWeight: 800, fontSize: { xs: '1.75rem', md: '2.4rem' } }}
+                        >
+                            {t('home.latestUpdates')}
+                        </Typography>
+                        <Button
+                            component={Link}
+                            to="/updates"
+                            endIcon={isEn ? '→' : '←'}
+                            sx={{
+                                fontWeight: 500,
+                                color: 'primary.main',
+                                fontSize: '0.9rem',
+                                textDecoration: 'none',
+                                transition: 'color 200ms ease',
+                                '&:hover': {
+                                    bgcolor: 'transparent',
+                                    textDecoration: 'underline',
+                                    color: 'primary.dark',
+                                },
+                            }}
+                        >
                             {t('common.viewAll')}
                         </Button>
                     </Box>
                     <Grid container spacing={3}>
                         {updates.slice(0, 3).map((update, i) => (
                             <Grid item xs={12} md={4} key={update.id} sx={{ display: 'flex' }}>
-                                <Card sx={{
-                                    height: '100%',
-                                    borderRadius: 4,
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    p: 2,
-                                    gap: 2, // Use gap for spacing
-                                    transition: 'all 0.3s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-3px)',
-                                        boxShadow: '0 8px 25px rgba(0,0,0,0.1)'
-                                    }
-                                }}>
-
-                                    {/* Icon Area */}
-                                    {/* Image shows icon on valid Left (end in RTL) or Start?
-                                        In RTL "basha'ir al-khayr", the text is on right. Icon is on left.
-                                        So it's flex-row-reverse? No, if direction is RTL, start is right.
-                                        Leading (start) -> Text. Trailing (end) -> Icon.
-                                        Let's assume standard flex direction with icon at the end (left).
-                                     */}
-
+                                <Card
+                                    component={Link}
+                                    to={`/updates/${update.id}`}
+                                    sx={{
+                                        height: '100%',
+                                        width: '100%',
+                                        borderRadius: 4,
+                                        boxShadow: isDark
+                                            ? '0 2px 10px rgba(0,0,0,0.25)'
+                                            : '0 1px 6px rgba(0,0,0,0.06)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        p: 2.5,
+                                        gap: 2,
+                                        textDecoration: 'none',
+                                        color: 'inherit',
+                                        cursor: 'pointer',
+                                        willChange: 'transform, box-shadow',
+                                        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'}`,
+                                        bgcolor: isDark ? 'rgba(255,255,255,0.04)' : undefined,
+                                        '&:hover': {
+                                            transform: 'translateY(-5px)',
+                                            boxShadow: isDark
+                                                ? '0 8px 28px rgba(0,0,0,0.35)'
+                                                : '0 8px 30px rgba(0,0,0,0.1)',
+                                            '& .news-icon-box': {
+                                                transform: 'translateY(-2px)',
+                                            },
+                                        },
+                                    }}
+                                >
                                     <Box sx={{ flex: 1, textAlign: isEn ? 'left' : 'right' }}>
-                                        <Typography variant="body1" fontWeight="bold" sx={{ mb: 1, lineHeight: 1.4 }}>
+                                        <Typography
+                                            variant="body1"
+                                            sx={{
+                                                fontWeight: 700,
+                                                mb: 0.75,
+                                                lineHeight: 1.45,
+                                                color: 'text.primary',
+                                            }}
+                                        >
                                             {update.title}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                display: 'block',
+                                                color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)',
+                                                fontWeight: 500,
+                                                letterSpacing: '0.01em',
+                                            }}
+                                        >
                                             {update.date}
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        color: '#1F2D3D' // Dark Navy from design image
-                                    }}>
-                                        <i className="fa-solid fa-bullhorn" style={{ fontSize: '1.5rem', transform: 'rotate(-20deg)' }}></i>
+                                    <Box
+                                        className="news-icon-box"
+                                        sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: 44,
+                                            height: 44,
+                                            borderRadius: '12px',
+                                            bgcolor: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.08),
+                                            color: 'primary.main',
+                                            flexShrink: 0,
+                                            transition: 'transform 0.3s ease',
+                                        }}
+                                    >
+                                        <i className="fa-solid fa-bullhorn" style={{ fontSize: '1.1rem', transform: 'rotate(-20deg)' }}></i>
                                     </Box>
-
                                 </Card>
                             </Grid>
                         ))}
@@ -597,10 +735,34 @@ function Home() {
             </Box>
 
             {/* ========== CTA ========== */}
-            <Box sx={{ py: sectionPy, textAlign: 'center' }}>
+            <Box sx={{
+                py: sectionPy,
+                textAlign: 'center',
+                bgcolor: isDark
+                    ? 'rgba(255,255,255,0.02)'
+                    : alpha(theme.palette.primary.main, 0.03),
+                position: 'relative',
+            }}>
                 <Container maxWidth="md">
-                    <Typography variant="h3" fontWeight="bold" gutterBottom>{t('home.ctaTitle')}</Typography>
-                    <Typography variant="h6" color="text.secondary" sx={{ mb: 6 }}>{t('home.ctaSubtitle')}</Typography>
+                    <Typography
+                        variant="h3"
+                        sx={{ fontWeight: 800, mb: 2 }}
+                    >
+                        {t('home.ctaTitle')}
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.6)',
+                            mb: 5,
+                            maxWidth: 520,
+                            mx: 'auto',
+                            lineHeight: 1.7,
+                            fontWeight: 400,
+                        }}
+                    >
+                        {t('home.ctaSubtitle')}
+                    </Typography>
                     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
                         <PillButton
                             component={Link}
@@ -608,7 +770,20 @@ function Home() {
                             variant="contained"
                             color="primary"
                             size="large"
-                            sx={{ boxShadow: theme.shadows[4] }}
+                            sx={{
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                boxShadow: isDark
+                                    ? '0 4px 20px rgba(0,0,0,0.35)'
+                                    : `0 4px 20px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                transition: 'all 200ms ease-in-out',
+                                '&:hover': {
+                                    background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: isDark
+                                        ? '0 8px 28px rgba(0,0,0,0.45)'
+                                        : `0 8px 28px ${alpha(theme.palette.primary.main, 0.35)}`,
+                                },
+                            }}
                         >
                             {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
                         </PillButton>
@@ -618,6 +793,16 @@ function Home() {
                             variant="outlined"
                             color="primary"
                             size="large"
+                            sx={{
+                                borderWidth: '1.5px',
+                                transition: 'all 200ms ease-in-out',
+                                '&:hover': {
+                                    borderWidth: '1.5px',
+                                    transform: 'translateY(-2px)',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.06),
+                                    boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.12)}`,
+                                },
+                            }}
                         >
                             {t('common.joinNow')}
                         </PillButton>
