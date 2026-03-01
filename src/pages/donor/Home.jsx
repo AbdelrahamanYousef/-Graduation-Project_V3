@@ -1,5 +1,5 @@
-import { useRef, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Box,
     Container,
@@ -20,7 +20,6 @@ import { t, formatCurrency, getLanguage, formatNumber } from '../../i18n'; // Ad
 import { projects, programs, updates, impactStats, donationAmounts, testimonials } from '../../data/mockData';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
-import { CampaignCardItem, QuickDonateModal } from './Campaigns';
 
 // --- Animations ---
 const fadeInUp = keyframes`
@@ -34,10 +33,34 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-const pulseGlow = keyframes`
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.75; transform: scale(1.05); }
-`;
+// --- Custom Hooks ---
+
+/**
+ * useInView – toggles visibility when the target enters/leaves the viewport.
+ * Resets on leave so the animation replays on re-entry.
+ * Returns [ref, isVisible].
+ */
+function useInView(options = {}) {
+    const ref = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    const handleObserver = useCallback(([entry]) => {
+        setIsVisible(entry.isIntersecting);
+    }, []);
+
+    useEffect(() => {
+        const node = ref.current;
+        if (!node) return;
+        const observer = new IntersectionObserver(handleObserver, {
+            threshold: 0.2,
+            ...options,
+        });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [handleObserver]);
+
+    return [ref, isVisible];
+}
 
 // --- Styled Components ---
 
@@ -230,11 +253,10 @@ function Home() {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const [selectedAmount, setSelectedAmount] = useState(null);
-    const [donateProject, setDonateProject] = useState(null);
-    const navigate = useNavigate();
     const lang = getLanguage();
     const isEn = lang === 'en';
-    const featuredProjects = projects.filter(p => p.featured);
+    const [testimonialRef, testimonialVisible] = useInView();
+    const featuredProjects = projects.filter(p => p.featured).slice(0, 3);
 
     // Consistent section py value
     const sectionPy = theme.custom.sectionPadding;
@@ -461,125 +483,22 @@ function Home() {
                 </Container>
             </Box>
 
-            {/* ========== URGENT CASES — الحالات الأشد احتياجاً ========== */}
-            <Box sx={{
-                py: sectionPy,
-                bgcolor: isDark
-                    ? 'rgba(255,255,255,0.02)'
-                    : alpha(theme.palette.primary.main, 0.025),
-                position: 'relative',
-                overflow: 'hidden',
-            }}>
-                {/* Decorative background glow */}
-                <Box sx={{
-                    position: 'absolute',
-                    top: -80,
-                    right: '10%',
-                    width: 350,
-                    height: 350,
-                    borderRadius: '50%',
-                    background: `radial-gradient(circle, ${alpha(theme.palette.error.main, 0.06)} 0%, transparent 70%)`,
-                    pointerEvents: 'none',
-                    filter: 'blur(40px)',
-                }} />
+            {/* ========== FEATURED CAMPAIGNS ========== */}
+            <Box sx={{ py: sectionPy, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
                 <Container>
-                    {/* Section header */}
-                    <Box sx={{ textAlign: 'center', mb: 5 }}>
-                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-                            <Typography
-                                variant="h3"
-                                fontWeight="900"
-                                sx={{
-                                    fontSize: { xs: '1.75rem', md: '2.4rem' },
-                                    background: isDark
-                                        ? `linear-gradient(135deg, ${theme.palette.primary.light}, ${theme.palette.error.light})`
-                                        : `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.error.main})`,
-                                    WebkitBackgroundClip: 'text',
-                                    WebkitTextFillColor: 'transparent',
-                                }}
-                            >
-                                {t('home.urgentCases')}
-                            </Typography>
-                            <Box
-                                sx={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                    bgcolor: alpha(theme.palette.error.main, isDark ? 0.20 : 0.10),
-                                    color: theme.palette.error.main,
-                                    px: 1.2,
-                                    py: 0.4,
-                                    borderRadius: '999px',
-                                    fontSize: '0.72rem',
-                                    fontWeight: 800,
-                                    animation: `${pulseGlow} 2s ease-in-out infinite`,
-                                }}
-                            >
-                                <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '0.7rem' }} />
-                                {isEn ? 'Urgent' : 'عاجل'}
-                            </Box>
-                        </Box>
-                        <Typography
-                            variant="body1"
-                            sx={{
-                                color: 'text.secondary',
-                                maxWidth: 500,
-                                mx: 'auto',
-                                lineHeight: 1.7,
-                                fontWeight: 400,
-                            }}
-                        >
-                            {t('home.urgentCasesSubtitle')}
-                        </Typography>
-                    </Box>
-
-                    {/* Cards grid */}
-                    <Box sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'center',
-                        gap: 3,
-                        mb: 4,
-                    }}>
-                        {featuredProjects.map((project, i) => (
-                            <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }, display: 'flex', justifyContent: 'center' }}>
-                                <CampaignCardItem
-                                    project={project}
-                                    index={i}
-                                    onClick={() => navigate(`/campaigns`)}
-                                    onDonate={(p) => setDonateProject(p)}
-                                />
-                            </Box>
-                        ))}
-                    </Box>
-
-                    {/* View all link */}
-                    <Box sx={{ textAlign: 'center' }}>
-                        <Button
-                            component={Link}
-                            to="/campaigns"
-                            variant="outlined"
-                            color="primary"
-                            endIcon={isEn ? '→' : '←'}
-                            sx={{
-                                borderRadius: '999px',
-                                px: 4,
-                                py: 1.2,
-                                fontWeight: 700,
-                                textTransform: 'none',
-                                fontSize: '0.95rem',
-                                borderWidth: '1.5px',
-                                transition: 'all 250ms ease',
-                                '&:hover': {
-                                    borderWidth: '1.5px',
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.15)}`,
-                                },
-                            }}
-                        >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
+                        <Typography variant="h3" fontWeight="bold">{t('home.featuredProjects')}</Typography>
+                        <Button component={Link} to="/campaigns" endIcon={isEn ? '→' : '←'}>
                             {t('common.viewAll')}
                         </Button>
                     </Box>
+                    <Grid container spacing={3}>
+                        {featuredProjects.map((project, i) => (
+                            <Grid item xs={12} md={4} key={project.id}>
+                                <ProjectCard project={project} isEn={isEn} />
+                            </Grid>
+                        ))}
+                    </Grid>
                 </Container>
             </Box>
 
@@ -696,18 +615,38 @@ function Home() {
             </QuickDonateSection>
 
             {/* ========== TESTIMONIALS ========== */}
-            <Box sx={{
-                pt: sectionPy,
-                pb: { xs: 4, md: 6 },
-                bgcolor: isDark ? 'rgba(255,255,255,0.015)' : undefined,
-            }}>
+            <Box
+                ref={testimonialRef}
+                sx={{
+                    pt: sectionPy,
+                    pb: { xs: 4, md: 6 },
+                    bgcolor: isDark ? 'rgba(255,255,255,0.015)' : undefined,
+                    overflow: 'hidden',
+                }}
+            >
                 <Container>
                     <Typography variant="h3" fontWeight="bold" textAlign="center" sx={{ mb: 6 }}>
                         {t('home.testimonials')}
                     </Typography>
                     <Grid container spacing={3}>
-                        {testimonials.map((testimonial) => (
-                            <Grid item xs={12} sm={6} md={4} key={testimonial.id} sx={{ display: 'flex' }}>
+                        {testimonials.map((testimonial, index) => (
+                            <Grid
+                                item
+                                xs={12}
+                                sm={6}
+                                md={4}
+                                key={testimonial.id}
+                                sx={{
+                                    display: 'flex',
+                                    opacity: testimonialVisible ? 1 : 0,
+                                    transform: testimonialVisible
+                                        ? 'translateX(0)'
+                                        : `translateX(${isEn ? '40px' : '-40px'})`,
+                                    transition: testimonialVisible
+                                        ? `opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${index * 0.15}s, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1) ${index * 0.15}s`
+                                        : 'opacity 0.3s ease, transform 0.3s ease',
+                                }}
+                            >
                                 <TestimonialCardItem
                                     text={isEn ? testimonial.textEn : testimonial.text}
                                     name={isEn ? testimonial.nameEn : testimonial.name}
@@ -733,7 +672,7 @@ function Home() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        mb: 4,
+                        mb: 5,
                     }}>
                         <Typography
                             variant="h3"
@@ -746,11 +685,11 @@ function Home() {
                             to="/updates"
                             endIcon={isEn ? '→' : '←'}
                             sx={{
-                                fontWeight: 500,
+                                fontWeight: 600,
                                 color: 'primary.main',
                                 fontSize: '0.9rem',
                                 textDecoration: 'none',
-                                transition: 'color 200ms ease',
+                                transition: 'all 250ms ease',
                                 '&:hover': {
                                     bgcolor: 'transparent',
                                     textDecoration: 'underline',
@@ -763,80 +702,123 @@ function Home() {
                     </Box>
                     <Grid container spacing={3}>
                         {updates.slice(0, 3).map((update, i) => (
-                            <Grid item xs={12} md={4} key={update.id} sx={{ display: 'flex' }}>
+                            <Grid item xs={12} sm={6} md={4} key={update.id} sx={{ display: 'flex' }}>
                                 <Card
                                     component={Link}
                                     to={`/updates/${update.id}`}
                                     sx={{
                                         height: '100%',
                                         width: '100%',
-                                        borderRadius: 4,
-                                        boxShadow: isDark
-                                            ? '0 2px 10px rgba(0,0,0,0.25)'
-                                            : '0 1px 6px rgba(0,0,0,0.06)',
+                                        borderRadius: '20px',
                                         display: 'flex',
-                                        alignItems: 'center',
-                                        p: 2.5,
-                                        gap: 2,
+                                        flexDirection: 'column',
+                                        overflow: 'hidden',
+                                        position: 'relative',
                                         textDecoration: 'none',
                                         color: 'inherit',
                                         cursor: 'pointer',
-                                        willChange: 'transform, box-shadow',
-                                        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'}`,
-                                        bgcolor: isDark ? 'rgba(255,255,255,0.04)' : undefined,
+                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : alpha(theme.palette.primary.main, 0.08)}`,
+                                        bgcolor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+                                        boxShadow: isDark
+                                            ? '0 2px 12px rgba(0,0,0,0.25)'
+                                            : '0 2px 10px rgba(0,0,0,0.05)',
+                                        willChange: 'transform, box-shadow, filter',
+                                        transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1), filter 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                                        /* gradient overlay – visible on hover */
+                                        '&::after': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            inset: 0,
+                                            borderRadius: 'inherit',
+                                            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)} 0%, transparent 60%)`,
+                                            opacity: 0,
+                                            transition: 'opacity 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                                            pointerEvents: 'none',
+                                            zIndex: 0,
+                                        },
                                         '&:hover': {
-                                            transform: 'translateY(-5px)',
+                                            transform: 'translateY(-8px) scale(1.03)',
+                                            filter: isDark ? 'brightness(1.12)' : 'brightness(1.02)',
+                                            borderColor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.18),
                                             boxShadow: isDark
-                                                ? '0 8px 28px rgba(0,0,0,0.35)'
-                                                : '0 8px 30px rgba(0,0,0,0.1)',
+                                                ? `0 16px 40px rgba(0,0,0,0.35), 0 0 28px ${alpha(theme.palette.primary.main, 0.14)}`
+                                                : `0 14px 36px rgba(0,0,0,0.08), 0 0 24px ${alpha(theme.palette.primary.main, 0.1)}`,
+                                            '&::after': {
+                                                opacity: 1,
+                                            },
                                             '& .news-icon-box': {
-                                                transform: 'translateY(-2px)',
+                                                transform: 'scale(1.1) rotate(5deg)',
+                                                bgcolor: alpha(theme.palette.primary.main, isDark ? 0.2 : 0.14),
+                                            },
+                                            '& .news-icon-box i': {
+                                                transform: 'rotate(-15deg) scale(1.1)',
                                             },
                                         },
                                     }}
                                 >
-                                    <Box sx={{ flex: 1, textAlign: isEn ? 'left' : 'right' }}>
-                                        <Typography
-                                            variant="body1"
-                                            sx={{
-                                                fontWeight: 700,
-                                                mb: 0.75,
-                                                lineHeight: 1.45,
-                                                color: 'text.primary',
-                                            }}
-                                        >
-                                            {update.title}
-                                        </Typography>
-                                        <Typography
-                                            variant="caption"
-                                            sx={{
-                                                display: 'block',
-                                                color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)',
-                                                fontWeight: 500,
-                                                letterSpacing: '0.01em',
-                                            }}
-                                        >
-                                            {update.date}
-                                        </Typography>
-                                    </Box>
+                                    {/* Top accent bar */}
+                                    <Box sx={{
+                                        height: 4,
+                                        width: '100%',
+                                        background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.light})`,
+                                        opacity: isDark ? 0.6 : 0.8,
+                                        flexShrink: 0,
+                                    }} />
 
-                                    <Box
-                                        className="news-icon-box"
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: 44,
-                                            height: 44,
-                                            borderRadius: '12px',
-                                            bgcolor: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.08),
-                                            color: 'primary.main',
-                                            flexShrink: 0,
-                                            transition: 'transform 0.3s ease',
-                                        }}
-                                    >
-                                        <i className="fa-solid fa-bullhorn" style={{ fontSize: '1.1rem', transform: 'rotate(-20deg)' }}></i>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        p: 2.5,
+                                        gap: 2,
+                                        flex: 1,
+                                        position: 'relative',
+                                        zIndex: 1,
+                                    }}>
+                                        <Box sx={{ flex: 1, textAlign: isEn ? 'left' : 'right' }}>
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
+                                                    fontWeight: 700,
+                                                    mb: 0.75,
+                                                    lineHeight: 1.5,
+                                                    color: 'text.primary',
+                                                }}
+                                            >
+                                                {update.title}
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    display: 'block',
+                                                    color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.5)',
+                                                    fontWeight: 500,
+                                                    letterSpacing: '0.02em',
+                                                }}
+                                            >
+                                                {update.date}
+                                            </Typography>
+                                        </Box>
+
+                                        <Box
+                                            className="news-icon-box"
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 48,
+                                                height: 48,
+                                                borderRadius: '14px',
+                                                bgcolor: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.08),
+                                                color: 'primary.main',
+                                                flexShrink: 0,
+                                                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                                                '& i': {
+                                                    transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
+                                                },
+                                            }}
+                                        >
+                                            <i className="fa-solid fa-bullhorn" style={{ fontSize: '1.15rem', transform: 'rotate(-20deg)' }}></i>
+                                        </Box>
                                     </Box>
                                 </Card>
                             </Grid>
@@ -920,13 +902,6 @@ function Home() {
                     </Stack>
                 </Container>
             </Box>
-
-            {/* Quick Donate Modal — triggered from urgent case cards */}
-            <QuickDonateModal
-                open={!!donateProject}
-                onClose={() => setDonateProject(null)}
-                project={donateProject}
-            />
         </Box >
     );
 }
