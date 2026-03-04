@@ -87,6 +87,15 @@ export async function getPrograms() {
 }
 
 /**
+ * Get featured projects (admin-selected urgent cases)
+ * @returns {Promise<object[]>}
+ */
+export async function getFeaturedProjects() {
+    // TODO: return apiClient.get('/projects/featured').then(r => r.data);
+    return Promise.resolve(mockProjects.filter(p => p.featured));
+}
+
+/**
  * Get latest updates / news feed
  * @returns {Promise<object[]>}
  */

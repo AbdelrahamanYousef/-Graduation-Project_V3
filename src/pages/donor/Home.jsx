@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Box,
     Container,
@@ -20,6 +20,7 @@ import { t, formatCurrency, getLanguage, formatNumber } from '../../i18n'; // Ad
 import { projects, programs, updates, impactStats, donationAmounts, testimonials } from '../../data/mockData';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
+import { CampaignCardItem, QuickDonateModal } from './Campaigns';
 
 // --- Animations ---
 const fadeInUp = keyframes`
@@ -31,6 +32,11 @@ const float = keyframes`
   0% { transform: translateY(0px); }
   50% { transform: translateY(-15px); }
   100% { transform: translateY(0px); }
+`;
+
+const pulseGlow = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.05); }
 `;
 
 // --- Styled Components ---
@@ -224,9 +230,11 @@ function Home() {
     const theme = useTheme();
     const isDark = theme.palette.mode === 'dark';
     const [selectedAmount, setSelectedAmount] = useState(null);
+    const [donateProject, setDonateProject] = useState(null);
+    const navigate = useNavigate();
     const lang = getLanguage();
     const isEn = lang === 'en';
-    const featuredProjects = projects.filter(p => p.featured).slice(0, 3);
+    const featuredProjects = projects.filter(p => p.featured);
 
     // Consistent section py value
     const sectionPy = theme.custom.sectionPadding;
@@ -453,22 +461,125 @@ function Home() {
                 </Container>
             </Box>
 
-            {/* ========== FEATURED CAMPAIGNS ========== */}
-            <Box sx={{ py: sectionPy, bgcolor: alpha(theme.palette.background.paper, 0.5) }}>
+            {/* ========== URGENT CASES — الحالات الأشد احتياجاً ========== */}
+            <Box sx={{
+                py: sectionPy,
+                bgcolor: isDark
+                    ? 'rgba(255,255,255,0.02)'
+                    : alpha(theme.palette.primary.main, 0.025),
+                position: 'relative',
+                overflow: 'hidden',
+            }}>
+                {/* Decorative background glow */}
+                <Box sx={{
+                    position: 'absolute',
+                    top: -80,
+                    right: '10%',
+                    width: 350,
+                    height: 350,
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${alpha(theme.palette.error.main, 0.06)} 0%, transparent 70%)`,
+                    pointerEvents: 'none',
+                    filter: 'blur(40px)',
+                }} />
                 <Container>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold">{t('home.featuredProjects')}</Typography>
-                        <Button component={Link} to="/campaigns" endIcon={isEn ? '→' : '←'}>
+                    {/* Section header */}
+                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                            <Typography
+                                variant="h3"
+                                fontWeight="900"
+                                sx={{
+                                    fontSize: { xs: '1.75rem', md: '2.4rem' },
+                                    background: isDark
+                                        ? `linear-gradient(135deg, ${theme.palette.primary.light}, ${theme.palette.error.light})`
+                                        : `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.error.main})`,
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                }}
+                            >
+                                {t('home.urgentCases')}
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    bgcolor: alpha(theme.palette.error.main, isDark ? 0.20 : 0.10),
+                                    color: theme.palette.error.main,
+                                    px: 1.2,
+                                    py: 0.4,
+                                    borderRadius: '999px',
+                                    fontSize: '0.72rem',
+                                    fontWeight: 800,
+                                    animation: `${pulseGlow} 2s ease-in-out infinite`,
+                                }}
+                            >
+                                <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '0.7rem' }} />
+                                {isEn ? 'Urgent' : 'عاجل'}
+                            </Box>
+                        </Box>
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: 'text.secondary',
+                                maxWidth: 500,
+                                mx: 'auto',
+                                lineHeight: 1.7,
+                                fontWeight: 400,
+                            }}
+                        >
+                            {t('home.urgentCasesSubtitle')}
+                        </Typography>
+                    </Box>
+
+                    {/* Cards grid */}
+                    <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'center',
+                        gap: 3,
+                        mb: 4,
+                    }}>
+                        {featuredProjects.map((project, i) => (
+                            <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }, display: 'flex', justifyContent: 'center' }}>
+                                <CampaignCardItem
+                                    project={project}
+                                    index={i}
+                                    onClick={() => navigate(`/campaigns`)}
+                                    onDonate={(p) => setDonateProject(p)}
+                                />
+                            </Box>
+                        ))}
+                    </Box>
+
+                    {/* View all link */}
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Button
+                            component={Link}
+                            to="/campaigns"
+                            variant="outlined"
+                            color="primary"
+                            endIcon={isEn ? '→' : '←'}
+                            sx={{
+                                borderRadius: '999px',
+                                px: 4,
+                                py: 1.2,
+                                fontWeight: 700,
+                                textTransform: 'none',
+                                fontSize: '0.95rem',
+                                borderWidth: '1.5px',
+                                transition: 'all 250ms ease',
+                                '&:hover': {
+                                    borderWidth: '1.5px',
+                                    transform: 'translateY(-2px)',
+                                    boxShadow: `0 4px 14px ${alpha(theme.palette.primary.main, 0.15)}`,
+                                },
+                            }}
+                        >
                             {t('common.viewAll')}
                         </Button>
                     </Box>
-                    <Grid container spacing={3}>
-                        {featuredProjects.map((project, i) => (
-                            <Grid item xs={12} md={4} key={project.id}>
-                                <ProjectCard project={project} isEn={isEn} />
-                            </Grid>
-                        ))}
-                    </Grid>
                 </Container>
             </Box>
 
@@ -809,6 +920,13 @@ function Home() {
                     </Stack>
                 </Container>
             </Box>
+
+            {/* Quick Donate Modal — triggered from urgent case cards */}
+            <QuickDonateModal
+                open={!!donateProject}
+                onClose={() => setDonateProject(null)}
+                project={donateProject}
+            />
         </Box >
     );
 }

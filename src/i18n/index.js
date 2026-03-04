@@ -3,8 +3,20 @@ import en from './en.json';
 
 const translations = { ar, en };
 
-// Default language is Arabic
-let currentLanguage = 'ar';
+// Initialize from localStorage immediately, so getLanguage() is correct on first render
+let currentLanguage = (() => {
+  try {
+    return localStorage.getItem('nour-lang') || 'ar';
+  } catch {
+    return 'ar';
+  }
+})();
+
+// Apply direction + lang attribute right away (before any React renders)
+try {
+  document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = currentLanguage;
+} catch { /* SSR / test env */ }
 
 /**
  * Set the current language
@@ -42,7 +54,7 @@ export const initLanguage = () => {
 export const t = (keyPath, params = {}) => {
   const keys = keyPath.split('.');
   let value = translations[currentLanguage];
-  
+
   for (const key of keys) {
     if (value && typeof value === 'object') {
       value = value[key];
@@ -52,12 +64,12 @@ export const t = (keyPath, params = {}) => {
       break;
     }
   }
-  
+
   if (typeof value !== 'string') {
     console.warn(`Translation not found for key: ${keyPath}`);
     return keyPath;
   }
-  
+
   // Simple parameter interpolation: {{param}}
   return value.replace(/\{\{(\w+)\}\}/g, (_, key) => params[key] ?? `{{${key}}}`);
 };
@@ -72,7 +84,7 @@ export const formatCurrency = (amount) => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
-  
+
   return currentLanguage === 'ar' ? `${formatted} ج.م` : `EGP ${formatted}`;
 };
 
@@ -85,7 +97,7 @@ export const formatCurrency = (amount) => {
 export const formatDate = (date, options = {}) => {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   const defaultOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-  
+
   return new Intl.DateTimeFormat(
     currentLanguage === 'ar' ? 'ar-EG' : 'en-EG',
     { ...defaultOptions, ...options }

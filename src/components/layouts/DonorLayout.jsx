@@ -172,7 +172,7 @@ function DonorLayout({ children, scrolled }) {
                 <Stack spacing={2}>
                     <Stack direction="row" spacing={1}>
                         <Button fullWidth variant="outlined" size="small" onClick={toggleLanguage} startIcon={<i className="fa-solid fa-globe"></i>}>
-                            {language === 'ar' ? 'English' : 'العربية'}
+                            عربي / English
                         </Button>
                         <Button fullWidth variant="outlined" size="small" onClick={toggleTheme} startIcon={<i className={isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>}>
                             {isDark ? 'Light' : 'Dark'}
@@ -233,9 +233,9 @@ function DonorLayout({ children, scrolled }) {
                             {/* Language & Theme - Desktop Only */}
                             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
                                 <Tooltip title={language === 'ar' ? 'Switch to English' : 'التبديل العربية'}>
-                                    <IconButton onClick={toggleLanguage} size="small" sx={{ border: 1, borderColor: alpha(theme.palette.common.white, 0.3), color: 'inherit' }}>
-                                        <Typography variant="caption" fontWeight="bold">{language === 'ar' ? 'EN' : 'ع'}</Typography>
-                                    </IconButton>
+                                    <Button onClick={toggleLanguage} size="small" sx={{ minWidth: 'auto', px: 1.5, border: 1, borderColor: alpha(theme.palette.common.white, 0.3), color: 'inherit', borderRadius: 1.5 }}>
+                                        <Typography variant="caption" fontWeight="bold">عربي / English</Typography>
+                                    </Button>
                                 </Tooltip>
                                 <Tooltip title={isDark ? 'Light Mode' : 'Dark Mode'}>
                                     <IconButton onClick={toggleTheme} size="small" sx={{ border: 1, borderColor: alpha(theme.palette.common.white, 0.3), color: 'inherit' }}>
