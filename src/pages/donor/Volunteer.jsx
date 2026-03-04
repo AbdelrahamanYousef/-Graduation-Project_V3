@@ -145,11 +145,11 @@ const OpportunityCard = styled(Box)(({ theme }) => ({
 }));
 
 const SignupSection = styled(Paper)(({ theme }) => ({
-    borderRadius: theme.shape.borderRadius * 3,
+    borderRadius: theme.shape.borderRadius * 2,
     overflow: 'hidden',
     boxShadow: theme.palette.mode === 'dark'
-        ? '0 8px 32px rgba(0,0,0,0.4)'
-        : theme.shadows[10],
+        ? '0 4px 20px rgba(0,0,0,0.3)'
+        : theme.shadows[4],
     background: theme.palette.mode === 'dark'
         ? `linear-gradient(180deg, rgba(255,255,255,0.03) 0%, ${theme.palette.background.paper} 100%)`
         : theme.palette.background.paper,
@@ -158,11 +158,13 @@ const SignupSection = styled(Paper)(({ theme }) => ({
 
 const SignupInfo = styled(Box)(({ theme }) => ({
     background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-    padding: theme.spacing(6),
+    padding: theme.spacing(4),
     color: theme.palette.common.white,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
     height: '100%',
 }));
 
@@ -393,14 +395,14 @@ function Volunteer() {
                                 <Typography variant="body1" sx={{ opacity: 0.9, mb: 4 }}>
                                     {t('volunteer.signUpSubtitle')}
                                 </Typography>
-                                <Box sx={{ fontSize: 80, textAlign: 'center', animation: `${float} 3s ease-in-out infinite` }}>
+                                <Box sx={{ fontSize: 56, textAlign: 'center', animation: `${float} 3s ease-in-out infinite` }}>
                                     <i className="fa-solid fa-hand-holding-heart"></i>
                                 </Box>
                             </SignupInfo>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Box sx={{
-                                p: 6,
+                                p: { xs: 3, md: 4 },
                                 '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
                                     borderColor: 'primary.main',
                                     boxShadow: (t) => `0 0 0 3px ${alpha(t.palette.primary.main, 0.12)}`,
@@ -414,7 +416,7 @@ function Volunteer() {
                                 },
                             }}>
                                 <form onSubmit={handleSubmit}>
-                                    <Stack spacing={3.5}>
+                                    <Stack spacing={2.5}>
                                         <TextField
                                             label={t('volunteer.name')}
                                             value={form.name}
@@ -482,10 +484,16 @@ function Volunteer() {
                                             fullWidth
                                             disabled={submitted}
                                             sx={{
-                                                mt: 2,
+                                                height: 52,
+                                                fontWeight: 700,
+                                                fontSize: '1.05rem',
+                                                textTransform: 'none',
+                                                borderRadius: '999px',
+                                                background: (t) => `linear-gradient(135deg, ${t.palette.primary.main} 0%, ${t.palette.primary.dark} 100%)`,
                                                 transition: 'transform 0.25s ease, box-shadow 0.25s ease',
                                                 '&:hover:not(:disabled)': {
                                                     transform: 'translateY(-2px)',
+                                                    background: (t) => `linear-gradient(135deg, ${t.palette.primary.dark} 0%, ${t.palette.primary.main} 100%)`,
                                                     boxShadow: (t) => `0 6px 20px ${alpha(t.palette.primary.main, 0.35)}`,
                                                 },
                                                 '&.Mui-disabled': {
