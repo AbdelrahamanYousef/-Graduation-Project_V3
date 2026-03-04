@@ -97,7 +97,7 @@ const getComponentOverrides = (mode) => ({
                 boxShadow: mode === 'light'
                     ? '0 2px 12px rgba(0, 0, 0, 0.06)'
                     : '0 2px 12px rgba(0, 0, 0, 0.3)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                /* transition removed — each card component controls its own */
             },
         },
     },

@@ -14,6 +14,7 @@ const About = lazy(() => import('../pages/donor/About'));
 const Transparency = lazy(() => import('../pages/donor/Transparency'));
 const Account = lazy(() => import('../pages/donor/Account'));
 const Campaigns = lazy(() => import('../pages/donor/Campaigns'));
+const CampaignDetail = lazy(() => import('../pages/donor/CampaignDetail'));
 const ZakatCalculator = lazy(() => import('../pages/donor/ZakatCalculator'));
 const Volunteer = lazy(() => import('../pages/donor/Volunteer'));
 const Contact = lazy(() => import('../pages/donor/Contact'));
@@ -60,6 +61,7 @@ export default function AppRoutes() {
             {/* Donor Routes */}
             <Route path="/" element={<DonorLayout><Home /></DonorLayout>} />
             <Route path="/campaigns" element={<DonorLayout><Campaigns /></DonorLayout>} />
+            <Route path="/campaigns/:id" element={<DonorLayout><CampaignDetail /></DonorLayout>} />
             <Route path="/projects" element={<DonorLayout><Projects /></DonorLayout>} />
             <Route path="/projects/:id" element={<DonorLayout><ProjectDetails /></DonorLayout>} />
             <Route path="/donate" element={<DonorLayout><Donate /></DonorLayout>} />

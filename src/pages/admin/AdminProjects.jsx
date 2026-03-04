@@ -19,7 +19,8 @@ import {
     Tab,
     MenuItem,
     useTheme,
-    alpha
+    alpha,
+    Tooltip
 } from '@mui/material';
 import { projects, programs } from '../../data/mockData';
 import { formatCurrency } from '../../i18n';
@@ -31,6 +32,14 @@ function AdminProjects() {
     const theme = useTheme();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filter, setFilter] = useState('all');
+    // Track featured state locally (initial from mock data)
+    const [featuredState, setFeaturedState] = useState(
+        () => Object.fromEntries(projects.map(p => [p.id, !!p.featured]))
+    );
+
+    const toggleFeatured = (id) => {
+        setFeaturedState(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     const handleFilterChange = (event, newValue) => {
         setFilter(newValue);
@@ -153,6 +162,17 @@ function AdminProjects() {
                                             value={progress}
                                             sx={{ height: 8, borderRadius: 1 }}
                                         />
+                                        {project.donationAmount && (
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
+                                                <i className="fa-solid fa-hand-holding-heart" style={{ fontSize: '0.75rem', color: program?.color || theme.palette.primary.main }} />
+                                                <Typography variant="caption" fontWeight="bold" color="primary">
+                                                    {formatCurrency(project.donationAmount)}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
+                                                    مبلغ التبرع
+                                                </Typography>
+                                            </Box>
+                                        )}
                                     </Box>
 
                                     <Stack direction="row" spacing={2} sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
@@ -167,7 +187,23 @@ function AdminProjects() {
                                     </Stack>
                                 </CardContent>
 
-                                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1 }}>
+                                <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, alignItems: 'center' }}>
+                                    <Tooltip title={featuredState[project.id] ? 'إزالة من الحالات الأشد احتياجاً' : 'إضافة للحالات الأشد احتياجاً'}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => toggleFeatured(project.id)}
+                                            sx={{
+                                                color: featuredState[project.id] ? '#f59e0b' : 'text.disabled',
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    color: featuredState[project.id] ? '#d97706' : '#f59e0b',
+                                                    transform: 'scale(1.15)',
+                                                },
+                                            }}
+                                        >
+                                            <i className={featuredState[project.id] ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
+                                        </IconButton>
+                                    </Tooltip>
                                     <Button size="small" variant="outlined" fullWidth>تعديل</Button>
                                     <Button size="small" variant="outlined" fullWidth>عرض</Button>
                                     <IconButton size="small">
@@ -213,12 +249,22 @@ function AdminProjects() {
 
                         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
                             <TextField
-                                label="المبلغ المستهدف (ج.م)"
+                                label="المبلغ المستهدف (جنية مصري)"
                                 type="number"
                                 fullWidth
                                 required
                                 variant="outlined"
                             />
+                            <TextField
+                                label="مبلغ التبرع (جنية مصري)"
+                                type="number"
+                                fullWidth
+                                variant="outlined"
+                                placeholder="مثال: 500"
+                            />
+                        </Box>
+
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
                             <TextField
                                 label="الموقع"
                                 placeholder="المحافظة، المدينة"
