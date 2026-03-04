@@ -22,7 +22,8 @@ import {
     useMediaQuery,
     Tooltip,
     Stack,
-    alpha
+    alpha,
+    Button
 } from '@mui/material';
 import { t, getLanguage } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
@@ -214,9 +215,9 @@ function AdminLayout() {
 
                     {/* Actions */}
                     <Stack direction="row" spacing={1} alignItems="center">
-                        <IconButton onClick={toggleLanguage} size="small" sx={{ border: 1, borderColor: 'divider', width: 36, height: 36 }}>
-                            <Typography variant="caption" fontWeight="bold">{language === 'ar' ? 'EN' : 'ع'}</Typography>
-                        </IconButton>
+                        <Button onClick={toggleLanguage} size="small" sx={{ minWidth: 'auto', px: 1.5, border: 1, borderColor: 'divider', color: 'inherit', borderRadius: 1.5, height: 36 }}>
+                            <Typography variant="caption" fontWeight="bold">عربي / English</Typography>
+                        </Button>
 
                         <IconButton onClick={toggleTheme} size="small" sx={{ border: 1, borderColor: 'divider', width: 36, height: 36 }}>
                             <i className={isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>

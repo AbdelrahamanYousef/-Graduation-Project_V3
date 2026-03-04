@@ -97,7 +97,7 @@ const getComponentOverrides = (mode) => ({
                 boxShadow: mode === 'light'
                     ? '0 2px 12px rgba(0, 0, 0, 0.06)'
                     : '0 2px 12px rgba(0, 0, 0, 0.3)',
-                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                /* transition removed — each card component controls its own */
             },
         },
     },
@@ -244,15 +244,15 @@ export function createNourTheme(mode = 'light', direction = 'ltr') {
                 dark: '#981a1a',
             },
             background: {
-                default: isLight ? '#F3F8F7' : '#0a1a1a', // Soft Mint/White for general page background
-                paper: isLight ? '#FFFFFF' : '#132626',
-                mint: isLight ? '#E6F1EF' : '#132626', // Mint in light mode, dark teal in dark mode
+                default: isLight ? '#F3F8F7' : '#0a1a1a',
+                paper: isLight ? '#FFFFFF' : '#162e2e',
+                mint: isLight ? '#E6F1EF' : '#1a3333',
             },
             text: {
-                primary: isLight ? '#111827' : '#F9FAFB',
-                secondary: isLight ? '#6B7280' : '#8AACAC',
+                primary: isLight ? '#111827' : 'rgba(255,255,255,0.88)',
+                secondary: isLight ? '#6B7280' : 'rgba(255,255,255,0.62)',
             },
-            divider: isLight ? '#E5E7EB' : '#1e3535',
+            divider: isLight ? '#E5E7EB' : '#243f3f',
             // Custom accent color accessible via theme.palette.accent
             accent: {
                 main: accentPalette[500],
