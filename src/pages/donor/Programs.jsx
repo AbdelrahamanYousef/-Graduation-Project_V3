@@ -12,7 +12,7 @@ import {
     alpha
 } from '@mui/material';
 import { t } from '../../i18n';
-import { programs, projects } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 
 // --- Styled Components ---
@@ -55,6 +55,9 @@ const ProgramIconWrapper = styled(Box)(({ theme, bgcolor }) => ({
 
 function Programs() {
     const theme = useTheme();
+    const { state, activePrograms } = useAdminData();
+    const programs = activePrograms;       // only active programs
+    const projects = state.projects;       // projects from context
 
     return (
         <Box sx={{ pb: 12 }}>

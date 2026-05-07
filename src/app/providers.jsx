@@ -12,6 +12,7 @@ import { createNourTheme } from '../theme/theme';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { AdminDataProvider } from '../contexts/AdminDataContext';
 import { ToastProvider } from '../components/common';
 
 // RTL Emotion cache for Arabic
@@ -68,7 +69,9 @@ export default function AppProviders({ children }) {
                     <ThemeProvider>
                         <MuiBridge>
                             <ToastProvider>
-                                {children}
+                                <AdminDataProvider>
+                                    {children}
+                                </AdminDataProvider>
                             </ToastProvider>
                         </MuiBridge>
                     </ThemeProvider>

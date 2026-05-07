@@ -24,7 +24,8 @@ import {
     alpha
 } from '@mui/material';
 import { t, formatCurrency } from '../../i18n';
-import { projects, donationTypes, paymentMethods } from '../../data/mockData';
+import { donationTypes, paymentMethods } from '../../data/mockData';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 
 // --- Styled Components ---
@@ -91,6 +92,10 @@ function Donate() {
 
     const [errors, setErrors] = useState({});
 
+    // Read live data from shared context
+    const { state, dispatch } = useAdminData();
+    const projects = state.projects;
+
     const amounts = [50, 100, 200, 500, 1000, 2000];
     const selectedProject = projects.find(p => p.id === formData.projectId);
 
@@ -133,7 +138,18 @@ function Donate() {
     };
 
     const handleSubmit = () => {
-        // Simulate payment processing
+        // Push donation into shared context → Dashboard & AdminDonations
+        const totalAmount = getTotalAmount();
+        const newDonation = {
+            id: Date.now(),
+            donor: formData.isAnonymous ? 'متبرع مجهول' : (formData.fullName || 'متبرع'),
+            project: selectedProject?.title || 'تبرع عام',
+            amount: Number(totalAmount),
+            date: new Date().toISOString().split('T')[0],
+            method: paymentMethods.find(m => m.id === formData.paymentMethod)?.label || formData.paymentMethod,
+            status: 'completed',
+        };
+        dispatch(adminActions.addDonation(newDonation));
         navigate('/confirmation?receipt=' + Date.now());
     };
 

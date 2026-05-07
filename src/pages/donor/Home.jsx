@@ -17,7 +17,8 @@ import {
     alpha
 } from '@mui/material';
 import { t, formatCurrency, getLanguage, formatNumber } from '../../i18n'; // Added formatNumber
-import { projects, programs, updates, impactStats, donationAmounts, testimonials } from '../../data/mockData';
+import { impactStats as initialStats, updates, donationAmounts, testimonials } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
 import { CampaignCardItem, QuickDonateModal } from './Campaigns';
@@ -234,7 +235,12 @@ function Home() {
     const navigate = useNavigate();
     const lang = getLanguage();
     const isEn = lang === 'en';
-    const featuredProjects = projects.filter(p => p.featured);
+
+    // Read from shared context — reflects admin changes in real time
+    const { state, featuredProjects, activePrograms } = useAdminData();
+    const programs = activePrograms;         // only active programs visible on home
+    const featuredProjectsList = featuredProjects; // featured = urgent cases
+    const impactStats = state.stats;         // stats managed by admin
 
     // Consistent section py value
     const sectionPy = theme.custom.sectionPadding;
@@ -541,7 +547,12 @@ function Home() {
                         gap: 3,
                         mb: 4,
                     }}>
-                        {featuredProjects.map((project, i) => (
+                        {featuredProjectsList.length === 0 ? (
+                            <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
+                                <i className="fa-regular fa-star" style={{ fontSize: 48, opacity: 0.3 }} />
+                                <Typography sx={{ mt: 2 }}>{isEn ? 'No urgent cases featured yet' : 'لا توجد حالات مميزة بعد'}</Typography>
+                            </Box>
+                        ) : featuredProjectsList.map((project, i) => (
                             <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }, display: 'flex', justifyContent: 'center' }}>
                                 <CampaignCardItem
                                     project={project}

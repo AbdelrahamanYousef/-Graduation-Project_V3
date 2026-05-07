@@ -19,7 +19,7 @@ import {
     alpha
 } from '@mui/material';
 import { t, formatNumber } from '../../i18n';
-import { projects, programs } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 
 // --- Styled Components ---
@@ -66,6 +66,11 @@ function Projects() {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedProgram, setSelectedProgram] = useState(searchParams.get('program') || 'all');
     const [sortBy, setSortBy] = useState('newest');
+
+    // Read live data from shared context
+    const { state, activePrograms } = useAdminData();
+    const projects = state.projects;       // live projects list
+    const programs = activePrograms;       // only active programs
 
     // Filter projects
     const filteredProjects = projects.filter(project => {

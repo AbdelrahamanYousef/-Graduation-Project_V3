@@ -1,346 +1,153 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-    Box,
-    Grid,
-    Card,
-    CardContent,
-    Typography,
-    Button,
-    Tabs,
-    Tab,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Chip,
-    LinearProgress,
-    Stack,
-    IconButton,
-    Tooltip,
-    useTheme,
-    alpha
+    Box, Grid, Card, CardContent, Typography, LinearProgress,
+    useTheme, alpha, Snackbar, Alert
 } from '@mui/material';
-import { formatCurrency } from '../../i18n';
+import { AdminPageHeader, AdminStatsGrid, AdminFilterBar, AdminDataTable, AdminFormDialog } from '../../components/admin';
+import { formatCurrency, t } from '../../i18n';
+import { financeMonthlyData, financeDisbursements as initialDisbursements } from '../../data/adminMockData';
 
 /**
- * Admin Finance Page - المالية
+ * Admin Finance Page — with approve/reject disbursements
  */
 function AdminFinance() {
     const theme = useTheme();
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTab, setActiveTab] = useState('overview');
+    const [disbursements, setDisbursements] = useState(initialDisbursements);
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
-    const handleTabChange = (event, newValue) => {
-        setActiveTab(newValue);
-    };
+    const totals = financeMonthlyData.reduce((acc, m) => ({
+        income: acc.income + m.income,
+        expenses: acc.expenses + m.expenses,
+    }), { income: 0, expenses: 0 });
 
-    // Mock financial data
-    const monthlyData = [
-        { month: 'يناير', income: 450000, expenses: 380000 },
-        { month: 'فبراير', income: 520000, expenses: 410000 },
-        { month: 'مارس', income: 480000, expenses: 420000 },
-        { month: 'أبريل', income: 610000, expenses: 490000 },
+    const kpis = [
+        { label: t('admin.financePage.totalIncome'), value: formatCurrency(totals.income), icon: 'fa-solid fa-arrow-trend-up', color: 'success', change: '+12%' },
+        { label: t('admin.financePage.totalExpenses'), value: formatCurrency(totals.expenses), icon: 'fa-solid fa-arrow-trend-down', color: 'error', change: '+8%', trend: 'up' },
+        { label: t('admin.financePage.availableBalance'), value: formatCurrency(totals.income - totals.expenses), icon: 'fa-solid fa-wallet', color: 'primary' },
+        { label: t('admin.financePage.pendingRequests'), value: String(disbursements.filter(d => d.status === 'pending').length), icon: 'fa-solid fa-clock', color: 'warning' },
     ];
 
-    const disbursements = [
-        { id: 1, beneficiary: 'عائلة محمد أحمد', amount: 2500, type: 'دعم شهري', date: '2024-01-15', status: 'pending' },
-        { id: 2, beneficiary: 'فاطمة السيد', amount: 5000, type: 'علاج طبي', date: '2024-01-14', status: 'approved' },
-        { id: 3, beneficiary: 'مدرسة النور', amount: 15000, type: 'مستلزمات تعليمية', date: '2024-01-13', status: 'completed' },
-        { id: 4, beneficiary: 'عائلة حسن علي', amount: 3000, type: 'إغاثة عاجلة', date: '2024-01-12', status: 'completed' },
+    const tabs = [
+        { label: t('admin.financePage.overview'), value: 'overview' },
+        { label: `${t('admin.financePage.disbursements')} (${disbursements.length})`, value: 'disbursements' },
+        { label: t('admin.financePage.budgets'), value: 'budgets' },
     ];
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'completed': return 'success';
-            case 'approved': return 'info';
-            case 'pending': return 'warning';
-            default: return 'default';
-        }
-    };
+    const handleApprove = useCallback((row) => {
+        setDisbursements(prev => prev.map(d => d.id === row.id ? { ...d, status: 'approved' } : d));
+        setSnackbar({ open: true, msg: `تم اعتماد صرف ${formatCurrency(row.amount)} لـ "${row.beneficiary}"`, severity: 'success' });
+    }, []);
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'completed': return 'مكتمل';
-            case 'approved': return 'معتمد';
-            case 'pending': return 'معلق';
-            default: return status;
-        }
-    };
+    const handleViewDisbursement = useCallback((row) => {
+        setSnackbar({ open: true, msg: `عرض تفاصيل: ${row.beneficiary} — ${formatCurrency(row.amount)}`, severity: 'info' });
+    }, []);
+
+    const disbursementColumns = [
+        { key: 'beneficiary', label: t('admin.financePage.beneficiary'), fontWeight: 'medium' },
+        { key: 'type', label: t('admin.financePage.type') },
+        { key: 'amount', label: t('admin.financePage.amount'), render: (v) => formatCurrency(v), fontWeight: 'bold', color: 'primary.main' },
+        { key: 'date', label: t('admin.financePage.date') },
+        { key: 'status', label: t('admin.financePage.status'), type: 'status' },
+    ];
+
+    const disbursementActions = [
+        { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل', onClick: (row) => handleViewDisbursement(row) },
+        { icon: 'fa-solid fa-check', tooltip: 'اعتماد', show: (row) => row.status === 'pending', color: 'success', onClick: (row) => handleApprove(row) },
+        { icon: 'fa-solid fa-xmark', tooltip: 'رفض', show: (row) => row.status === 'pending', color: 'error', onClick: (row) => {
+            setDisbursements(prev => prev.map(d => d.id === row.id ? { ...d, status: 'inactive' } : d));
+            setSnackbar({ open: true, msg: `تم رفض طلب الصرف`, severity: 'warning' });
+        }},
+    ];
+
+    const maxValue = Math.max(...financeMonthlyData.flatMap(m => [m.income, m.expenses]));
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Header */}
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                        الإدارة المالية
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        إدارة الميزانيات والصرفيات
-                    </Typography>
-                </Box>
-                <Stack direction="row" spacing={2}>
-                    <Button variant="outlined" startIcon={<i className="fa-solid fa-download"></i>}>
-                        تصدير التقرير
-                    </Button>
-                    <Button variant="contained" startIcon={<i className="fa-solid fa-plus"></i>}>
-                        طلب صرف جديد
-                    </Button>
-                </Stack>
-            </Box>
+            <AdminPageHeader
+                title={t('admin.financePage.title')}
+                subtitle={t('admin.financePage.subtitle')}
+                action={{ label: t('admin.financePage.newDisbursement'), icon: 'fa-solid fa-plus', onClick: () => setSnackbar({ open: true, msg: 'نموذج طلب الصرف — قريباً', severity: 'info' }) }}
+                secondaryAction={{ label: t('admin.financePage.exportReport'), icon: 'fa-solid fa-download', onClick: () => setSnackbar({ open: true, msg: 'جاري تصدير التقرير المالي...', severity: 'success' }) }}
+            />
 
-            {/* Stats */}
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%' }}>
-                        <CardContent>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                <Box sx={{
-                                    p: 1,
-                                    borderRadius: 1,
-                                    bgcolor: alpha(theme.palette.success.main, 0.1),
-                                    color: 'success.main'
-                                }}>
-                                    <i className="fa-solid fa-arrow-trend-up"></i>
-                                </Box>
-                                <Chip label="+12%" color="success" size="small" variant="soft" />
-                            </Box>
-                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                {formatCurrency(2060000)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                إجمالي الإيرادات
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%' }}>
-                        <CardContent>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                <Box sx={{
-                                    p: 1,
-                                    borderRadius: 1,
-                                    bgcolor: alpha(theme.palette.error.main, 0.1),
-                                    color: 'error.main'
-                                }}>
-                                    <i className="fa-solid fa-arrow-trend-down"></i>
-                                </Box>
-                                <Chip label="-5%" color="error" size="small" variant="soft" />
-                            </Box>
-                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                {formatCurrency(1700000)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                إجمالي المصروفات
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%' }}>
-                        <CardContent>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                <Box sx={{
-                                    p: 1,
-                                    borderRadius: 1,
-                                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                    color: 'primary.main'
-                                }}>
-                                    <i className="fa-solid fa-wallet"></i>
-                                </Box>
-                            </Box>
-                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                {formatCurrency(360000)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                الرصيد المتاح
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%' }}>
-                        <CardContent>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                                <Box sx={{
-                                    p: 1,
-                                    borderRadius: 1,
-                                    bgcolor: alpha(theme.palette.warning.main, 0.1),
-                                    color: 'warning.main'
-                                }}>
-                                    <i className="fa-solid fa-hourglass-half"></i>
-                                </Box>
-                            </Box>
-                            <Typography variant="h5" fontWeight="bold" sx={{ mb: 0.5 }}>
-                                8
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                طلبات معلقة
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+            <AdminStatsGrid stats={kpis} columns={3} />
 
-            {/* Tabs */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs value={activeTab} onChange={handleTabChange} aria-label="finance tabs">
-                    <Tab label="نظرة عامة" icon={<i className="fa-solid fa-chart-pie"></i>} iconPosition="start" />
-                    <Tab label="الصرفيات" icon={<i className="fa-solid fa-money-bill-transfer"></i>} iconPosition="start" />
-                    <Tab label="الميزانيات" icon={<i className="fa-solid fa-clipboard-list"></i>} iconPosition="start" />
-                </Tabs>
-            </Box>
+            <AdminFilterBar tabs={tabs} activeTab={activeTab} onTabChange={(_, v) => setActiveTab(v)} />
 
-            {/* Content */}
-            <Box sx={{ py: 2 }}>
-                {activeTab === 0 && (
+            {activeTab === 'overview' && (
+                <>
                     <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+                        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                            <Typography variant="h6" fontWeight="bold">{t('admin.financePage.monthlyChart')}</Typography>
+                        </Box>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom>الإيرادات والمصروفات الشهرية</Typography>
-                            <Box sx={{
-                                display: 'flex',
-                                justifyContent: 'space-around',
-                                alignItems: 'flex-end',
-                                height: 300,
-                                pt: 4,
-                                pb: 2,
-                                borderBottom: 1,
-                                borderColor: 'divider'
-                            }}>
-                                {monthlyData.map((item, index) => (
-                                    <Box key={index} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.5, height: 250 }}>
-                                            <Tooltip title={`الإيرادات: ${formatCurrency(item.income)}`}>
-                                                <Box sx={{
-                                                    width: 30,
-                                                    bgcolor: 'success.main',
-                                                    borderRadius: '4px 4px 0 0',
-                                                    height: `${(item.income / 700000) * 100}%`,
-                                                    transition: 'height 0.3s'
-                                                }} />
-                                            </Tooltip>
-                                            <Tooltip title={`المصروفات: ${formatCurrency(item.expenses)}`}>
-                                                <Box sx={{
-                                                    width: 30,
-                                                    bgcolor: 'error.main',
-                                                    borderRadius: '4px 4px 0 0',
-                                                    height: `${(item.expenses / 700000) * 100}%`,
-                                                    transition: 'height 0.3s'
-                                                }} />
-                                            </Tooltip>
+                            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                                {financeMonthlyData.map((m) => (
+                                    <Box key={m.month} sx={{ textAlign: 'center', flex: 1, minWidth: 100 }}>
+                                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', alignItems: 'flex-end', height: 120, mb: 1 }}>
+                                            <Box sx={{ width: 24, bgcolor: alpha(theme.palette.success.main, 0.8), borderRadius: '4px 4px 0 0', height: `${(m.income / maxValue) * 100}%`, transition: 'height 0.5s ease' }} />
+                                            <Box sx={{ width: 24, bgcolor: alpha(theme.palette.error.main, 0.6), borderRadius: '4px 4px 0 0', height: `${(m.expenses / maxValue) * 100}%`, transition: 'height 0.5s ease' }} />
                                         </Box>
-                                        <Typography variant="caption" color="text.secondary">{item.month}</Typography>
+                                        <Typography variant="caption" fontWeight="medium">{m.month}</Typography>
+                                        <Box sx={{ mt: 0.5 }}>
+                                            <Typography variant="caption" display="block" color="success.main">{formatCurrency(m.income)}</Typography>
+                                            <Typography variant="caption" display="block" color="error.main">{formatCurrency(m.expenses)}</Typography>
+                                        </Box>
                                     </Box>
                                 ))}
                             </Box>
-                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 4, mt: 2 }}>
+                            <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', mt: 2 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'success.main' }} />
-                                    <Typography variant="body2">الإيرادات</Typography>
+                                    <Box sx={{ width: 12, height: 12, bgcolor: 'success.main', borderRadius: 0.5 }} />
+                                    <Typography variant="caption">{t('admin.financePage.income')}</Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'error.main' }} />
-                                    <Typography variant="body2">المصروفات</Typography>
+                                    <Box sx={{ width: 12, height: 12, bgcolor: 'error.main', borderRadius: 0.5 }} />
+                                    <Typography variant="caption">{t('admin.financePage.expenses')}</Typography>
                                 </Box>
                             </Box>
                         </CardContent>
                     </Card>
-                )}
 
-                {activeTab === 1 && (
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                        <TableContainer component={Paper} elevation={0} sx={{ background: 'transparent' }}>
-                            <Table>
-                                <TableHead>
-                                    <TableRow sx={{ bgcolor: 'action.hover' }}>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>المستفيد</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>النوع</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>المبلغ</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>التاريخ</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>الحالة</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold' }}>الإجراءات</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {disbursements.map((item) => (
-                                        <TableRow key={item.id} hover>
-                                            <TableCell>{item.beneficiary}</TableCell>
-                                            <TableCell>{item.type}</TableCell>
-                                            <TableCell sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                                                {formatCurrency(item.amount)}
-                                            </TableCell>
-                                            <TableCell>{item.date}</TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={getStatusLabel(item.status)}
-                                                    color={getStatusColor(item.status)}
-                                                    size="small"
-                                                    variant="soft"
-                                                />
-                                            </TableCell>
-                                            <TableCell>
-                                                <Stack direction="row" spacing={1}>
-                                                    {item.status === 'pending' && (
-                                                        <>
-                                                            <IconButton size="small" color="success">
-                                                                <i className="fa-solid fa-check" style={{ fontSize: 14 }}></i>
-                                                            </IconButton>
-                                                            <IconButton size="small" color="error">
-                                                                <i className="fa-solid fa-xmark" style={{ fontSize: 14 }}></i>
-                                                            </IconButton>
-                                                        </>
-                                                    )}
-                                                    <IconButton size="small">
-                                                        <i className="fa-solid fa-eye" style={{ fontSize: 14 }}></i>
-                                                    </IconButton>
-                                                </Stack>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    </Card>
-                )}
-
-                {activeTab === 2 && (
-                    <Grid container spacing={3}>
-                        {['رعاية الأيتام', 'الرعاية الصحية', 'التعليم', 'الإغاثة العاجلة'].map((program, i) => (
-                            <Grid item xs={12} sm={6} key={i}>
-                                <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                                    <CardContent>
-                                        <Typography variant="h6" gutterBottom>{program}</Typography>
-                                        <Box sx={{ mb: 2 }}>
-                                            <LinearProgress
-                                                variant="determinate"
-                                                value={60 + i * 10}
-                                                sx={{ height: 8, borderRadius: 1, mb: 1 }}
-                                            />
-                                        </Box>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {formatCurrency(200000 + i * 50000)} مصروف
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                من {formatCurrency(400000 + i * 50000)}
-                                            </Typography>
-                                        </Box>
-                                    </CardContent>
+                    <Grid container spacing={2}>
+                        {[
+                            { label: 'كفالة الأيتام', spent: 320000, total: 500000, color: 'primary' },
+                            { label: 'الرعاية الصحية', spent: 180000, total: 300000, color: 'info' },
+                            { label: 'الإغاثة العاجلة', spent: 450000, total: 600000, color: 'error' },
+                        ].map((budget, i) => (
+                            <Grid item xs={12} md={4} key={i}>
+                                <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                        <Typography variant="body2" fontWeight="bold">{budget.label}</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {formatCurrency(budget.spent)} {t('admin.financePage.of')} {formatCurrency(budget.total)}
+                                        </Typography>
+                                    </Box>
+                                    <LinearProgress variant="determinate" value={Math.round((budget.spent / budget.total) * 100)} color={budget.color} sx={{ height: 8, borderRadius: 1, mb: 0.5 }} />
+                                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'right', display: 'block' }}>
+                                        {t('admin.financePage.spent')}: {Math.round((budget.spent / budget.total) * 100)}%
+                                    </Typography>
                                 </Card>
                             </Grid>
                         ))}
                     </Grid>
-                )}
-            </Box>
+                </>
+            )}
+
+            {activeTab === 'disbursements' && (
+                <AdminDataTable columns={disbursementColumns} data={disbursements} actions={disbursementActions} />
+            )}
+
+            {activeTab === 'budgets' && (
+                <Typography variant="body1" color="text.secondary" sx={{ p: 4, textAlign: 'center' }}>
+                    {t('admin.financePage.budgets')} — قريباً...
+                </Typography>
+            )}
+
+            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>
+            </Snackbar>
         </Box>
     );
 }

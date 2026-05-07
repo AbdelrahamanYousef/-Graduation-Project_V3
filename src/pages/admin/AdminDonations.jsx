@@ -1,246 +1,148 @@
-import { useState } from 'react';
-import {
-    Box,
-    Grid,
-    Card,
-    CardContent,
-    Typography,
-    Button,
-    IconButton,
-    TextField,
-    MenuItem,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Chip,
-    Stack,
-    InputAdornment,
-    useTheme,
-    alpha
-} from '@mui/material';
-import { formatCurrency, formatDate } from '../../i18n';
+import { useState, useMemo } from 'react';
+import { Box, TextField, MenuItem, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Grid, Chip, Divider } from '@mui/material';
+import { AdminPageHeader, AdminStatsGrid, AdminFilterBar, AdminDataTable } from '../../components/admin';
+import { formatCurrency, formatDate, t } from '../../i18n';
+import { useAdminData } from '../../contexts/AdminDataContext';
 
 /**
- * Admin Donations Page - إدارة التبرعات
+ * Admin Donations Page — with search, filters, view details, and export
  */
 function AdminDonations() {
-    const theme = useTheme();
+    const { state } = useAdminData();
+    const donations = state.donations;
     const [dateRange, setDateRange] = useState('all');
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
+    const [projectFilter, setProjectFilter] = useState('');
+    const [viewDonation, setViewDonation] = useState(null);
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '' });
 
-    // Mock donations data
-    const donations = [
-        { id: 1, donor: 'أحمد محمد', project: 'مشروع المياه النظيفة', amount: 5000, date: '2024-01-15', method: 'بطاقة ائتمان', status: 'completed' },
-        { id: 2, donor: 'فاطمة علي', project: 'كفالة يتيم', amount: 1500, date: '2024-01-14', method: 'فودافون كاش', status: 'completed' },
-        { id: 3, donor: 'خالد عبدالله', project: 'القافلة الطبية', amount: 10000, date: '2024-01-13', method: 'تحويل بنكي', status: 'pending' },
-        { id: 4, donor: 'سارة أحمد', project: 'تجهيز فصول دراسية', amount: 2500, date: '2024-01-12', method: 'بطاقة ائتمان', status: 'completed' },
-        { id: 5, donor: 'محمود حسن', project: 'إفطار صائم', amount: 500, date: '2024-01-11', method: 'فوري', status: 'completed' },
-        { id: 6, donor: 'نورة السيد', project: 'مشروع المياه النظيفة', amount: 3000, date: '2024-01-10', method: 'بطاقة ائتمان', status: 'refunded' },
+    // Apply filters
+    const filteredDonations = useMemo(() => {
+        return donations.filter(d => {
+            if (search && !d.donor.includes(search) && !String(d.id).includes(search)) return false;
+            if (statusFilter && d.status !== statusFilter) return false;
+            if (projectFilter && d.project !== projectFilter) return false;
+            return true;
+        });
+    }, [donations, search, statusFilter, projectFilter]);
+
+    const stats = useMemo(() => {
+        const total = filteredDonations.reduce((sum, d) => sum + d.amount, 0);
+        return {
+            total,
+            count: filteredDonations.length,
+            avgAmount: filteredDonations.length ? Math.round(total / filteredDonations.length) : 0,
+        };
+    }, [filteredDonations]);
+
+    const kpis = [
+        { label: t('admin.donationsPage.totalDonations'), value: formatCurrency(stats.total), color: 'success', icon: 'fa-solid fa-coins' },
+        { label: t('admin.donationsPage.donationCount'), value: String(stats.count), color: 'primary', icon: 'fa-solid fa-hashtag' },
+        { label: t('admin.donationsPage.avgDonation'), value: formatCurrency(stats.avgAmount), color: 'info', icon: 'fa-solid fa-chart-simple' },
     ];
 
-    const stats = {
-        total: donations.reduce((sum, d) => sum + d.amount, 0),
-        count: donations.length,
-        avgAmount: Math.round(donations.reduce((sum, d) => sum + d.amount, 0) / donations.length),
-    };
+    const uniqueProjects = [...new Set(donations.map(d => d.project))];
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'completed': return 'success';
-            case 'pending': return 'warning';
-            case 'refunded': return 'error';
-            default: return 'default';
-        }
-    };
+    const columns = [
+        { key: 'id', label: t('admin.donationsPage.donationId'), render: (v) => `#${String(v).padStart(5, '0')}`, sx: { fontFamily: 'monospace', color: 'text.secondary' } },
+        { key: 'donor', label: t('admin.donationsPage.donor'), fontWeight: 'medium' },
+        { key: 'project', label: t('admin.donationsPage.project') },
+        { key: 'amount', label: t('admin.donationsPage.amount'), render: (v) => formatCurrency(v), fontWeight: 'bold', color: 'primary.main' },
+        { key: 'method', label: t('admin.donationsPage.paymentMethod') },
+        { key: 'date', label: t('admin.donationsPage.date'), render: (v) => formatDate(v) },
+        { key: 'status', label: t('admin.donationsPage.status'), type: 'status' },
+    ];
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'completed': return 'مكتمل';
-            case 'pending': return 'قيد المعالجة';
-            case 'refunded': return 'مسترد';
-            default: return status;
-        }
+    const actions = [
+        { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل', onClick: (row) => setViewDonation(row) },
+        { icon: 'fa-solid fa-file-lines', tooltip: 'إيصال', onClick: () => setSnackbar({ open: true, msg: 'جاري تحميل الإيصال...' }) },
+    ];
+
+    const handleExport = () => {
+        setSnackbar({ open: true, msg: `جاري تصدير ${filteredDonations.length} تبرع إلى Excel...` });
     };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Header */}
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                        إدارة التبرعات
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        عرض وتتبع جميع التبرعات
-                    </Typography>
-                </Box>
-                <Button
-                    variant="outlined"
-                    startIcon={<i className="fa-solid fa-download"></i>}
-                >
-                    تصدير Excel
-                </Button>
-            </Box>
+            <AdminPageHeader
+                title={t('admin.donationsPage.title')}
+                subtitle={t('admin.donationsPage.subtitle')}
+                secondaryAction={{ label: t('admin.donationsPage.exportExcel'), icon: 'fa-solid fa-download', onClick: handleExport }}
+            />
 
-            {/* Stats */}
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
-                        <Stack spacing={1}>
-                            <Typography variant="body2" color="text.secondary">إجمالي التبرعات</Typography>
-                            <Typography variant="h5" fontWeight="bold" color="primary">
-                                {formatCurrency(stats.total)}
-                            </Typography>
-                        </Stack>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
-                        <Stack spacing={1}>
-                            <Typography variant="body2" color="text.secondary">عدد التبرعات</Typography>
-                            <Typography variant="h5" fontWeight="bold" color="primary">
-                                {stats.count}
-                            </Typography>
-                        </Stack>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={4}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
-                        <Stack spacing={1}>
-                            <Typography variant="body2" color="text.secondary">متوسط التبرع</Typography>
-                            <Typography variant="h5" fontWeight="bold" color="primary">
-                                {formatCurrency(stats.avgAmount)}
-                            </Typography>
-                        </Stack>
-                    </Card>
-                </Grid>
-            </Grid>
+            <AdminStatsGrid stats={kpis} columns={4} />
 
-            {/* Filters */}
-            <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
-                <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                    <TextField
-                        placeholder="بحث بالاسم أو رقم التبرع..."
-                        variant="outlined"
-                        size="small"
-                        sx={{ flexGrow: 1, minWidth: 200 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <i className="fa-solid fa-magnifying-glass" style={{ color: theme.palette.text.secondary }}></i>
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                    <TextField
-                        select
-                        variant="outlined"
-                        size="small"
-                        defaultValue=""
-                        sx={{ minWidth: 150 }}
-                        label="المشروع"
-                    >
-                        <MenuItem value="">كل المشاريع</MenuItem>
-                        <MenuItem value="1">مشروع المياه النظيفة</MenuItem>
-                        <MenuItem value="2">كفالة يتيم</MenuItem>
-                    </TextField>
-                    <TextField
-                        select
-                        variant="outlined"
-                        size="small"
-                        defaultValue=""
-                        sx={{ minWidth: 150 }}
-                        label="الحالة"
-                    >
-                        <MenuItem value="">كل الحالات</MenuItem>
-                        <MenuItem value="completed">مكتمل</MenuItem>
-                        <MenuItem value="pending">قيد المعالجة</MenuItem>
-                        <MenuItem value="refunded">مسترد</MenuItem>
-                    </TextField>
-                    <TextField
-                        select
-                        variant="outlined"
-                        size="small"
-                        value={dateRange}
-                        onChange={(e) => setDateRange(e.target.value)}
-                        sx={{ minWidth: 150 }}
-                        label="الفترة"
-                    >
-                        <MenuItem value="all">كل الفترات</MenuItem>
-                        <MenuItem value="today">اليوم</MenuItem>
-                        <MenuItem value="week">هذا الأسبوع</MenuItem>
-                        <MenuItem value="month">هذا الشهر</MenuItem>
-                    </TextField>
-                </Box>
-            </Card>
+            <AdminFilterBar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder={t('admin.donationsPage.searchPlaceholder')}
+            >
+                <TextField select size="small" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} sx={{ minWidth: 180 }} label={t('admin.donationsPage.project')}>
+                    <MenuItem value="">{t('admin.donationsPage.allProjects')}</MenuItem>
+                    {uniqueProjects.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </TextField>
+                <TextField select size="small" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} sx={{ minWidth: 150 }} label={t('admin.donationsPage.status')}>
+                    <MenuItem value="">{t('admin.donationsPage.allStatuses')}</MenuItem>
+                    <MenuItem value="completed">مكتمل</MenuItem>
+                    <MenuItem value="pending">قيد المعالجة</MenuItem>
+                    <MenuItem value="refunded">مسترد</MenuItem>
+                </TextField>
+                <TextField select size="small" value={dateRange} onChange={(e) => setDateRange(e.target.value)} sx={{ minWidth: 150 }} label={t('admin.donationsPage.period')}>
+                    <MenuItem value="all">{t('admin.donationsPage.allPeriods')}</MenuItem>
+                    <MenuItem value="today">{t('admin.donationsPage.today')}</MenuItem>
+                    <MenuItem value="week">{t('admin.donationsPage.thisWeek')}</MenuItem>
+                    <MenuItem value="month">{t('admin.donationsPage.thisMonth')}</MenuItem>
+                </TextField>
+            </AdminFilterBar>
 
-            {/* Donations Table */}
-            <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                <TableContainer component={Paper} elevation={0} sx={{ background: 'transparent' }}>
-                    <Table sx={{ minWidth: 650 }}>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: 'action.hover' }}>
-                                <TableCell sx={{ fontWeight: 'bold' }}>رقم التبرع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>المتبرع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>المشروع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>المبلغ</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>طريقة الدفع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>التاريخ</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الحالة</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الإجراءات</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {donations.map((donation) => (
-                                <TableRow
-                                    key={donation.id}
-                                    hover
-                                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-                                >
-                                    <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-                                        #{donation.id.toString().padStart(5, '0')}
-                                    </TableCell>
-                                    <TableCell sx={{ fontWeight: 'medium' }}>{donation.donor}</TableCell>
-                                    <TableCell>{donation.project}</TableCell>
-                                    <TableCell sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                                        {formatCurrency(donation.amount)}
-                                    </TableCell>
-                                    <TableCell>{donation.method}</TableCell>
-                                    <TableCell>{formatDate(donation.date)}</TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={getStatusLabel(donation.status)}
-                                            color={getStatusColor(donation.status)}
-                                            size="small"
-                                            variant="soft"
-                                            sx={{ fontWeight: 'medium' }}
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={1}>
-                                            <IconButton size="small">
-                                                <i className="fa-solid fa-eye" style={{ fontSize: 14 }}></i>
-                                            </IconButton>
-                                            <IconButton size="small">
-                                                <i className="fa-solid fa-file-lines" style={{ fontSize: 14 }}></i>
-                                            </IconButton>
-                                        </Stack>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Card>
+            <AdminDataTable columns={columns} data={filteredDonations} actions={actions} emptyMessage="لا توجد تبرعات مطابقة للبحث" />
+
+            {/* View Donation Dialog */}
+            <Dialog open={!!viewDonation} onClose={() => setViewDonation(null)} maxWidth="sm" fullWidth>
+                {viewDonation && (
+                    <>
+                        <DialogTitle>تفاصيل التبرع #{String(viewDonation.id).padStart(5, '0')}</DialogTitle>
+                        <DialogContent>
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">المتبرع</Typography>
+                                    <Typography fontWeight="bold">{viewDonation.donor}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">المبلغ</Typography>
+                                    <Typography fontWeight="bold" color="primary">{formatCurrency(viewDonation.amount)}</Typography>
+                                </Grid>
+                                <Grid item xs={12}><Divider /></Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">المشروع</Typography>
+                                    <Typography>{viewDonation.project}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">طريقة الدفع</Typography>
+                                    <Typography>{viewDonation.method}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">التاريخ</Typography>
+                                    <Typography>{formatDate(viewDonation.date)}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                    <Typography variant="caption" color="text.secondary">الحالة</Typography>
+                                    <Box sx={{ mt: 0.5 }}><Chip label={viewDonation.status === 'completed' ? 'مكتمل' : viewDonation.status === 'pending' ? 'قيد المعالجة' : 'مسترد'} color={viewDonation.status === 'completed' ? 'success' : viewDonation.status === 'pending' ? 'warning' : 'error'} size="small" /></Box>
+                                </Grid>
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={() => setViewDonation(null)}>إغلاق</Button>
+                            <Button variant="contained" onClick={() => { setViewDonation(null); setSnackbar({ open: true, msg: 'جاري تحميل الإيصال...' }); }}>تحميل الإيصال</Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
+
+            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, msg: '' })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity="success" variant="filled">{snackbar.msg}</Alert>
+            </Snackbar>
         </Box>
     );
 }

@@ -1,216 +1,123 @@
+import { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Box,
-    Grid,
-    Card,
-    CardContent,
-    Typography,
-    Button,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Chip,
-    Stack,
-    IconButton,
-    List,
-    ListItem,
-    ListItemText,
-    ListItemAvatar,
-    Avatar,
-    useTheme,
-    alpha
+    Box, Grid, Card, CardContent, Typography, Button,
+    Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+    Chip, Stack, IconButton, List, ListItem, ListItemText,
+    ListItemAvatar, Avatar, useTheme, alpha, Snackbar, Alert
 } from '@mui/material';
 import { t, formatCurrency } from '../../i18n';
+import { AdminPageHeader, AdminStatsGrid } from '../../components/admin';
+import { getPriorityColor } from '../../utils/admin.helpers';
+import { useAdminData } from '../../contexts/AdminDataContext';
+import { dashboardPendingTasks, dashboardActivities } from '../../data/adminMockData';
 
 /**
- * Admin Dashboard - Main overview page
+ * Dashboard — reads all stats from shared AdminDataContext (real data)
  */
 function Dashboard() {
     const theme = useTheme();
+    const { state, dashboardStats } = useAdminData();
 
-    // Mock KPI data
+    const [tasks, setTasks] = useState(dashboardPendingTasks);
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '' });
+
+    const handleCompleteTask = useCallback((taskId) => {
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        setSnackbar({ open: true, msg: 'تم إنهاء المهمة بنجاح ✓' });
+    }, []);
+
+    // Live KPIs derived from real context data
     const kpis = [
         {
-            label: t('admin.totalRevenue'),
-            value: formatCurrency(2450000),
-            change: '+12%',
-            trend: 'up',
+            label: 'إجمالي التبرعات',
+            value: formatCurrency(dashboardStats.totalRevenue),
             icon: 'fa-solid fa-coins',
-            color: 'success'
+            color: 'success',
+            change: `${state.donations.length} تبرع`,
         },
         {
-            label: t('admin.activeProjects'),
-            value: '24',
-            change: '+3',
-            trend: 'up',
+            label: 'المشاريع النشطة',
+            value: String(dashboardStats.activeProjects),
             icon: 'fa-solid fa-clipboard-list',
-            color: 'primary'
+            color: 'primary',
+            change: `من أصل ${dashboardStats.totalProjects} مشروع`,
         },
         {
-            label: t('admin.pendingCases'),
-            value: '18',
-            change: '-5',
-            trend: 'down',
-            icon: 'fa-solid fa-users',
-            color: 'warning'
+            label: 'البرامج المفعّلة',
+            value: String(state.programs.filter(p => !p.status || p.status === 'active').length),
+            icon: 'fa-solid fa-folder-open',
+            color: 'info',
+            change: `الكل: ${state.programs.length}`,
         },
         {
-            label: t('admin.monthlyDonations'),
-            value: formatCurrency(485000),
-            change: '+8%',
-            trend: 'up',
-            icon: 'fa-solid fa-chart-line',
-            color: 'info'
+            label: 'الحالات الأشد احتياجاً',
+            value: String(state.projects.filter(p => p.featured).length),
+            icon: 'fa-solid fa-star',
+            color: 'warning',
+            change: 'مميزة في الرئيسية',
         },
     ];
 
-    // Mock recent donations
-    const recentDonations = [
-        { id: 1, donor: 'أحمد محمد', amount: 500, project: 'كسوة الشتاء', time: 'منذ 5 دقائق', type: 'صدقة' },
-        { id: 2, donor: 'سارة علي', amount: 1000, project: 'كفالة الأيتام', time: 'منذ 15 دقيقة', type: 'زكاة' },
-        { id: 3, donor: 'محمود حسن', amount: 200, project: 'تبرع عام', time: 'منذ 30 دقيقة', type: 'صدقة' },
-        { id: 4, donor: 'فاطمة أحمد', amount: 2000, project: 'إفطار الصائمين', time: 'منذ ساعة', type: 'وقف' },
-        { id: 5, donor: 'خالد عبدالله', amount: 350, project: 'القافلة الطبية', time: 'منذ ساعتين', type: 'صدقة' },
+    const quickActions = [
+        { label: t('admin.addProject'), icon: 'fa-solid fa-clipboard-list', link: '/admin/projects', color: 'primary' },
+        { label: t('admin.addProgram'), icon: 'fa-solid fa-folder-open', link: '/admin/programs', color: 'secondary' },
+        { label: t('admin.viewReports'), icon: 'fa-solid fa-chart-line', link: '/admin/reports', color: 'info' },
+        { label: t('admin.manageUsers'), icon: 'fa-solid fa-users', link: '/admin/settings', color: 'success' },
     ];
 
-    // Mock pending tasks
-    const pendingTasks = [
-        { id: 1, title: 'مراجعة طلب استحقاق جديد', priority: 'high', assignee: 'سارة' },
-        { id: 2, title: 'اعتماد صرف دفعة مشروع الشتاء', priority: 'medium', assignee: 'أحمد' },
-        { id: 3, title: 'تحديث بيانات 5 مستفيدين', priority: 'low', assignee: 'محمد' },
-        { id: 4, title: 'مراجعة تقرير الربع الثالث', priority: 'medium', assignee: 'فاطمة' },
-    ];
-
-    // Mock recent activity
-    const activities = [
-        { id: 1, action: 'تمت إضافة مشروع جديد', user: 'محمد أحمد', time: 'منذ 10 دقائق', icon: 'fa-solid fa-plus', color: 'primary' },
-        { id: 2, action: 'تم اعتماد طلب استحقاق', user: 'سارة علي', time: 'منذ 30 دقيقة', icon: 'fa-solid fa-check', color: 'success' },
-        { id: 3, action: 'تم تحديث بيانات مستفيد', user: 'أحمد خالد', time: 'منذ ساعة', icon: 'fa-solid fa-pen', color: 'info' },
-        { id: 4, action: 'تم إغلاق دفعة توزيع', user: 'فاطمة حسن', time: 'منذ ساعتين', icon: 'fa-solid fa-box', color: 'warning' },
-    ];
-
-    const getPriorityColor = (priority) => {
-        switch (priority) {
-            case 'high': return 'error';
-            case 'medium': return 'warning';
-            case 'low': return 'success';
-            default: return 'default';
-        }
-    };
+    // Most recent 5 donations from context
+    const recentDonations = [...state.donations].reverse().slice(0, 5);
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Page Header */}
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                        {t('admin.dashboard')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        مرحباً بك، محمد <i className="fa-regular fa-hand"></i>
-                    </Typography>
-                </Box>
-                <Button variant="outlined" startIcon={<i className="fa-solid fa-download"></i>}>
-                    تصدير التقرير
-                </Button>
-            </Box>
+            <AdminPageHeader
+                title={t('admin.dashboard')}
+                subtitle="مرحباً بك في لوحة تحكم جمعية نور الخيرية 👋"
+                secondaryAction={{ label: t('admin.exportReport'), icon: 'fa-solid fa-download', onClick: () => setSnackbar({ open: true, msg: 'جاري تصدير التقرير...' }) }}
+            />
 
-            {/* KPI Cards */}
-            <Grid container spacing={2}>
-                {kpis.map((kpi, index) => (
-                    <Grid item xs={12} sm={6} md={3} key={index}>
-                        <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%' }}>
-                            <CardContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <Box sx={{
-                                        width: 40,
-                                        height: 40,
-                                        borderRadius: 1,
-                                        bgcolor: alpha(theme.palette[kpi.color].main, 0.1),
-                                        color: `${kpi.color}.main`,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: 20
-                                    }}>
-                                        <i className={kpi.icon}></i>
-                                    </Box>
-                                    <Chip
-                                        label={`${kpi.change} من الشهر الماضي`}
-                                        size="small"
-                                        color={kpi.trend === 'up' ? 'success' : 'error'}
-                                        variant="soft"
-                                        sx={{ height: 20, fontSize: 10 }}
-                                    />
-                                </Box>
-                                <Typography variant="h4" fontWeight="bold">
-                                    {kpi.value}
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    {kpi.label}
-                                </Typography>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
+            <AdminStatsGrid stats={kpis} columns={3} />
 
-            {/* Main Grid */}
             <Grid container spacing={3}>
-                {/* Recent Donations and Pending Tasks */}
+                {/* Recent Donations + Quick Actions */}
                 <Grid item xs={12} lg={8}>
                     <Stack spacing={3}>
-                        {/* Recent Donations */}
                         <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
                             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
                                 <Typography variant="h6" fontWeight="bold">{t('admin.recentDonations')}</Typography>
-                                <Button component={Link} to="/admin/donations" size="small">عرض الكل</Button>
+                                <Button component={Link} to="/admin/donations" size="small">{t('admin.viewAllBtn')}</Button>
                             </Box>
-                            <TableContainer>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow sx={{ bgcolor: 'action.hover' }}>
-                                            <TableCell>المتبرع</TableCell>
-                                            <TableCell>المبلغ</TableCell>
-                                            <TableCell>المشروع</TableCell>
-                                            <TableCell>النوع</TableCell>
-                                            <TableCell>الوقت</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {recentDonations.map(donation => (
-                                            <TableRow key={donation.id} hover>
-                                                <TableCell sx={{ fontWeight: 'medium' }}>{donation.donor}</TableCell>
-                                                <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>
-                                                    {formatCurrency(donation.amount)}
-                                                </TableCell>
-                                                <TableCell>{donation.project}</TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        label={donation.type}
-                                                        size="small"
-                                                        color={donation.type === 'زكاة' ? 'primary' : 'default'}
-                                                        variant="outlined"
-                                                    />
-                                                </TableCell>
-                                                <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
-                                                    {donation.time}
-                                                </TableCell>
+                            {recentDonations.length === 0 ? (
+                                <Box sx={{ p: 4, textAlign: 'center', color: 'text.secondary' }}>
+                                    <Typography variant="body2">لا توجد تبرعات بعد</Typography>
+                                </Box>
+                            ) : (
+                                <TableContainer>
+                                    <Table>
+                                        <TableHead>
+                                            <TableRow sx={{ bgcolor: 'action.hover' }}>
+                                                <TableCell sx={{ fontWeight: 'bold' }}>{t('admin.donationsPage.donor')}</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold' }}>{t('admin.donationsPage.amount')}</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold' }}>{t('admin.donationsPage.project')}</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold' }}>طريقة الدفع</TableCell>
+                                                <TableCell sx={{ fontWeight: 'bold' }}>{t('admin.donationsPage.date')}</TableCell>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+                                        </TableHead>
+                                        <TableBody>
+                                            {recentDonations.map(donation => (
+                                                <TableRow key={donation.id} hover>
+                                                    <TableCell sx={{ fontWeight: 'medium' }}>{donation.donor}</TableCell>
+                                                    <TableCell sx={{ fontWeight: 'bold', color: 'success.main' }}>{formatCurrency(donation.amount)}</TableCell>
+                                                    <TableCell>{donation.project}</TableCell>
+                                                    <TableCell>{donation.method}</TableCell>
+                                                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>{donation.date || donation.time}</TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            )}
                         </Card>
 
                         {/* Quick Actions */}
@@ -220,34 +127,20 @@ function Dashboard() {
                             </Box>
                             <CardContent>
                                 <Grid container spacing={2}>
-                                    {[
-                                        { label: t('admin.addProject'), icon: 'fa-solid fa-clipboard-list', link: '/admin/projects/new', color: 'primary' },
-                                        { label: t('admin.addProgram'), icon: 'fa-solid fa-folder-open', link: '/admin/programs/new', color: 'secondary' },
-                                        { label: t('admin.viewReports'), icon: 'fa-solid fa-chart-line', link: '/admin/reports', color: 'info' },
-                                        { label: t('admin.manageUsers'), icon: 'fa-solid fa-users', link: '/admin/settings/users', color: 'success' },
-                                    ].map((action, i) => (
+                                    {quickActions.map((action, i) => (
                                         <Grid item xs={6} sm={3} key={i}>
                                             <Button
-                                                component={Link}
-                                                to={action.link}
-                                                variant="outlined"
-                                                color="inherit"
-                                                fullWidth
+                                                component={Link} to={action.link} variant="outlined" color="inherit" fullWidth
                                                 sx={{
-                                                    py: 2,
-                                                    display: 'flex',
-                                                    flexDirection: 'column',
-                                                    gap: 1,
-                                                    height: '100%',
+                                                    py: 2, display: 'flex', flexDirection: 'column', gap: 1, height: '100%',
                                                     borderColor: 'divider',
                                                     '&:hover': {
-                                                        borderColor: `${action.color}.main`,
-                                                        color: `${action.color}.main`,
+                                                        borderColor: `${action.color}.main`, color: `${action.color}.main`,
                                                         bgcolor: alpha(theme.palette[action.color].main, 0.04)
                                                     }
                                                 }}
                                             >
-                                                <Box sx={{ fontSize: 24, mb: 0.5 }}><i className={action.icon}></i></Box>
+                                                <Box sx={{ fontSize: 24, mb: 0.5 }}><i className={action.icon} /></Box>
                                                 <Typography variant="body2" fontWeight="medium">{action.label}</Typography>
                                             </Button>
                                         </Grid>
@@ -258,39 +151,68 @@ function Dashboard() {
                     </Stack>
                 </Grid>
 
-                {/* Sidebar: Pending Tasks & Activity */}
+                {/* Sidebar */}
                 <Grid item xs={12} lg={4}>
                     <Stack spacing={3}>
                         {/* Pending Tasks */}
                         <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
                             <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
-                                <Typography variant="h6" fontWeight="bold">المهام المعلقة</Typography>
-                                <Chip label={pendingTasks.length} size="small" color="error" />
+                                <Typography variant="h6" fontWeight="bold">{t('admin.pendingTasks')}</Typography>
+                                <Chip label={tasks.length} size="small" color={tasks.length > 0 ? 'error' : 'success'} />
+                            </Box>
+                            {tasks.length === 0 ? (
+                                <Box sx={{ p: 3, textAlign: 'center' }}>
+                                    <Typography variant="body2" color="text.secondary">لا توجد مهام معلقة ✓</Typography>
+                                </Box>
+                            ) : (
+                                <List disablePadding>
+                                    {tasks.map((task, i) => (
+                                        <ListItem
+                                            key={task.id}
+                                            divider={i !== tasks.length - 1}
+                                            secondaryAction={
+                                                <IconButton edge="end" size="small" color="success" onClick={() => handleCompleteTask(task.id)}>
+                                                    <i className="fa-regular fa-square-check" />
+                                                </IconButton>
+                                            }
+                                        >
+                                            <Box sx={{ width: 4, height: 40, borderRadius: 1, bgcolor: `${getPriorityColor(task.priority)}.main`, mr: 2 }} />
+                                            <ListItemText
+                                                primary={task.title}
+                                                primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
+                                                secondary={`← ${task.assignee}`}
+                                                secondaryTypographyProps={{ variant: 'caption' }}
+                                            />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            )}
+                        </Card>
+
+                        {/* Summary stats */}
+                        <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
+                            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+                                <Typography variant="h6" fontWeight="bold">ملخص البيانات</Typography>
                             </Box>
                             <List disablePadding>
-                                {pendingTasks.map((task, i) => (
-                                    <ListItem
-                                        key={task.id}
-                                        divider={i !== pendingTasks.length - 1}
-                                        secondaryAction={
-                                            <IconButton edge="end" size="small" color="success">
-                                                <i className="fa-regular fa-square-check"></i>
-                                            </IconButton>
-                                        }
-                                    >
-                                        <Box sx={{
-                                            width: 4,
-                                            height: 40,
-                                            borderRadius: 1,
-                                            bgcolor: `${getPriorityColor(task.priority)}.main`,
-                                            mr: 2
-                                        }} />
+                                {[
+                                    { label: 'إجمالي المشاريع', value: state.projects.length, icon: 'fa-solid fa-clipboard-list', color: 'primary' },
+                                    { label: 'مشاريع مكتملة', value: state.projects.filter(p => p.status === 'completed').length, icon: 'fa-solid fa-circle-check', color: 'success' },
+                                    { label: 'حالات عاجلة مميزة', value: state.projects.filter(p => p.featured).length, icon: 'fa-solid fa-star', color: 'warning' },
+                                    { label: 'عدد البرامج', value: state.programs.length, icon: 'fa-solid fa-folder-open', color: 'info' },
+                                    { label: 'المتبرعون الفريدون', value: dashboardStats.totalDonors, icon: 'fa-solid fa-users', color: 'secondary' },
+                                ].map((item, i) => (
+                                    <ListItem key={i} divider={i !== 4}>
+                                        <ListItemAvatar sx={{ minWidth: 40 }}>
+                                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette[item.color]?.main || theme.palette.primary.main, 0.1), color: `${item.color}.main`, fontSize: 14 }}>
+                                                <i className={item.icon} />
+                                            </Avatar>
+                                        </ListItemAvatar>
                                         <ListItemText
-                                            primary={task.title}
-                                            primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
-                                            secondary={`← ${task.assignee}`}
-                                            secondaryTypographyProps={{ variant: 'caption' }}
+                                            primary={item.label}
+                                            primaryTypographyProps={{ variant: 'body2' }}
                                         />
+                                        <Typography variant="h6" fontWeight="bold" color={`${item.color}.main`}>{item.value}</Typography>
                                     </ListItem>
                                 ))}
                             </List>
@@ -302,11 +224,11 @@ function Dashboard() {
                                 <Typography variant="h6" fontWeight="bold">{t('admin.recentActivity')}</Typography>
                             </Box>
                             <List disablePadding>
-                                {activities.map((activity, i) => (
+                                {dashboardActivities.map((activity) => (
                                     <ListItem key={activity.id} alignItems="flex-start">
                                         <ListItemAvatar sx={{ minWidth: 40 }}>
                                             <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette[activity.color].main, 0.1), color: `${activity.color}.main`, fontSize: 14 }}>
-                                                <i className={activity.icon}></i>
+                                                <i className={activity.icon} />
                                             </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
@@ -314,9 +236,7 @@ function Dashboard() {
                                             primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
                                             secondary={
                                                 <Stack direction="row" spacing={1} component="span" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                                                    <span>{activity.user}</span>
-                                                    <span>•</span>
-                                                    <span>{activity.time}</span>
+                                                    <span>{activity.user}</span><span>•</span><span>{activity.time}</span>
                                                 </Stack>
                                             }
                                         />
@@ -327,6 +247,10 @@ function Dashboard() {
                     </Stack>
                 </Grid>
             </Grid>
+
+            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, msg: '' })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity="success" variant="filled">{snackbar.msg}</Alert>
+            </Snackbar>
         </Box>
     );
 }

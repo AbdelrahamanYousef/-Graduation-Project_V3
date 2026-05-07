@@ -17,7 +17,7 @@ import {
     alpha,
 } from '@mui/material';
 import { formatCurrency, formatNumber, getLanguage } from '../../i18n';
-import { projects, programs } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import { QuickDonateModal } from './Campaigns';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
@@ -134,6 +134,11 @@ export default function CampaignDetail() {
     const [donateProject, setDonateProject] = useState(null);
     const [donationAmount, setDonationAmount] = useState(200);
     const AMOUNT_STEP = 50;
+
+    // Read live data from shared context
+    const { state } = useAdminData();
+    const projects = state.projects;
+    const programs = state.programs;
 
     const campaign = projects.find(p => p.id === parseInt(id));
     const program = programs.find(p => p.id === campaign?.programId);

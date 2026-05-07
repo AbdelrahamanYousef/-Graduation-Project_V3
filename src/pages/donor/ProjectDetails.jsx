@@ -20,7 +20,8 @@ import {
     alpha
 } from '@mui/material';
 import { t, formatCurrency, formatNumber, formatDate, getLanguage } from '../../i18n';
-import { projects, updates } from '../../data/mockData';
+import { updates } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 
 // --- Styled Components ---
@@ -64,6 +65,10 @@ function ProjectDetails() {
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
     const isEn = getLanguage() === 'en';
+
+    // Read live data from shared context
+    const { state } = useAdminData();
+    const projects = state.projects;
 
     const project = projects.find(p => p.id === parseInt(id));
     const projectUpdates = updates.filter(u => u.projectId === parseInt(id));

@@ -1,213 +1,200 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
-    Box,
-    Grid,
-    Card,
-    CardContent,
-    Typography,
-    Button,
-    IconButton,
-    TextField,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Stack,
-    Chip,
-    LinearProgress,
-    Tabs,
-    Tab,
-    MenuItem,
-    useTheme,
-    alpha,
-    Tooltip
+    Box, Grid, Card, CardContent, Typography, Button, IconButton,
+    TextField, MenuItem, Stack, LinearProgress, Tooltip, useTheme, alpha,
+    Snackbar, Alert
 } from '@mui/material';
-import { projects, programs } from '../../data/mockData';
-import { formatCurrency } from '../../i18n';
+import { AdminPageHeader, AdminFilterBar, AdminFormDialog, AdminStatusChip } from '../../components/admin';
+import { programs as staticPrograms } from '../../data/mockData';
+import { formatCurrency, t } from '../../i18n';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 
 /**
- * Admin Projects Page - إدارة المشاريع
+ * Admin Projects Page — Full CRUD, updates home page in real time
  */
 function AdminProjects() {
     const theme = useTheme();
+    const { state, dispatch } = useAdminData();
+    const projectsList = state.projects;
+    const programsList = state.programs.length > 0 ? state.programs : staticPrograms;
+
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editProject, setEditProject] = useState(null);
     const [filter, setFilter] = useState('all');
-    // Track featured state locally (initial from mock data)
-    const [featuredState, setFeaturedState] = useState(
-        () => Object.fromEntries(projects.map(p => [p.id, !!p.featured]))
-    );
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
-    const toggleFeatured = (id) => {
-        setFeaturedState(prev => ({ ...prev, [id]: !prev[id] }));
+    const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '' };
+    const [formData, setFormData] = useState(emptyForm);
+
+    const toggleFeatured = useCallback((project) => {
+        dispatch(adminActions.toggleFeatured(project.id));
+        setSnackbar({
+            open: true,
+            severity: 'success',
+            msg: project.featured
+                ? `تم إزالة "${project.title}" من الحالات الأشد احتياجاً`
+                : `تم إضافة "${project.title}" للحالات الأشد احتياجاً ⭐`,
+        });
+    }, [dispatch]);
+
+    const handleAdd = () => {
+        setEditProject(null);
+        setFormData(emptyForm);
+        setIsModalOpen(true);
     };
 
-    const handleFilterChange = (event, newValue) => {
-        setFilter(newValue);
-    };
+    const handleEdit = useCallback((project) => {
+        setEditProject(project);
+        setFormData({
+            title: project.title || '',
+            programId: project.programId || '',
+            goal: project.goal || '',
+            donationAmount: project.donationAmount || '',
+            location: project.location || '',
+            description: project.description || '',
+        });
+        setIsModalOpen(true);
+    }, []);
 
-    const filteredProjects = filter === 'all'
-        ? projects
-        : projects.filter(p => p.status === filter);
-
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'completed': return 'success';
-            case 'pending': return 'warning';
-            case 'active': return 'primary';
-            default: return 'default';
+    const handleSubmit = () => {
+        if (!formData.title.trim()) {
+            setSnackbar({ open: true, msg: 'يرجى إدخال عنوان المشروع', severity: 'error' });
+            return;
         }
+
+        if (editProject) {
+            dispatch(adminActions.updateProject({
+                ...editProject,
+                title: formData.title,
+                programId: Number(formData.programId),
+                goal: Number(formData.goal),
+                donationAmount: Number(formData.donationAmount),
+                location: formData.location,
+                description: formData.description,
+            }));
+            setSnackbar({ open: true, msg: `تم تحديث المشروع "${formData.title}"`, severity: 'success' });
+        } else {
+            const program = programsList.find(p => p.id === Number(formData.programId));
+            dispatch(adminActions.addProject({
+                id: Math.max(...projectsList.map(p => p.id), 0) + 1,
+                title: formData.title,
+                programId: Number(formData.programId),
+                program: program?.name || '',
+                programEn: program?.nameEn || '',
+                goal: Number(formData.goal) || 100000,
+                raised: 0,
+                donors: 0,
+                daysLeft: 30,
+                donationAmount: Number(formData.donationAmount) || 0,
+                location: formData.location,
+                description: formData.description,
+                status: 'active',
+                featured: false,
+                image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
+            }));
+            setSnackbar({ open: true, msg: `تم إنشاء المشروع "${formData.title}"`, severity: 'success' });
+        }
+        setIsModalOpen(false);
+        setFormData(emptyForm);
     };
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'completed': return 'مكتمل';
-            case 'pending': return 'قيد المراجعة';
-            case 'active': return 'نشط';
-            default: return status;
-        }
-    };
+    const handleDelete = useCallback((project) => {
+        dispatch(adminActions.deleteProject(project.id));
+        setSnackbar({ open: true, msg: `تم حذف المشروع "${project.title}"`, severity: 'success' });
+    }, [dispatch]);
+
+    const filteredProjects = filter === 'all' ? projectsList : projectsList.filter(p => p.status === filter);
+
+    const tabs = [
+        { label: `${t('admin.projectsPage.all')} (${projectsList.length})`, value: 'all' },
+        { label: `${t('admin.projectsPage.active')} (${projectsList.filter(p => p.status === 'active').length})`, value: 'active' },
+        { label: `${t('admin.projectsPage.completed')} (${projectsList.filter(p => p.status === 'completed').length})`, value: 'completed' },
+        { label: `${t('admin.projectsPage.pending')} (${projectsList.filter(p => p.status === 'pending').length})`, value: 'pending' },
+    ];
+
+    const updateField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Header */}
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                        إدارة المشاريع
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        إضافة ومتابعة مشاريع الجمعية
-                    </Typography>
-                </Box>
-                <Button
-                    variant="contained"
-                    onClick={() => setIsModalOpen(true)}
-                    startIcon={<i className="fa-solid fa-plus"></i>}
-                >
-                    مشروع جديد
-                </Button>
-            </Box>
+            <AdminPageHeader
+                title={t('admin.projectsPage.title')}
+                subtitle={t('admin.projectsPage.subtitle')}
+                action={{ label: t('admin.projectsPage.addBtn'), icon: 'fa-solid fa-plus', onClick: handleAdd }}
+            />
 
-            {/* Filters */}
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs
-                    value={filter}
-                    onChange={handleFilterChange}
-                    variant="scrollable"
-                    scrollButtons="auto"
-                >
-                    <Tab label={`الكل (${projects.length})`} value="all" />
-                    <Tab label="نشط" value="active" />
-                    <Tab label="مكتمل" value="completed" />
-                    <Tab label="قيد المراجعة" value="pending" />
-                </Tabs>
-            </Box>
+            <AdminFilterBar tabs={tabs} activeTab={filter} onTabChange={(_, v) => setFilter(v)} />
 
-            {/* Projects Grid */}
             <Grid container spacing={3}>
                 {filteredProjects.map(project => {
-                    const program = programs.find(p => p.id === project.programId);
-                    const progress = Math.min(Math.round((project.raised / project.goal) * 100), 100);
-
+                    const program = programsList.find(p => p.id === project.programId);
+                    const progress = Math.min(Math.round(((project.raised || 0) / (project.goal || 1)) * 100), 100);
                     return (
                         <Grid item xs={12} sm={6} lg={4} key={project.id}>
-                            <Card elevation={0} sx={{ border: 1, borderColor: 'divider', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Card elevation={0} sx={{
+                                border: 1, borderColor: project.featured ? '#f59e0b' : 'divider',
+                                height: '100%', display: 'flex', flexDirection: 'column',
+                                ...(project.featured && { boxShadow: '0 0 0 2px #f59e0b40' }),
+                            }}>
                                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 1,
+                                            display: 'flex', alignItems: 'center', gap: 1,
                                             bgcolor: alpha(program?.color || theme.palette.primary.main, 0.1),
                                             color: program?.color || 'primary.main',
-                                            px: 1,
-                                            py: 0.5,
-                                            borderRadius: 1,
-                                            fontSize: '0.75rem',
-                                            fontWeight: 'medium'
+                                            px: 1, py: 0.5, borderRadius: 1, fontSize: '0.75rem', fontWeight: 'medium'
                                         }}>
-                                            <i className={program?.icon}></i>
+                                            {program?.icon && <i className={program.icon} />}
                                             {program?.name}
                                         </Box>
-                                        <Chip
-                                            label={getStatusLabel(project.status || 'active')}
-                                            color={getStatusColor(project.status || 'active')}
-                                            size="small"
-                                            variant="soft" // Using soft variant if available in theme, else standard
-                                            sx={{ fontWeight: 'medium' }}
-                                        />
+                                        <Stack direction="row" spacing={0.5} alignItems="center">
+                                            {project.featured && <i className="fa-solid fa-star" style={{ color: '#f59e0b', fontSize: 12 }} />}
+                                            <AdminStatusChip status={project.status || 'active'} />
+                                        </Stack>
                                     </Box>
 
-                                    <Typography variant="h6" fontWeight="bold" component="div">
-                                        {project.title}
-                                    </Typography>
+                                    <Typography variant="h6" fontWeight="bold">{project.title}</Typography>
 
                                     <Box>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Typography variant="body2" fontWeight="bold" color="primary">
-                                                {formatCurrency(project.raised)}
-                                            </Typography>
-                                            <Typography variant="caption" color="text.secondary">
-                                                من {formatCurrency(project.goal)}
-                                            </Typography>
+                                            <Typography variant="body2" fontWeight="bold" color="primary">{formatCurrency(project.raised || 0)}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{t('admin.projectsPage.from')} {formatCurrency(project.goal)}</Typography>
                                         </Box>
-                                        <LinearProgress
-                                            variant="determinate"
-                                            value={progress}
-                                            sx={{ height: 8, borderRadius: 1 }}
-                                        />
-                                        {project.donationAmount && (
+                                        <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 1 }} />
+                                        {project.donationAmount > 0 && (
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1 }}>
                                                 <i className="fa-solid fa-hand-holding-heart" style={{ fontSize: '0.75rem', color: program?.color || theme.palette.primary.main }} />
-                                                <Typography variant="caption" fontWeight="bold" color="primary">
-                                                    {formatCurrency(project.donationAmount)}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>
-                                                    مبلغ التبرع
-                                                </Typography>
+                                                <Typography variant="caption" fontWeight="bold" color="primary">{formatCurrency(project.donationAmount)}</Typography>
+                                                <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.65rem' }}>{t('admin.projectsPage.donationAmount')}</Typography>
                                             </Box>
                                         )}
                                     </Box>
 
                                     <Stack direction="row" spacing={2} sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                            <i className="fa-solid fa-location-dot"></i>
-                                            {project.location}
+                                            <i className="fa-solid fa-location-dot" /> {project.location}
                                         </Box>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                            <i className="fa-solid fa-users"></i>
-                                            {project.donors} متبرع
+                                            <i className="fa-solid fa-users" /> {project.donors || 0} {t('admin.projectsPage.donors')}
                                         </Box>
                                     </Stack>
                                 </CardContent>
 
                                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, alignItems: 'center' }}>
-                                    <Tooltip title={featuredState[project.id] ? 'إزالة من الحالات الأشد احتياجاً' : 'إضافة للحالات الأشد احتياجاً'}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => toggleFeatured(project.id)}
+                                    <Tooltip title={project.featured ? t('admin.projectsPage.removeFeatured') : t('admin.projectsPage.addFeatured')}>
+                                        <IconButton size="small" onClick={() => toggleFeatured(project)}
                                             sx={{
-                                                color: featuredState[project.id] ? '#f59e0b' : 'text.disabled',
+                                                color: project.featured ? '#f59e0b' : 'text.disabled',
                                                 transition: 'all 0.3s ease',
-                                                '&:hover': {
-                                                    color: featuredState[project.id] ? '#d97706' : '#f59e0b',
-                                                    transform: 'scale(1.15)',
-                                                },
-                                            }}
-                                        >
-                                            <i className={featuredState[project.id] ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
+                                                '&:hover': { color: project.featured ? '#d97706' : '#f59e0b', transform: 'scale(1.15)' },
+                                            }}>
+                                            <i className={project.featured ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
                                         </IconButton>
                                     </Tooltip>
-                                    <Button size="small" variant="outlined" fullWidth>تعديل</Button>
-                                    <Button size="small" variant="outlined" fullWidth>عرض</Button>
-                                    <IconButton size="small">
-                                        <i className="fa-solid fa-ellipsis"></i>
+                                    <Button size="small" variant="outlined" fullWidth onClick={() => handleEdit(project)}>
+                                        {t('admin.projectsPage.edit')}
+                                    </Button>
+                                    <IconButton size="small" color="error" onClick={() => handleDelete(project)}>
+                                        <i className="fa-solid fa-trash" style={{ fontSize: 14 }} />
                                     </IconButton>
                                 </Box>
                             </Card>
@@ -216,98 +203,47 @@ function AdminProjects() {
                 })}
             </Grid>
 
-            {/* Add Modal */}
-            <Dialog
+            {filteredProjects.length === 0 && (
+                <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+                    <i className="fa-solid fa-folder-open" style={{ fontSize: 48, opacity: 0.3 }} />
+                    <Typography sx={{ mt: 2 }}>لا توجد مشاريع في هذه الفئة</Typography>
+                </Box>
+            )}
+
+            {/* Add/Edit Modal */}
+            <AdminFormDialog
                 open={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                fullWidth
+                onClose={() => { setIsModalOpen(false); setFormData(emptyForm); }}
+                onSubmit={handleSubmit}
+                title={editProject ? `تعديل: ${editProject.title}` : t('admin.projectsPage.addDialog')}
+                submitLabel={editProject ? t('admin.programsPage.saveChanges') : t('admin.projectsPage.createBtn')}
                 maxWidth="md"
-                PaperProps={{ sx: { borderRadius: 2 } }}
             >
-                <DialogTitle>إضافة مشروع جديد</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2} sx={{ pt: 1 }}>
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-                            <TextField
-                                label="عنوان المشروع"
-                                fullWidth
-                                required
-                                variant="outlined"
-                            />
-                            <TextField
-                                select
-                                label="البرنامج"
-                                fullWidth
-                                variant="outlined"
-                                defaultValue=""
-                            >
-                                {programs.map(p => (
-                                    <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-                                ))}
-                            </TextField>
-                        </Box>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                    <TextField label={t('admin.projectsPage.titleLabel')} fullWidth required value={formData.title} onChange={updateField('title')} />
+                    <TextField select label={t('admin.projectsPage.programLabel')} fullWidth value={formData.programId} onChange={updateField('programId')}>
+                        {programsList.map(p => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
+                    </TextField>
+                </Box>
+                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
+                    <TextField label={t('admin.projectsPage.goalLabel')} type="number" fullWidth required value={formData.goal} onChange={updateField('goal')} />
+                    <TextField label={t('admin.projectsPage.donationAmountLabel')} type="number" fullWidth value={formData.donationAmount} onChange={updateField('donationAmount')} />
+                </Box>
+                <TextField label={t('admin.projectsPage.locationLabel')} fullWidth value={formData.location} onChange={updateField('location')} />
+                <TextField label={t('admin.projectsPage.descLabel')} multiline rows={4} fullWidth value={formData.description} onChange={updateField('description')} />
+                <Box sx={{
+                    border: '2px dashed', borderColor: 'divider', borderRadius: 2, p: 3,
+                    textAlign: 'center', bgcolor: 'action.hover', cursor: 'pointer',
+                }}>
+                    <Typography variant="body2" color="text.secondary">
+                        <i className="fa-solid fa-camera" style={{ marginRight: 8 }} />{t('admin.projectsPage.imageUpload')}
+                    </Typography>
+                </Box>
+            </AdminFormDialog>
 
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-                            <TextField
-                                label="المبلغ المستهدف (جنية مصري)"
-                                type="number"
-                                fullWidth
-                                required
-                                variant="outlined"
-                            />
-                            <TextField
-                                label="مبلغ التبرع (جنية مصري)"
-                                type="number"
-                                fullWidth
-                                variant="outlined"
-                                placeholder="مثال: 500"
-                            />
-                        </Box>
-
-                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2 }}>
-                            <TextField
-                                label="الموقع"
-                                placeholder="المحافظة، المدينة"
-                                fullWidth
-                                variant="outlined"
-                            />
-                        </Box>
-
-                        <TextField
-                            label="وصف المشروع"
-                            multiline
-                            rows={4}
-                            placeholder="وصف تفصيلي للمشروع..."
-                            fullWidth
-                            variant="outlined"
-                        />
-
-                        <Box sx={{
-                            border: '2px dashed',
-                            borderColor: 'divider',
-                            borderRadius: 2,
-                            p: 3,
-                            textAlign: 'center',
-                            bgcolor: 'action.hover',
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'action.selected' }
-                        }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <i className="fa-solid fa-camera" style={{ marginRight: 8 }}></i>
-                                اختر صورة أو اسحبها هنا
-                            </Typography>
-                        </Box>
-                    </Stack>
-                </DialogContent>
-                <DialogActions sx={{ p: 3, pt: 1 }}>
-                    <Button onClick={() => setIsModalOpen(false)} color="inherit">
-                        إلغاء
-                    </Button>
-                    <Button variant="contained" onClick={() => setIsModalOpen(false)}>
-                        إنشاء المشروع
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <Snackbar open={snackbar.open} autoHideDuration={3500} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>
+            </Snackbar>
         </Box>
     );
 }

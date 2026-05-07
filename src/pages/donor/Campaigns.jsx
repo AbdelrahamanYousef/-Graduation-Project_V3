@@ -20,7 +20,7 @@ import {
     alpha
 } from '@mui/material';
 import { getLanguage, formatCurrency, formatNumber } from '../../i18n';
-import { projects, programs } from '../../data/mockData';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
 
@@ -527,6 +527,7 @@ function QuickDonateModal({ open, onClose, project }) {
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
     const isEn = getLanguage() === 'en';
+    const { dispatch } = useAdminData();
 
     // Step: 'info' → 'method' → 'card' | 'wallet' → 'success'
     const [step, setStep] = useState('info');
@@ -547,6 +548,22 @@ function QuickDonateModal({ open, onClose, project }) {
 
     const amount = project?.donationAmount || 0;
     const total = amount * quantity;
+
+    // Submit donation to shared context so it appears in Dashboard & AdminDonations
+    const submitDonation = (paymentMethod) => {
+        const newDonation = {
+            id: Date.now(),
+            donor: name || 'متبرع مجهول',
+            project: project?.title || 'تبرع عام',
+            amount: total,
+            date: new Date().toISOString().split('T')[0],
+            method: paymentMethod,
+            status: 'completed',
+            phone,
+        };
+        dispatch(adminActions.addDonation(newDonation));
+        setStep('success');
+    };
 
     const handleClose = () => {
         setStep('info');
@@ -953,7 +970,7 @@ function QuickDonateModal({ open, onClose, project }) {
                         </Box>
 
                         <Button variant="contained" fullWidth
-                            onClick={() => { if (validateCard()) setStep('success'); }}
+                            onClick={() => { if (validateCard()) submitDonation('بطاقة ائتمان'); }}
                             sx={{
                                 mt: 1, borderRadius: '14px', py: 1.4, fontFamily: ARABIC_FONT, fontWeight: 700,
                                 fontSize: '0.95rem', textTransform: 'none',
@@ -1057,7 +1074,7 @@ function QuickDonateModal({ open, onClose, project }) {
                         />
 
                         <Button variant="contained" fullWidth
-                            onClick={() => { if (validateWallet()) setStep('success'); }}
+                            onClick={() => { if (validateWallet()) submitDonation(loc(WALLETS.find(w => w.id === selectedWallet)?.name || 'محفظة إلكترونية', WALLETS.find(w => w.id === selectedWallet)?.nameEn || 'Mobile Wallet')); }}
                             sx={{
                                 borderRadius: '14px', py: 1.4, fontFamily: ARABIC_FONT, fontWeight: 700,
                                 fontSize: '0.95rem', textTransform: 'none',
@@ -1143,6 +1160,11 @@ function Campaigns() {
     const dk = theme.palette.mode === 'dark';
     const isEn = getLanguage() === 'en';
     const navigate = useNavigate();
+
+    // Read live data from shared context
+    const { state, activePrograms } = useAdminData();
+    const projects = state.projects;
+    const programs = activePrograms;
 
     const [activeProgram, setActiveProgram] = useState('all');
     const [sortBy, setSortBy] = useState('newest');

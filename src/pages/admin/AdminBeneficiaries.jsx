@@ -1,317 +1,160 @@
-import { useState } from 'react';
-import {
-    Box,
-    Card,
-    CardContent,
-    Typography,
-    Button,
-    TextField,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    Grid,
-    InputAdornment,
-    Tabs,
-    Tab,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
-    Chip,
-    Stack,
-    IconButton,
-    MenuItem,
-    Avatar,
-    useTheme,
-    alpha
-} from '@mui/material';
+import { useState, useCallback, useMemo } from 'react';
+import { Box, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
+import { AdminPageHeader, AdminStatsGrid, AdminFilterBar, AdminDataTable, AdminFormDialog } from '../../components/admin';
+import { beneficiariesList as initialBeneficiaries } from '../../data/adminMockData';
+import { t } from '../../i18n';
+import { countByStatus } from '../../utils/admin.helpers';
 
 /**
- * Admin Beneficiaries Page - إدارة المستفيدين
+ * Admin Beneficiaries Page — Full CRUD + filter + search
  */
 function AdminBeneficiaries() {
-    const theme = useTheme();
+    const [beneficiaries, setBeneficiaries] = useState(initialBeneficiaries);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState(0);
+    const [editItem, setEditItem] = useState(null);
+    const [tabFilter, setTabFilter] = useState('all');
+    const [search, setSearch] = useState('');
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
-    // Mock beneficiaries data
-    const beneficiaries = [
-        { id: 1, name: 'عائلة محمد أحمد', type: 'أسرة', program: 'رعاية الأيتام', status: 'active', cases: 2, location: 'القاهرة' },
-        { id: 2, name: 'فاطمة السيد', type: 'فرد', program: 'الرعاية الصحية', status: 'active', cases: 1, location: 'الجيزة' },
-        { id: 3, name: 'عائلة حسن علي', type: 'أسرة', program: 'التعليم', status: 'pending', cases: 3, location: 'الإسكندرية' },
-        { id: 4, name: 'أحمد محمود', type: 'فرد', program: 'الإغاثة العاجلة', status: 'inactive', cases: 1, location: 'المنيا' },
-        { id: 5, name: 'عائلة خالد عمر', type: 'أسرة', program: 'رعاية الأيتام', status: 'active', cases: 4, location: 'أسوان' },
+    const emptyForm = { name: '', type: 'family', phone: '', nationalId: '', governorate: '', address: '', notes: '', program: '' };
+    const [formData, setFormData] = useState(emptyForm);
+
+    const filtered = useMemo(() =>
+        beneficiaries
+            .filter(b => tabFilter === 'all' || b.status === tabFilter)
+            .filter(b => !search || b.name.includes(search)),
+        [beneficiaries, tabFilter, search]
+    );
+
+    const handleAdd = () => {
+        setEditItem(null);
+        setFormData(emptyForm);
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = useCallback((row) => {
+        setEditItem(row);
+        setFormData({
+            name: row.name || '', type: row.type === 'أسرة' ? 'family' : 'individual',
+            phone: row.phone || '', nationalId: row.nationalId || '',
+            governorate: row.location || '', address: row.address || '',
+            notes: row.notes || '', program: row.program || '',
+        });
+        setIsModalOpen(true);
+    }, []);
+
+    const handleDelete = useCallback((row) => {
+        setBeneficiaries(prev => prev.filter(b => b.id !== row.id));
+        setSnackbar({ open: true, msg: `تم حذف "${row.name}"`, severity: 'success' });
+    }, []);
+
+    const handleSubmit = () => {
+        if (!formData.name.trim()) {
+            setSnackbar({ open: true, msg: 'يرجى إدخال اسم المستفيد', severity: 'error' }); return;
+        }
+
+        const typeLabel = formData.type === 'family' ? 'أسرة' : 'فرد';
+
+        if (editItem) {
+            setBeneficiaries(prev => prev.map(b =>
+                b.id === editItem.id
+                    ? { ...b, name: formData.name, type: typeLabel, phone: formData.phone, nationalId: formData.nationalId, location: formData.governorate, address: formData.address, notes: formData.notes }
+                    : b
+            ));
+            setSnackbar({ open: true, msg: `تم تحديث بيانات "${formData.name}"`, severity: 'success' });
+        } else {
+            setBeneficiaries(prev => [...prev, {
+                id: Math.max(...prev.map(b => b.id), 0) + 1,
+                name: formData.name, type: typeLabel, program: formData.program || 'عام',
+                status: 'pending', cases: 1, location: formData.governorate,
+                phone: formData.phone, nationalId: formData.nationalId,
+                address: formData.address, notes: formData.notes,
+            }]);
+            setSnackbar({ open: true, msg: `تم إضافة "${formData.name}" بنجاح`, severity: 'success' });
+        }
+        setIsModalOpen(false);
+        setFormData(emptyForm);
+    };
+
+    const kpis = [
+        { label: t('admin.beneficiariesPage.totalBeneficiaries'), value: String(beneficiaries.length), icon: 'fa-solid fa-users', color: 'primary' },
+        { label: t('admin.beneficiariesPage.activeCases'), value: String(countByStatus(beneficiaries, 'active')), icon: 'fa-solid fa-user-check', color: 'success' },
+        { label: t('admin.beneficiariesPage.underReview'), value: String(countByStatus(beneficiaries, 'pending')), icon: 'fa-solid fa-clock', color: 'warning' },
     ];
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'active': return 'success';
-            case 'pending': return 'warning';
-            case 'inactive': return 'default';
-            default: return 'default';
-        }
-    };
+    const tabs = [
+        { label: `${t('admin.beneficiariesPage.all')} (${beneficiaries.length})`, value: 'all' },
+        { label: `${t('admin.beneficiariesPage.active')} (${countByStatus(beneficiaries, 'active')})`, value: 'active' },
+        { label: `${t('admin.beneficiariesPage.pending')} (${countByStatus(beneficiaries, 'pending')})`, value: 'pending' },
+        { label: `${t('admin.beneficiariesPage.inactive')} (${countByStatus(beneficiaries, 'inactive')})`, value: 'inactive' },
+    ];
 
-    const getStatusLabel = (status) => {
-        switch (status) {
-            case 'active': return 'نشط';
-            case 'pending': return 'قيد المراجعة';
-            case 'inactive': return 'غير نشط';
-            default: return status;
-        }
-    };
+    const columns = [
+        { key: 'name', label: t('admin.beneficiariesPage.name'), fontWeight: 'medium' },
+        { key: 'type', label: t('admin.beneficiariesPage.type') },
+        { key: 'program', label: t('admin.beneficiariesPage.program') },
+        { key: 'cases', label: t('admin.beneficiariesPage.cases'), render: (v) => `${v} ${t('admin.beneficiariesPage.caseSuffix')}` },
+        { key: 'location', label: t('admin.beneficiariesPage.location') },
+        { key: 'status', label: t('admin.beneficiariesPage.status'), type: 'status' },
+    ];
 
-    const tabsTags = ['all', 'active', 'pending', 'inactive'];
+    const actions = [
+        { icon: 'fa-solid fa-eye', tooltip: 'عرض', onClick: (row) => handleEdit(row) },
+        { icon: 'fa-solid fa-pen', tooltip: t('common.edit'), onClick: (row) => handleEdit(row) },
+        { icon: 'fa-solid fa-trash', tooltip: t('common.delete'), onClick: (row) => handleDelete(row), color: 'error' },
+    ];
 
-    const filtered = tabsTags[activeTab] === 'all'
-        ? beneficiaries
-        : beneficiaries.filter(b => b.status === tabsTags[activeTab]);
-
-    const handleTabChange = (event, newValue) => {
-        setActiveTab(newValue);
-    };
+    const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'المنيا', 'أسوان', 'قنا', 'سوهاج', 'الفيوم', 'بني سويف'];
+    const programOptions = ['رعاية الأيتام', 'الرعاية الصحية', 'التعليم', 'الإغاثة العاجلة', 'سقيا الماء'];
+    const updateField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Header */}
-            <Box sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: 2
-            }}>
-                <Box>
-                    <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                        إدارة المستفيدين
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        إضافة ومتابعة حالات المستفيدين
-                    </Typography>
-                </Box>
-                <Button
-                    variant="contained"
-                    startIcon={<i className="fa-solid fa-plus"></i>}
-                    onClick={() => setIsModalOpen(true)}
-                >
-                    إضافة مستفيد
-                </Button>
-            </Box>
+            <AdminPageHeader
+                title={t('admin.beneficiariesPage.title')}
+                subtitle={t('admin.beneficiariesPage.subtitle')}
+                action={{ label: t('admin.beneficiariesPage.addBtn'), icon: 'fa-solid fa-plus', onClick: handleAdd }}
+            />
 
-            {/* Stats */}
-            <Grid container spacing={2}>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{
-                        border: 1,
-                        borderColor: 'divider',
-                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                        color: 'white'
-                    }}>
-                        <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ fontSize: 24, opacity: 0.9 }}>
-                                <i className="fa-solid fa-people-group"></i>
-                            </Box>
-                            <Typography variant="h4" fontWeight="bold">
-                                {beneficiaries.length}
-                            </Typography>
-                            <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                                إجمالي المستفيدين
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                        <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ fontSize: 24, color: 'text.secondary' }}>
-                                <i className="fa-solid fa-clipboard-list"></i>
-                            </Box>
-                            <Typography variant="h4" fontWeight="bold">
-                                {beneficiaries.reduce((sum, b) => sum + b.cases, 0)}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                الحالات النشطة
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                        <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ fontSize: 24, color: 'success.main' }}>
-                                <i className="fa-solid fa-circle-check"></i>
-                            </Box>
-                            <Typography variant="h4" fontWeight="bold">
-                                {beneficiaries.filter(b => b.status === 'active').length}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                مستفيد نشط
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                    <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                        <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                            <Box sx={{ fontSize: 24, color: 'warning.main' }}>
-                                <i className="fa-solid fa-hourglass-half"></i>
-                            </Box>
-                            <Typography variant="h4" fontWeight="bold">
-                                {beneficiaries.filter(b => b.status === 'pending').length}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                                قيد المراجعة
-                            </Typography>
-                        </CardContent>
-                    </Card>
-                </Grid>
-            </Grid>
+            <AdminStatsGrid stats={kpis} columns={4} />
 
-            {/* Tabs & Search */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                    <Tab label={`الكل (${beneficiaries.length})`} />
-                    <Tab label={`نشط (${beneficiaries.filter(b => b.status === 'active').length})`} />
-                    <Tab label={`قيد المراجعة (${beneficiaries.filter(b => b.status === 'pending').length})`} />
-                    <Tab label={`غير نشط (${beneficiaries.filter(b => b.status === 'inactive').length})`} />
-                </Tabs>
-                <TextField
-                    placeholder="بحث بالاسم..."
-                    size="small"
-                    InputProps={{
-                        startAdornment: (
-                            <InputAdornment position="start">
-                                <i className="fa-solid fa-magnifying-glass"></i>
-                            </InputAdornment>
-                        ),
-                    }}
-                    sx={{ width: 300 }}
-                />
-            </Box>
+            <AdminFilterBar
+                tabs={tabs} activeTab={tabFilter} onTabChange={(_, v) => setTabFilter(v)}
+                searchValue={search} onSearchChange={setSearch}
+                searchPlaceholder={t('admin.beneficiariesPage.searchPlaceholder')}
+            />
 
-            {/* Table */}
-            <Card elevation={0} sx={{ border: 1, borderColor: 'divider' }}>
-                <TableContainer component={Paper} elevation={0} sx={{ background: 'transparent' }}>
-                    <Table>
-                        <TableHead>
-                            <TableRow sx={{ bgcolor: 'action.hover' }}>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الاسم</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>النوع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>البرنامج</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الحالات</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الموقع</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الحالة</TableCell>
-                                <TableCell sx={{ fontWeight: 'bold' }}>الإجراءات</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {filtered.map((ben) => (
-                                <TableRow key={ben.id} hover>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={1} alignItems="center">
-                                            <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.light', fontSize: 14 }}>
-                                                <i className="fa-solid fa-user"></i>
-                                            </Avatar>
-                                            <Typography variant="body2" fontWeight="medium">{ben.name}</Typography>
-                                        </Stack>
-                                    </TableCell>
-                                    <TableCell>{ben.type}</TableCell>
-                                    <TableCell>{ben.program}</TableCell>
-                                    <TableCell>{ben.cases} حالة</TableCell>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={0.5} alignItems="center">
-                                            <i className="fa-solid fa-location-dot" style={{ fontSize: 12, color: theme.palette.text.secondary }}></i>
-                                            <Typography variant="body2">{ben.location}</Typography>
-                                        </Stack>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Chip
-                                            label={getStatusLabel(ben.status)}
-                                            color={getStatusColor(ben.status)}
-                                            size="small"
-                                            variant="soft"
-                                        />
-                                    </TableCell>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={1}>
-                                            <IconButton size="small">
-                                                <i className="fa-solid fa-eye" style={{ fontSize: 14 }}></i>
-                                            </IconButton>
-                                            <IconButton size="small">
-                                                <i className="fa-solid fa-pen-to-square" style={{ fontSize: 14 }}></i>
-                                            </IconButton>
-                                            <IconButton size="small">
-                                                <i className="fa-solid fa-clipboard-list" style={{ fontSize: 14 }}></i>
-                                            </IconButton>
-                                        </Stack>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            </Card>
+            <AdminDataTable columns={columns} data={filtered} actions={actions} emptyMessage="لا يوجد مستفيدين مطابقين" />
 
-            {/* Add Modal */}
-            <Dialog
+            <AdminFormDialog
                 open={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                maxWidth="md"
-                fullWidth
+                onClose={() => { setIsModalOpen(false); setFormData(emptyForm); }}
+                onSubmit={handleSubmit}
+                title={editItem ? `تعديل: ${editItem.name}` : t('admin.beneficiariesPage.addDialog')}
+                submitLabel={editItem ? t('admin.programsPage.saveChanges') : t('admin.beneficiariesPage.addBeneficiary')}
+                dividers
             >
-                <DialogTitle>إضافة مستفيد جديد</DialogTitle>
-                <DialogContent dividers>
-                    <Grid container spacing={2} sx={{ mt: 0 }}>
-                        <Grid item xs={12} sm={6}>
-                            <TextField label="الاسم الكامل" fullWidth required />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField select label="النوع" fullWidth defaultValue="family">
-                                <MenuItem value="family">أسرة</MenuItem>
-                                <MenuItem value="individual">فرد</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField label="رقم الهاتف" fullWidth type="tel" />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField label="رقم الهوية" fullWidth />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField select label="المحافظة" fullWidth defaultValue="">
-                                <MenuItem value="">اختر المحافظة</MenuItem>
-                                <MenuItem value="cairo">القاهرة</MenuItem>
-                                <MenuItem value="giza">الجيزة</MenuItem>
-                                <MenuItem value="alex">الإسكندرية</MenuItem>
-                            </TextField>
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <TextField label="العنوان التفصيلي" fullWidth />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <TextField
-                                label="ملاحظات"
-                                fullWidth
-                                multiline
-                                rows={3}
-                                placeholder="ملاحظات إضافية..."
-                            />
-                        </Grid>
-                    </Grid>
-                </DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setIsModalOpen(false)} variant="outlined" color="inherit">
-                        إلغاء
-                    </Button>
-                    <Button onClick={() => setIsModalOpen(false)} variant="contained">
-                        إضافة المستفيد
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                <TextField label={t('admin.beneficiariesPage.fullName')} fullWidth required value={formData.name} onChange={updateField('name')} />
+                <TextField select label={t('admin.beneficiariesPage.typeLabel')} fullWidth value={formData.type} onChange={updateField('type')}>
+                    <MenuItem value="family">{t('admin.beneficiariesPage.family')}</MenuItem>
+                    <MenuItem value="individual">{t('admin.beneficiariesPage.individual')}</MenuItem>
+                </TextField>
+                <TextField select label={t('admin.beneficiariesPage.program')} fullWidth value={formData.program} onChange={updateField('program')}>
+                    {programOptions.map(p => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+                </TextField>
+                <TextField label={t('admin.beneficiariesPage.phone')} fullWidth value={formData.phone} onChange={updateField('phone')} />
+                <TextField label={t('admin.beneficiariesPage.nationalId')} fullWidth value={formData.nationalId} onChange={updateField('nationalId')} />
+                <TextField select label={t('admin.beneficiariesPage.governorate')} fullWidth value={formData.governorate} onChange={updateField('governorate')}>
+                    <MenuItem value="" disabled>{t('admin.beneficiariesPage.selectGovernorate')}</MenuItem>
+                    {governorates.map(g => <MenuItem key={g} value={g}>{g}</MenuItem>)}
+                </TextField>
+                <TextField label={t('admin.beneficiariesPage.address')} fullWidth value={formData.address} onChange={updateField('address')} />
+                <TextField label={t('admin.beneficiariesPage.notes')} multiline rows={3} fullWidth value={formData.notes} onChange={updateField('notes')} placeholder={t('admin.beneficiariesPage.notesPlaceholder')} />
+            </AdminFormDialog>
+
+            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>
+            </Snackbar>
         </Box>
     );
 }
