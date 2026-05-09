@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { t, getLanguage } from '../../i18n';
 import { useTheme } from '@mui/material/styles';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import {
     Box,
     Button,
@@ -192,6 +193,9 @@ function Contact() {
     const isDark = theme.palette.mode === 'dark';
     const isRTL = theme.direction === 'rtl';
     const tk = tokens(theme);
+    const { state } = useAdminData();
+    const orgInfo = state?.settings?.organization || {};
+    const socialLinks = state?.settings?.social || {};
 
     /* ─── State ──────────────────────────────────────────── */
     const [form, setForm] = useState({
@@ -246,9 +250,9 @@ function Contact() {
 
     /* ─── Data ────────────────────────────────────────────── */
     const contactInfo = [
-        { icon: 'fa-solid fa-location-dot', label: t('contact.addressLabel'), value: t('contact.info.address'), gradient: `linear-gradient(135deg, ${TEAL}, #0d7c65)` },
-        { icon: 'fa-solid fa-phone', label: t('contact.phoneLabel'), value: t('contact.info.phone'), gradient: `linear-gradient(135deg, #12355B, #1a5a96)` },
-        { icon: 'fa-solid fa-envelope', label: t('contact.emailLabel'), value: t('contact.info.email'), gradient: `linear-gradient(135deg, ${G_GREEN}, #059669)` },
+        { icon: 'fa-solid fa-location-dot', label: t('contact.addressLabel'), value: orgInfo.address || t('contact.info.address'), gradient: `linear-gradient(135deg, ${TEAL}, #0d7c65)` },
+        { icon: 'fa-solid fa-phone', label: t('contact.phoneLabel'), value: orgInfo.phone || t('contact.info.phone'), gradient: `linear-gradient(135deg, #12355B, #1a5a96)` },
+        { icon: 'fa-solid fa-envelope', label: t('contact.emailLabel'), value: orgInfo.email || t('contact.info.email'), gradient: `linear-gradient(135deg, ${G_GREEN}, #059669)` },
         { icon: 'fa-solid fa-clock', label: t('contact.workHoursLabel'), value: t('contact.info.workHours'), gradient: `linear-gradient(135deg, ${TEAL_MID}, ${TEAL})` },
     ];
     const socialColors = {
@@ -463,18 +467,18 @@ function Contact() {
                                         {t('contact.social')}
                                     </Typography>
                                     <Stack direction="row" spacing={1.5} sx={{ flexWrap: 'wrap' }}>
-                                        <SocialLink href="#" aria-label="Facebook" color={socialColors.facebook}>
+                                        {socialLinks.facebook && <SocialLink href={socialLinks.facebook} target="_blank" aria-label="Facebook" color={socialColors.facebook}>
                                             <i className="fa-brands fa-facebook-f"></i>
-                                        </SocialLink>
-                                        <SocialLink href="#" aria-label="Twitter" color={socialColors.twitter}>
+                                        </SocialLink>}
+                                        {socialLinks.twitter && <SocialLink href={socialLinks.twitter} target="_blank" aria-label="Twitter" color={socialColors.twitter}>
                                             <i className="fa-brands fa-x-twitter"></i>
-                                        </SocialLink>
-                                        <SocialLink href="#" aria-label="Instagram" sx={{ background: socialColors.instagram }}>
+                                        </SocialLink>}
+                                        {socialLinks.instagram && <SocialLink href={socialLinks.instagram} target="_blank" aria-label="Instagram" sx={{ background: socialColors.instagram }}>
                                             <i className="fa-brands fa-instagram"></i>
-                                        </SocialLink>
-                                        <SocialLink href="#" aria-label="WhatsApp" color={socialColors.whatsapp}>
-                                            <i className="fa-brands fa-whatsapp"></i>
-                                        </SocialLink>
+                                        </SocialLink>}
+                                        {socialLinks.youtube && <SocialLink href={socialLinks.youtube} target="_blank" aria-label="Youtube" color="#FF0000">
+                                            <i className="fa-brands fa-youtube"></i>
+                                        </SocialLink>}
                                     </Stack>
                                 </Paper>
                             </Stack>

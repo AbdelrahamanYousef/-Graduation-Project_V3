@@ -1,12 +1,9 @@
 import { useState, useCallback } from 'react';
-import { TextField, Box, useTheme, alpha, Snackbar, Alert } from '@mui/material';
+import { TextField, Box, Typography, useTheme, alpha, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button } from '@mui/material';
 import { AdminPageHeader, AdminDataTable, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { t, formatCurrency } from '../../i18n';
 import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 
-// Stable project counts per program (would come from API in production)
-const PROGRAM_PROJECT_COUNTS = { 1: 4, 2: 7, 3: 3, 4: 5, 5: 2, 6: 3 };
-const PROGRAM_DONATIONS = { 1: 850000, 2: 420000, 3: 380000, 4: 1250000, 5: 150000, 6: 380000 };
 
 /**
  * Admin Programs Page — Full CRUD, affects home page programs section
@@ -20,6 +17,7 @@ function AdminPrograms() {
     const [selectedProgram, setSelectedProgram] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
     const [formData, setFormData] = useState({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '' });
+    const [deleteConfirm, setDeleteConfirm] = useState({ open: false, program: null });
 
     const resetForm = () => setFormData({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '' });
 
@@ -42,9 +40,17 @@ function AdminPrograms() {
     }, []);
 
     const handleDelete = useCallback((program) => {
+        setDeleteConfirm({ open: true, program });
+    }, []);
+
+    const confirmDelete = () => {
+        const { program } = deleteConfirm;
+        if (!program) return;
+        
         dispatch(adminActions.deleteProgram(program.id));
-        setSnackbar({ open: true, msg: `تم حذف البرنامج "${program.name}" — لن يظهر في الصفحة الرئيسية`, severity: 'success' });
-    }, [dispatch]);
+        setSnackbar({ open: true, msg: `تم حذف البرنامج "${program.name}" بنجاح`, severity: 'success' });
+        setDeleteConfirm({ open: false, program: null });
+    };
 
     const handleToggleStatus = useCallback((program) => {
         dispatch(adminActions.toggleProgramStatus(program.id));
@@ -109,8 +115,8 @@ function AdminPrograms() {
                 </Box>
             ),
         },
-        { key: 'id', label: t('admin.programsPage.projectCount'), align: 'center', render: (val) => PROGRAM_PROJECT_COUNTS[val] || 0 },
-        { key: 'id', label: t('admin.programsPage.totalDonations'), align: 'right', render: (val) => formatCurrency(PROGRAM_DONATIONS[val] || 0) },
+        { key: 'projectCount', label: t('admin.programsPage.projectCount'), align: 'center', render: (val) => val || 0 },
+        { key: 'raised', label: t('admin.programsPage.totalDonations'), align: 'right', render: (val) => formatCurrency(val || 0) },
         {
             key: 'status', label: t('admin.programsPage.status'), align: 'center',
             render: (val) => <AdminStatusChip status={val || 'active'} />,
@@ -165,6 +171,24 @@ function AdminPrograms() {
                     placeholder={t('admin.programsPage.descPlaceholder')}
                 />
             </AdminFormDialog>
+
+            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, program: null })}>
+                <DialogTitle>تأكيد الحذف</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        هل أنت متأكد من حذف برنامج "{deleteConfirm.program?.name}"؟
+                        {deleteConfirm.program?.projectCount > 0 && (
+                            <Typography color="error" sx={{ mt: 2, fontWeight: 'bold' }}>
+                                تحذير: هذا البرنامج يحتوي على {deleteConfirm.program.projectCount} مشاريع مرتبطة به! 
+                            </Typography>
+                        )}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteConfirm({ open: false, program: null })} color="inherit">إلغاء</Button>
+                    <Button onClick={confirmDelete} color="error" variant="contained">حذف نهائياً</Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>

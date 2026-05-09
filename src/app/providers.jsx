@@ -12,7 +12,7 @@ import { createNourTheme } from '../theme/theme';
 import { AuthProvider } from '../contexts/AuthContext';
 import { NotificationProvider } from '../contexts/NotificationContext';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
-import { AdminDataProvider } from '../contexts/AdminDataContext';
+import { AdminDataProvider, useAdminData } from '../contexts/AdminDataContext';
 import { ToastProvider } from '../components/common';
 
 // RTL Emotion cache for Arabic
@@ -36,10 +36,11 @@ const ltrCache = createCache({
 function MuiBridge({ children }) {
     const { isDark, language } = useTheme();
     const isRtl = language === 'ar';
+    const { state } = useAdminData(); // Now we can use AdminData here
 
     const muiTheme = useMemo(
-        () => createNourTheme(isDark ? 'dark' : 'light', isRtl ? 'rtl' : 'ltr'),
-        [isDark, isRtl],
+        () => createNourTheme(isDark ? 'dark' : 'light', isRtl ? 'rtl' : 'ltr', state?.settings),
+        [isDark, isRtl, state?.settings],
     );
 
     const emotionCache = isRtl ? rtlCache : ltrCache;
@@ -67,13 +68,13 @@ export default function AppProviders({ children }) {
             <AuthProvider>
                 <NotificationProvider>
                     <ThemeProvider>
-                        <MuiBridge>
-                            <ToastProvider>
-                                <AdminDataProvider>
+                        <AdminDataProvider>
+                            <MuiBridge>
+                                <ToastProvider>
                                     {children}
-                                </AdminDataProvider>
-                            </ToastProvider>
-                        </MuiBridge>
+                                </ToastProvider>
+                            </MuiBridge>
+                        </AdminDataProvider>
                     </ThemeProvider>
                 </NotificationProvider>
             </AuthProvider>

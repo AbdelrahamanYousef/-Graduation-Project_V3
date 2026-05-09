@@ -207,8 +207,20 @@ const typography = {
  * @param {'ltr'|'rtl'} direction
  * @returns MUI theme object
  */
-export function createNourTheme(mode = 'light', direction = 'ltr') {
+export function createNourTheme(mode = 'light', direction = 'ltr', settings = {}) {
     const isLight = mode === 'light';
+
+    // Settings overrides
+    const customPrimary = settings?.primaryColor || (isLight ? primaryPalette[500] : primaryPalette[400]);
+    const customSecondary = settings?.secondaryColor || secondaryPalette[500];
+
+    // Map fontSize to base scale
+    const fontSizeMap = { small: 12, normal: 14, large: 16 };
+    const baseFontSize = fontSizeMap[settings?.fontSize] || 14;
+    
+    // Map borderRadius to pixels
+    const borderRadiusMap = { none: 0, small: 4, medium: 12, large: 24 };
+    const customBorderRadius = settings?.borderRadius ? borderRadiusMap[settings?.borderRadius] : RADIUS.md;
 
     return createTheme({
         direction,
@@ -216,14 +228,14 @@ export function createNourTheme(mode = 'light', direction = 'ltr') {
             mode,
             primary: {
                 ...primaryPalette,
-                main: isLight ? primaryPalette[500] : primaryPalette[400],
+                main: customPrimary,
                 light: isLight ? primaryPalette[300] : primaryPalette[200],
                 dark: isLight ? primaryPalette[700] : primaryPalette[600],
                 contrastText: '#ffffff',
             },
             secondary: {
                 ...secondaryPalette,
-                main: secondaryPalette[500],
+                main: customSecondary,
                 light: secondaryPalette[300],
                 dark: secondaryPalette[700],
                 contrastText: '#ffffff',
@@ -287,9 +299,13 @@ export function createNourTheme(mode = 'light', direction = 'ltr') {
                 blur: '8px',
             },
         },
-        typography,
+        typography: {
+            ...typography,
+            fontSize: baseFontSize,
+            htmlFontSize: 16,
+        },
         shape: {
-            borderRadius: RADIUS.md,
+            borderRadius: customBorderRadius,
         },
         shadows: [
             'none',

@@ -1,13 +1,18 @@
-import { createContext, useContext, useReducer, useEffect } from 'react';
-import { projects as initialProjects, programs as initialPrograms, impactStats as initialStats } from '../data/mockData';
-import { donationsList as initialDonations } from '../data/adminMockData';
+import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { projects as initialProjects, programs as initialPrograms, impactStats as initialStats, testimonials as initialTestimonials } from '../data/mockData';
+import { donationsList as initialDonations, beneficiariesList as initialBeneficiaries, financeDisbursements as initialDisbursements, dashboardActivities as initialActivities } from '../data/adminMockData';
 
 // ─── Storage Keys ────────────────────────────────────────────
 const STORAGE_KEYS = {
     projects: 'nour_admin_projects',
     programs: 'nour_admin_programs',
     donations: 'nour_admin_donations',
+    beneficiaries: 'nour_admin_beneficiaries',
+    disbursements: 'nour_admin_disbursements',
+    activities: 'nour_admin_activities',
     stats: 'nour_admin_stats',
+    settings: 'nour_admin_settings',
+    content: 'nour_admin_content',
 };
 
 // ─── Load / Save helpers ─────────────────────────────────────
@@ -32,7 +37,53 @@ function buildInitialState() {
         projects: loadFromStorage(STORAGE_KEYS.projects, initialProjects),
         programs: loadFromStorage(STORAGE_KEYS.programs, initialPrograms),
         donations: loadFromStorage(STORAGE_KEYS.donations, initialDonations),
+        beneficiaries: loadFromStorage(STORAGE_KEYS.beneficiaries, initialBeneficiaries || []),
+        disbursements: loadFromStorage(STORAGE_KEYS.disbursements, initialDisbursements || []),
+        activities: loadFromStorage(STORAGE_KEYS.activities, initialActivities || []),
         stats: loadFromStorage(STORAGE_KEYS.stats, initialStats),
+        settings: loadFromStorage(STORAGE_KEYS.settings, {
+            orgName: 'مؤسسة نور الخيرية',
+            email: 'info@nour.org',
+            phone: '+20 2 1234 5678',
+            address: 'القاهرة، مصر',
+            primaryColor: '#00b16a',
+            secondaryColor: '#f39c12',
+            fontSize: 'normal',
+            heroStyle: 'gradient',
+            borderRadius: 'medium'
+        }),
+        content: loadFromStorage(STORAGE_KEYS.content, {
+            heroBanner: {
+                title: 'معاً نصنع الأمل ونبني المستقبل',
+                subtitle: 'نعمل على توفير حياة كريمة للفئات الأكثر احتياجاً من خلال برامج تنموية مستدامة',
+            },
+            quranicVerses: [
+                { id: 1, text: 'وَمَا أَنفَقْتُم مِّن شَيْءٍ فَهُوَ يُخْلِفُهُ ۖ وَهُوَ خَيْرُ الرَّازِقِينَ', reference: 'سورة سبأ: 39', active: true, type: 'quran' }
+            ],
+            islamicDisplayMode: 'rotating', // rotating, stacked
+            islamicRotationInterval: 5,
+            announcements: [
+                { id: 1, title: 'عاجل', text: 'إغاثة عاجلة لإخواننا في غزة، تبرع الآن لإنقاذ الأرواح.', type: 'urgent', active: true, startDate: '', endDate: '' }
+            ],
+            testimonials: initialTestimonials || [],
+            aboutUs: {
+                story: 'مؤسسة خيرية تهدف للتنمية المستدامة.',
+                vision: 'مجتمع متكافل ومستدام.',
+                mission: 'توفير حياة كريمة للفئات الأكثر احتياجاً.',
+                values: 'الشفافية، العطاء، التنمية.'
+            },
+            statsConfig: {
+                override: false,
+                totalDonations: 15000000,
+                beneficiaries: 500000,
+                projects: 120,
+                years: 10
+            },
+            zakatConfig: {
+                goldPrice: 3800,
+                silverPrice: 45
+            }
+        }),
     };
 }
 
@@ -93,15 +144,65 @@ function adminDataReducer(state, action) {
                 ),
             };
 
-        // ── Donations ──
         case 'ADD_DONATION':
             return { ...state, donations: [...state.donations, action.payload] };
+
+        case 'UPDATE_DONATION':
+            return {
+                ...state,
+                donations: state.donations.map(d =>
+                    d.id === action.payload.id ? { ...d, ...action.payload } : d
+                ),
+            };
+
+        case 'DELETE_DONATION':
+            return {
+                ...state,
+                donations: state.donations.filter(d => d.id !== action.payload),
+            };
+
+        // ── Beneficiaries ──
+        case 'ADD_BENEFICIARY':
+            return { ...state, beneficiaries: [...state.beneficiaries, action.payload] };
+        case 'UPDATE_BENEFICIARY':
+            return { ...state, beneficiaries: state.beneficiaries.map(b => b.id === action.payload.id ? { ...b, ...action.payload } : b) };
+        case 'DELETE_BENEFICIARY':
+            return { ...state, beneficiaries: state.beneficiaries.filter(b => b.id !== action.payload) };
+
+        // ── Disbursements ──
+        case 'ADD_DISBURSEMENT':
+            return { ...state, disbursements: [...state.disbursements, action.payload] };
+        case 'UPDATE_DISBURSEMENT':
+            return { ...state, disbursements: state.disbursements.map(d => d.id === action.payload.id ? { ...d, ...action.payload } : d) };
+        case 'DELETE_DISBURSEMENT':
+            return { ...state, disbursements: state.disbursements.filter(d => d.id !== action.payload) };
+
+        // ── Activities ──
+        case 'ADD_ACTIVITY':
+            return { 
+                ...state, 
+                activities: [
+                    { id: Date.now(), timestamp: new Date().toISOString(), ...action.payload },
+                    ...state.activities
+                ].slice(0, 10) // Keep only last 10
+            };
 
         // ── Stats ──
         case 'UPDATE_STATS':
             return { ...state, stats: { ...state.stats, ...action.payload } };
 
-        // ── Reset ──
+        case 'UPDATE_SETTINGS':
+            return { ...state, settings: { ...state.settings, ...action.payload } };
+
+        case 'UPDATE_CONTENT':
+            return { ...state, content: { ...state.content, ...action.payload } };
+
+        case 'SYNC_STATE':
+            return {
+                ...state,
+                ...action.payload
+            };
+
         case 'RESET_ALL':
             // Clear localStorage so we get fresh data from mockData
             Object.values(STORAGE_KEYS).forEach(key => {
@@ -111,7 +212,12 @@ function adminDataReducer(state, action) {
                 projects: initialProjects,
                 programs: initialPrograms,
                 donations: initialDonations,
+                beneficiaries: initialBeneficiaries || [],
+                disbursements: initialDisbursements || [],
+                activities: initialActivities || [],
                 stats: initialStats,
+                content: buildInitialState().content,
+                settings: buildInitialState().settings,
             };
 
         default:
@@ -139,32 +245,80 @@ export function AdminDataProvider({ children }) {
     }, [state.donations]);
 
     useEffect(() => {
+        saveToStorage(STORAGE_KEYS.beneficiaries, state.beneficiaries);
+    }, [state.beneficiaries]);
+
+    useEffect(() => {
+        saveToStorage(STORAGE_KEYS.disbursements, state.disbursements);
+    }, [state.disbursements]);
+
+    useEffect(() => {
+        saveToStorage(STORAGE_KEYS.activities, state.activities);
+    }, [state.activities]);
+
+    useEffect(() => {
         saveToStorage(STORAGE_KEYS.stats, state.stats);
     }, [state.stats]);
 
-    // ── Derived data ──
-    const activeProjects = state.projects.filter(p => p.status === 'active');
-    const featuredProjects = state.projects.filter(p => p.featured);
-    const activePrograms = state.programs.filter(p => !p.status || p.status === 'active');
+    useEffect(() => {
+        saveToStorage(STORAGE_KEYS.settings, state.settings);
+    }, [state.settings]);
 
-    // ── Dashboard stats (derived from real data) ──
-    const dashboardStats = {
-        totalRevenue: state.donations.reduce((sum, d) => sum + (d.amount || 0), 0),
-        activeProjects: activeProjects.length,
-        totalProjects: state.projects.length,
-        pendingDonations: state.donations.filter(d => d.status === 'pending').length,
-        monthlyDonations: state.donations
-            .filter(d => {
-                if (!d.date) return false;
-                const donationMonth = new Date(d.date).getMonth();
-                return donationMonth === new Date().getMonth();
-            })
-            .reduce((sum, d) => sum + (d.amount || 0), 0),
-        totalDonors: new Set(state.donations.map(d => d.donor)).size,
-    };
+    useEffect(() => {
+        saveToStorage(STORAGE_KEYS.content, state.content);
+    }, [state.content]);
+
+    // ── Cross-tab Sync ──
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            // Check if the modified key belongs to our context
+            if (Object.values(STORAGE_KEYS).includes(e.key)) {
+                // Re-build state from localStorage
+                dispatch({ type: 'SYNC_STATE', payload: buildInitialState() });
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    // ── Derived State (Computed in real-time from raw state) ──
+    const derivedState = useMemo(() => {
+        // 1. Projects with auto-calculated raised & donors (matched by projectId or title)
+        const derivedProjects = state.projects.map(proj => {
+            const projDonations = state.donations.filter(d =>
+                (d.projectId === proj.id || d.project === proj.title) && d.status === 'completed'
+            );
+            const raised = projDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+            const donors = new Set(projDonations.map(d => d.donorName || d.donor || d.donorId)).size;
+            return { ...proj, raised, donors };
+        });
+
+        // 2. Programs with linked project count & total raised
+        const derivedPrograms = state.programs.map(prog => {
+            const linkedProjects = derivedProjects.filter(p =>
+                p.programId === prog.id || p.program === prog.name || p.program === prog.title
+            );
+            const raised = linkedProjects.reduce((sum, p) => sum + (p.raised || 0), 0);
+            return { ...prog, projectCount: linkedProjects.length, raised };
+        });
+
+        // 3. Dashboard summary stats
+        const completedDonations = state.donations.filter(d => d.status === 'completed');
+        const dashboardStats = {
+            totalDonations: completedDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0),
+            totalProjects: derivedProjects.length,
+            activeProjects: derivedProjects.filter(p => p.status === 'active').length,
+            beneficiaries: state.beneficiaries.length,
+            totalPrograms: derivedPrograms.length,
+            pendingDisbursements: (state.disbursements || []).filter(d => d.status === 'pending').length,
+        };
+
+        return { ...state, projects: derivedProjects, programs: derivedPrograms, dashboardStats };
+    }, [state]);
 
     return (
-        <AdminDataContext.Provider value={{ state, dispatch, activeProjects, featuredProjects, activePrograms, dashboardStats }}>
+        <AdminDataContext.Provider value={{ state: derivedState, dispatch }}>
             {children}
         </AdminDataContext.Provider>
     );
@@ -188,6 +342,17 @@ export const adminActions = {
     deleteProgram: (id) => ({ type: 'DELETE_PROGRAM', payload: id }),
     toggleProgramStatus: (id) => ({ type: 'TOGGLE_PROGRAM_STATUS', payload: id }),
     addDonation: (donation) => ({ type: 'ADD_DONATION', payload: donation }),
+    updateDonation: (donation) => ({ type: 'UPDATE_DONATION', payload: donation }),
+    deleteDonation: (id) => ({ type: 'DELETE_DONATION', payload: id }),
+    addBeneficiary: (beneficiary) => ({ type: 'ADD_BENEFICIARY', payload: beneficiary }),
+    updateBeneficiary: (beneficiary) => ({ type: 'UPDATE_BENEFICIARY', payload: beneficiary }),
+    deleteBeneficiary: (id) => ({ type: 'DELETE_BENEFICIARY', payload: id }),
+    addDisbursement: (disbursement) => ({ type: 'ADD_DISBURSEMENT', payload: disbursement }),
+    updateDisbursement: (disbursement) => ({ type: 'UPDATE_DISBURSEMENT', payload: disbursement }),
+    deleteDisbursement: (id) => ({ type: 'DELETE_DISBURSEMENT', payload: id }),
+    addActivity: (activity) => ({ type: 'ADD_ACTIVITY', payload: activity }),
     updateStats: (stats) => ({ type: 'UPDATE_STATS', payload: stats }),
+    updateSettings: (settings) => ({ type: 'UPDATE_SETTINGS', payload: settings }),
+    updateContent: (content) => ({ type: 'UPDATE_CONTENT', payload: content }),
     resetAll: () => ({ type: 'RESET_ALL' }),
 };

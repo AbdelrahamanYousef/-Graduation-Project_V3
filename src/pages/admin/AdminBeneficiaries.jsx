@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Box, TextField, MenuItem, Snackbar, Alert } from '@mui/material';
+import { Box, TextField, MenuItem, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, FormControl, Select } from '@mui/material';
 import { AdminPageHeader, AdminStatsGrid, AdminFilterBar, AdminDataTable, AdminFormDialog } from '../../components/admin';
 import { beneficiariesList as initialBeneficiaries } from '../../data/adminMockData';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 import { t } from '../../i18n';
 import { countByStatus } from '../../utils/admin.helpers';
 
@@ -9,11 +10,13 @@ import { countByStatus } from '../../utils/admin.helpers';
  * Admin Beneficiaries Page — Full CRUD + filter + search
  */
 function AdminBeneficiaries() {
-    const [beneficiaries, setBeneficiaries] = useState(initialBeneficiaries);
+    const { state, dispatch } = useAdminData();
+    const beneficiaries = state.beneficiaries;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editItem, setEditItem] = useState(null);
     const [tabFilter, setTabFilter] = useState('all');
     const [search, setSearch] = useState('');
+    const [deleteConfirm, setDeleteConfirm] = useState({ open: false, row: null });
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
     const emptyForm = { name: '', type: 'family', phone: '', nationalId: '', governorate: '', address: '', notes: '', program: '' };
@@ -44,9 +47,20 @@ function AdminBeneficiaries() {
     }, []);
 
     const handleDelete = useCallback((row) => {
-        setBeneficiaries(prev => prev.filter(b => b.id !== row.id));
-        setSnackbar({ open: true, msg: `تم حذف "${row.name}"`, severity: 'success' });
+        setDeleteConfirm({ open: true, row });
     }, []);
+
+    const confirmDelete = () => {
+        if (!deleteConfirm.row) return;
+        dispatch(adminActions.deleteBeneficiary(deleteConfirm.row.id));
+        setSnackbar({ open: true, msg: `تم حذف "${deleteConfirm.row.name}"`, severity: 'success' });
+        setDeleteConfirm({ open: false, row: null });
+    };
+
+    const handleStatusChange = useCallback((row, newStatus) => {
+        dispatch(adminActions.updateBeneficiary({ ...row, status: newStatus }));
+        setSnackbar({ open: true, msg: `تم تغيير حالة "${row.name}" إلى ${newStatus}`, severity: 'success' });
+    }, [dispatch]);
 
     const handleSubmit = () => {
         if (!formData.name.trim()) {
@@ -56,20 +70,18 @@ function AdminBeneficiaries() {
         const typeLabel = formData.type === 'family' ? 'أسرة' : 'فرد';
 
         if (editItem) {
-            setBeneficiaries(prev => prev.map(b =>
-                b.id === editItem.id
-                    ? { ...b, name: formData.name, type: typeLabel, phone: formData.phone, nationalId: formData.nationalId, location: formData.governorate, address: formData.address, notes: formData.notes }
-                    : b
-            ));
+            dispatch(adminActions.updateBeneficiary({
+                ...editItem, name: formData.name, type: typeLabel, phone: formData.phone, nationalId: formData.nationalId, location: formData.governorate, address: formData.address, notes: formData.notes, program: formData.program
+            }));
             setSnackbar({ open: true, msg: `تم تحديث بيانات "${formData.name}"`, severity: 'success' });
         } else {
-            setBeneficiaries(prev => [...prev, {
-                id: Math.max(...prev.map(b => b.id), 0) + 1,
+            dispatch(adminActions.addBeneficiary({
+                id: Math.max(...beneficiaries.map(b => b.id), 0) + 1,
                 name: formData.name, type: typeLabel, program: formData.program || 'عام',
                 status: 'pending', cases: 1, location: formData.governorate,
                 phone: formData.phone, nationalId: formData.nationalId,
                 address: formData.address, notes: formData.notes,
-            }]);
+            }));
             setSnackbar({ open: true, msg: `تم إضافة "${formData.name}" بنجاح`, severity: 'success' });
         }
         setIsModalOpen(false);
@@ -95,7 +107,25 @@ function AdminBeneficiaries() {
         { key: 'program', label: t('admin.beneficiariesPage.program') },
         { key: 'cases', label: t('admin.beneficiariesPage.cases'), render: (v) => `${v} ${t('admin.beneficiariesPage.caseSuffix')}` },
         { key: 'location', label: t('admin.beneficiariesPage.location') },
-        { key: 'status', label: t('admin.beneficiariesPage.status'), type: 'status' },
+        { 
+            key: 'status', label: t('admin.beneficiariesPage.status'), 
+            render: (val, row) => (
+                <FormControl size="small" variant="standard">
+                    <Select
+                        value={val || 'pending'}
+                        onChange={(e) => handleStatusChange(row, e.target.value)}
+                        disableUnderline
+                        sx={{ fontSize: '0.875rem', fontWeight: 'bold' }}
+                    >
+                        <MenuItem value="pending">قيد الانتظار</MenuItem>
+                        <MenuItem value="under_review">قيد المراجعة</MenuItem>
+                        <MenuItem value="active">معتمد</MenuItem>
+                        <MenuItem value="rejected">مرفوض</MenuItem>
+                        <MenuItem value="closed">مغلق</MenuItem>
+                    </Select>
+                </FormControl>
+            )
+        },
     ];
 
     const actions = [
@@ -105,7 +135,7 @@ function AdminBeneficiaries() {
     ];
 
     const governorates = ['القاهرة', 'الجيزة', 'الإسكندرية', 'المنيا', 'أسوان', 'قنا', 'سوهاج', 'الفيوم', 'بني سويف'];
-    const programOptions = ['رعاية الأيتام', 'الرعاية الصحية', 'التعليم', 'الإغاثة العاجلة', 'سقيا الماء'];
+    const programOptions = state.programs.map(p => p.name || p.title);
     const updateField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
 
     return (
@@ -151,6 +181,20 @@ function AdminBeneficiaries() {
                 <TextField label={t('admin.beneficiariesPage.address')} fullWidth value={formData.address} onChange={updateField('address')} />
                 <TextField label={t('admin.beneficiariesPage.notes')} multiline rows={3} fullWidth value={formData.notes} onChange={updateField('notes')} placeholder={t('admin.beneficiariesPage.notesPlaceholder')} />
             </AdminFormDialog>
+
+            {/* Delete Confirmation */}
+            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, row: null })}>
+                <DialogTitle>تأكيد الحذف</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        هل أنت متأكد من حذف المستفيد "{deleteConfirm.row?.name}"؟ لا يمكن التراجع عن هذا الإجراء.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteConfirm({ open: false, row: null })} color="inherit">إلغاء</Button>
+                    <Button onClick={confirmDelete} color="error" variant="contained">حذف نهائياً</Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>

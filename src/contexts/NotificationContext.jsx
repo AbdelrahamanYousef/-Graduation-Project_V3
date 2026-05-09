@@ -3,78 +3,10 @@ import { createContext, useContext, useState, useCallback, useRef } from 'react'
 const NotificationContext = createContext(null);
 
 // Mock notifications for admin
-const ADMIN_NOTIFICATIONS = [
-    {
-        id: 1,
-        type: 'donation',
-        title: 'تبرع جديد',
-        titleEn: 'New Donation',
-        message: 'تم استلام تبرع بقيمة 5,000 ج.م من أحمد محمد',
-        messageEn: 'Received a donation of 5,000 EGP from Ahmed Mohamed',
-        time: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 min ago
-        read: false,
-        icon: 'fa-solid fa-coins',
-    },
-    {
-        id: 2,
-        type: 'project',
-        title: 'مشروع جديد',
-        titleEn: 'New Project',
-        message: 'تمت إضافة مشروع "المياه النظيفة" بنجاح',
-        messageEn: 'Project "Clean Water" has been added successfully',
-        time: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-        read: false,
-        icon: 'fa-solid fa-clipboard-list',
-    },
-    {
-        id: 3,
-        type: 'alert',
-        title: 'تنبيه النظام',
-        titleEn: 'System Alert',
-        message: 'حملة "كفالة يتيم" وصلت إلى 90% من الهدف',
-        messageEn: 'Campaign "Orphan Sponsorship" reached 90% of goal',
-        time: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        read: false,
-        icon: 'fa-solid fa-bell',
-    },
-];
+const ADMIN_NOTIFICATIONS = [];
 
 // Mock notifications for donor
-const DONOR_NOTIFICATIONS = [
-    {
-        id: 101,
-        type: 'welcome',
-        title: 'مرحباً بك!',
-        titleEn: 'Welcome!',
-        message: 'شكراً لانضمامك إلى نور. ابدأ رحلتك في العطاء',
-        messageEn: 'Thanks for joining Nour. Start your giving journey',
-        time: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-        read: false,
-        icon: 'fa-solid fa-champagne-glasses',
-    },
-    {
-        id: 102,
-        type: 'update',
-        title: 'تحديث مشروع',
-        titleEn: 'Project Update',
-        message: 'مشروع المياه النظيفة: تم الانتهاء من حفر البئر الثالث',
-        messageEn: 'Clean Water Project: Third well drilling completed',
-        time: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        read: false,
-        icon: 'fa-solid fa-chart-pie',
-    },
-    {
-        id: 103,
-        type: 'campaign',
-        title: 'حملة جديدة',
-        titleEn: 'New Campaign',
-        message: 'حملة "إفطار صائم" متاحة الآن. ساهم معنا!',
-        messageEn: '"Iftar for Fasting" campaign is now live. Contribute!',
-        time: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-        read: false,
-        icon: 'fa-solid fa-moon',
-    },
-];
+const DONOR_NOTIFICATIONS = [];
 
 export function NotificationProvider({ children }) {
     const [notifications, setNotifications] = useState([]);

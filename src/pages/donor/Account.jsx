@@ -91,7 +91,7 @@ function Account() {
     const theme = useTheme();
     const navigate = useNavigate();
     const { isDonorLoggedIn, donorUser, donorLogout, updateDonorPhoto } = useAuth();
-    const isEn = getLanguage() === 'en';
+    
     const photoInputRef = useRef(null);
 
     const handlePhotoUpload = useCallback((e) => {
@@ -131,10 +131,10 @@ function Account() {
                             <i className="fa-solid fa-lock"></i>
                         </Box>
                         <Typography variant="h4" gutterBottom fontWeight="bold">
-                            {isEn ? 'Login Required' : 'يجب تسجيل الدخول'}
+                            {'يجب تسجيل الدخول'}
                         </Typography>
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                            {isEn ? 'Please login to view your account and donation history' : 'يرجى تسجيل الدخول لعرض حسابك وسجل تبرعاتك'}
+                            {'يرجى تسجيل الدخول لعرض حسابك وسجل تبرعاتك'}
                         </Typography>
                         <Button component={Link} to="/login" variant="contained" size="large">
                             {t('nav.login')}
@@ -147,7 +147,7 @@ function Account() {
 
     // Use data from auth context
     const user = {
-        name: isEn ? (donorUser.nameEn || donorUser.name) : donorUser.name,
+        name: donorUser.name,
         email: donorUser.email,
         phone: donorUser.phone,
         joinDate: donorUser.joinDate || donorUser.loggedInAt,
@@ -157,11 +157,11 @@ function Account() {
 
     // Mock donations (would come from API)
     const donations = [
-        { id: 1, date: '2024-01-15', project: isEn ? 'Clean Water Project' : 'مشروع المياه النظيفة', amount: 5000, status: 'completed' },
-        { id: 2, date: '2024-01-10', project: isEn ? 'Orphan Sponsorship' : 'كفالة يتيم', amount: 1500, status: 'completed' },
-        { id: 3, date: '2023-12-25', project: isEn ? 'Medical Convoy' : 'القافلة الطبية', amount: 3000, status: 'completed' },
-        { id: 4, date: '2023-12-15', project: isEn ? 'Classroom Setup' : 'تجهيز فصول دراسية', amount: 2500, status: 'completed' },
-        { id: 5, date: '2023-11-20', project: isEn ? 'Iftar for Fasting' : 'إفطار صائم', amount: 1000, status: 'completed' },
+        { id: 1, date: '2024-01-15', project: 'مشروع المياه النظيفة', amount: 5000, status: 'completed' },
+        { id: 2, date: '2024-01-10', project: 'كفالة يتيم', amount: 1500, status: 'completed' },
+        { id: 3, date: '2023-12-25', project: 'القافلة الطبية', amount: 3000, status: 'completed' },
+        { id: 4, date: '2023-12-15', project: 'تجهيز فصول دراسية', amount: 2500, status: 'completed' },
+        { id: 5, date: '2023-11-20', project: 'إفطار صائم', amount: 1000, status: 'completed' },
     ];
 
     const handleLogout = () => {
@@ -188,8 +188,8 @@ function Account() {
                                 sx={{
                                     position: 'absolute',
                                     bottom: 0,
-                                    right: isEn ? -10 : 'auto',
-                                    left: isEn ? 'auto' : -10,
+                                    right: 'auto',
+                                    left: -10,
                                     bgcolor: 'background.paper',
                                     boxShadow: 1,
                                     '&:hover': { bgcolor: 'background.paper' }
@@ -208,24 +208,24 @@ function Account() {
                         </Box>
                         <Box>
                             <Typography variant="h5" fontWeight="bold">
-                                {isEn ? 'Hello' : 'أهلاً'}، {user.name}
+                                {'أهلاً'}، {user.name}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                {isEn ? 'Member since' : 'عضو منذ'} {formatDate(user.joinDate)}
+                                {'عضو منذ'} {formatDate(user.joinDate)}
                             </Typography>
                         </Box>
                     </Box>
                     <Button variant="outlined" color="error" size="small" onClick={handleLogout} startIcon={<i className="fa-solid fa-right-from-bracket"></i>}>
-                        {isEn ? 'Logout' : 'تسجيل الخروج'}
+                        {'تسجيل الخروج'}
                     </Button>
                 </ProfileHeader>
 
                 {/* Tabs */}
                 <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 4 }}>
                     <Tabs value={activeTab} onChange={handleTabChange}>
-                        <Tab label={isEn ? 'Overview' : 'نظرة عامة'} value="overview" icon={<i className="fa-solid fa-chart-pie"></i>} iconPosition="start" />
-                        <Tab label={isEn ? 'My Donations' : 'تبرعاتي'} value="donations" icon={<i className="fa-solid fa-hand-holding-heart"></i>} iconPosition="start" />
-                        <Tab label={isEn ? 'My Profile' : 'بياناتي'} value="profile" icon={<i className="fa-solid fa-user"></i>} iconPosition="start" />
+                        <Tab label={'نظرة عامة'} value="overview" icon={<i className="fa-solid fa-chart-pie"></i>} iconPosition="start" />
+                        <Tab label={'تبرعاتي'} value="donations" icon={<i className="fa-solid fa-hand-holding-heart"></i>} iconPosition="start" />
+                        <Tab label={'بياناتي'} value="profile" icon={<i className="fa-solid fa-user"></i>} iconPosition="start" />
                     </Tabs>
                 </Box>
 
@@ -260,7 +260,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             {formatCurrency(user.totalDonations)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            {isEn ? 'Total Donations' : 'إجمالي تبرعاتك'}
+                            {'إجمالي تبرعاتك'}
                         </Typography>
                     </StatCard>
                 </Grid>
@@ -273,7 +273,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             {user.donationCount}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            {isEn ? 'Number of Donations' : 'عدد التبرعات'}
+                            {'عدد التبرعات'}
                         </Typography>
                     </StatCard>
                 </Grid>
@@ -286,7 +286,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             {user.donationCount > 0 ? formatCurrency(Math.round(user.totalDonations / user.donationCount)) : formatCurrency(0)}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            {isEn ? 'Average Donation' : 'متوسط التبرع'}
+                            {'متوسط التبرع'}
                         </Typography>
                     </StatCard>
                 </Grid>
@@ -296,7 +296,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
             <Card>
                 <CardContent>
                     <Typography variant="h6" gutterBottom fontWeight="bold">
-                        {isEn ? 'Recent Donations' : 'آخر التبرعات'}
+                        {'آخر التبرعات'}
                     </Typography>
                     <Divider sx={{ mb: 2 }} />
                     <Stack spacing={2}>
@@ -321,7 +321,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
             {/* Quick Actions */}
             <Box>
                 <Typography variant="h6" gutterBottom fontWeight="bold">
-                    {isEn ? 'Quick Actions' : 'إجراءات سريعة'}
+                    {'إجراءات سريعة'}
                 </Typography>
                 <Grid container spacing={3}>
                     <Grid item xs={12} md={4}>
@@ -329,7 +329,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             <Box sx={{ fontSize: '2rem', color: 'primary.main', mb: 2 }}>
                                 <i className="fa-solid fa-credit-card"></i>
                             </Box>
-                            <Typography fontWeight="bold">{isEn ? 'Donate Now' : 'تبرع الآن'}</Typography>
+                            <Typography fontWeight="bold">{'تبرع الآن'}</Typography>
                         </ActionCard>
                     </Grid>
                     <Grid item xs={12} md={4}>
@@ -337,7 +337,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             <Box sx={{ fontSize: '2rem', color: 'secondary.main', mb: 2 }}>
                                 <i className="fa-solid fa-folder-open"></i>
                             </Box>
-                            <Typography fontWeight="bold">{isEn ? 'Browse Projects' : 'تصفح المشاريع'}</Typography>
+                            <Typography fontWeight="bold">{'تصفح المشاريع'}</Typography>
                         </ActionCard>
                     </Grid>
                     <Grid item xs={12} md={4}>
@@ -345,7 +345,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
                             <Box sx={{ fontSize: '2rem', color: 'info.main', mb: 2 }}>
                                 <i className="fa-solid fa-file-lines"></i>
                             </Box>
-                            <Typography fontWeight="bold">{isEn ? 'Transparency Reports' : 'تقارير الشفافية'}</Typography>
+                            <Typography fontWeight="bold">{'تقارير الشفافية'}</Typography>
                         </ActionCard>
                     </Grid>
                 </Grid>
@@ -360,11 +360,11 @@ function DonationsTab({ donations, isEn }) {
             <Table>
                 <TableHead>
                     <TableRow>
-                        <TableCell>{isEn ? 'Date' : 'التاريخ'}</TableCell>
-                        <TableCell>{isEn ? 'Project' : 'المشروع'}</TableCell>
-                        <TableCell>{isEn ? 'Amount' : 'المبلغ'}</TableCell>
-                        <TableCell>{isEn ? 'Status' : 'الحالة'}</TableCell>
-                        <TableCell>{isEn ? 'Receipt' : 'الإيصال'}</TableCell>
+                        <TableCell>{'التاريخ'}</TableCell>
+                        <TableCell>{'المشروع'}</TableCell>
+                        <TableCell>{'المبلغ'}</TableCell>
+                        <TableCell>{'الحالة'}</TableCell>
+                        <TableCell>{'الإيصال'}</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -374,7 +374,7 @@ function DonationsTab({ donations, isEn }) {
                             <TableCell>{donation.project}</TableCell>
                             <TableCell sx={{ fontWeight: 'bold', color: 'primary.main' }}>{formatCurrency(donation.amount)}</TableCell>
                             <TableCell>
-                                <Chip label={isEn ? 'Completed' : 'مكتمل'} color="success" size="small" />
+                                <Chip label={'مكتمل'} color="success" size="small" />
                             </TableCell>
                             <TableCell>
                                 <IconButton size="small">
@@ -445,28 +445,28 @@ function ProfileTab({ user, isEn, donorUser, updateDonorPhoto }) {
             <Card>
                 <CardContent>
                     <Typography variant="h6" gutterBottom fontWeight="bold">
-                        {isEn ? 'Account Information' : 'معلومات الحساب'}
+                        {'معلومات الحساب'}
                     </Typography>
                     <Stack spacing={3} component="form" sx={{ mt: 3 }}>
                         <TextField
-                            label={isEn ? 'Full Name' : 'الاسم الكامل'}
+                            label={'الاسم الكامل'}
                             defaultValue={user.name}
                             fullWidth
                         />
                         <TextField
-                            label={isEn ? 'Email Address' : 'البريد الإلكتروني'}
+                            label={'البريد الإلكتروني'}
                             type="email"
                             defaultValue={user.email}
                             fullWidth
                         />
                         <TextField
-                            label={isEn ? 'Phone Number' : 'رقم الهاتف'}
+                            label={'رقم الهاتف'}
                             type="tel"
                             defaultValue={user.phone}
                             fullWidth
                         />
                         <Button variant="contained" type="submit" sx={{ alignSelf: 'flex-start' }}>
-                            {isEn ? 'Save Changes' : 'حفظ التغييرات'}
+                            {'حفظ التغييرات'}
                         </Button>
                     </Stack>
                 </CardContent>
@@ -475,23 +475,23 @@ function ProfileTab({ user, isEn, donorUser, updateDonorPhoto }) {
             <Card sx={{ border: 1, borderColor: 'error.main' }}>
                 <CardContent>
                     <Typography variant="h6" gutterBottom fontWeight="bold" color="error">
-                        {isEn ? 'Account Settings' : 'إعدادات الحساب'}
+                        {'إعدادات الحساب'}
                     </Typography>
                     <Stack spacing={3} sx={{ mt: 2 }}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box>
-                                <Typography fontWeight="medium">{isEn ? 'Change Password' : 'تغيير كلمة المرور'}</Typography>
-                                <Typography variant="body2" color="text.secondary">{isEn ? 'Update your password' : 'قم بتحديث كلمة المرور الخاصة بك'}</Typography>
+                                <Typography fontWeight="medium">{'تغيير كلمة المرور'}</Typography>
+                                <Typography variant="body2" color="text.secondary">{'قم بتحديث كلمة المرور الخاصة بك'}</Typography>
                             </Box>
-                            <Button variant="outlined" size="small">{isEn ? 'Change' : 'تغيير'}</Button>
+                            <Button variant="outlined" size="small">{'تغيير'}</Button>
                         </Box>
                         <Divider />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Box>
-                                <Typography fontWeight="medium">{isEn ? 'Email Notifications' : 'إشعارات البريد'}</Typography>
-                                <Typography variant="body2" color="text.secondary">{isEn ? 'Manage notification preferences' : 'إدارة تفضيلات الإشعارات'}</Typography>
+                                <Typography fontWeight="medium">{'إشعارات البريد'}</Typography>
+                                <Typography variant="body2" color="text.secondary">{'إدارة تفضيلات الإشعارات'}</Typography>
                             </Box>
-                            <Button variant="outlined" size="small">{isEn ? 'Manage' : 'إدارة'}</Button>
+                            <Button variant="outlined" size="small">{'إدارة'}</Button>
                         </Box>
                     </Stack>
                 </CardContent>

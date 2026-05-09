@@ -14,6 +14,7 @@ import {
     alpha
 } from '@mui/material';
 import { t, getLanguage } from '../../i18n';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
 
@@ -212,15 +213,13 @@ const JourneyItem = styled(Box)(({ theme }) => {
         alignItems: 'center',
         position: 'relative',
         marginBottom: theme.spacing(3),
-        paddingRight: isRtl ? 48 : 0,
-        paddingLeft: isRtl ? 0 : 48,
+        paddingInlineEnd: 48,
         zIndex: 1,
         '&:last-child': {
             marginBottom: 0,
         },
         [theme.breakpoints.up('md')]: {
-            paddingRight: isRtl ? 80 : 0,
-            paddingLeft: isRtl ? 0 : 80,
+            paddingInlineEnd: 80,
             marginBottom: theme.spacing(4),
         }
     };
@@ -379,22 +378,24 @@ const TeamAvatar = styled(Avatar)(({ theme }) => {
 
 function About() {
     const theme = useTheme();
-    const isEn = getLanguage() === 'en';
+    const { state } = useAdminData();
+    const aboutUs = state.content?.aboutUs || {};
+    
 
     const team = [
-        { name: isEn ? 'Dr. Ahmed Mahmoud' : 'د. أحمد محمود', role: isEn ? 'Chairman of the Board' : 'رئيس مجلس الإدارة', image: 'fa-solid fa-user-tie' },
-        { name: isEn ? 'Ms. Fatma Hassan' : 'أ. فاطمة حسن', role: isEn ? 'Executive Director' : 'المدير التنفيذي', image: 'fa-solid fa-user-tie' },
-        { name: isEn ? 'Eng. Khaled Abdullah' : 'م. خالد عبدالله', role: isEn ? 'Programs Director' : 'مدير البرامج', image: 'fa-solid fa-laptop-code' },
-        { name: isEn ? 'Ms. Sara Ali' : 'أ. سارة علي', role: isEn ? 'Development Director' : 'مدير التطوير', image: 'fa-solid fa-chalkboard-user' },
+        { name: 'د. أحمد محمود', role: 'رئيس مجلس الإدارة', image: 'fa-solid fa-user-tie' },
+        { name: 'أ. فاطمة حسن', role: 'المدير التنفيذي', image: 'fa-solid fa-user-tie' },
+        { name: 'م. خالد عبدالله', role: 'مدير البرامج', image: 'fa-solid fa-laptop-code' },
+        { name: 'أ. سارة علي', role: 'مدير التطوير', image: 'fa-solid fa-chalkboard-user' },
     ];
 
     const milestones = [
-        { year: '2010', event: isEn ? 'Organization Founded' : 'تأسيس الجمعية' },
-        { year: '2012', event: isEn ? 'First Orphanage Opened' : 'افتتاح أول دار أيتام' },
-        { year: '2015', event: isEn ? 'Medical Convoy Program Launched' : 'إطلاق برنامج القوافل الطبية' },
-        { year: '2018', event: isEn ? 'Reached 10,000 Beneficiaries' : 'الوصول لـ 10,000 مستفيد' },
-        { year: '2020', event: isEn ? 'Online Platform Launched' : 'إطلاق المنصة الإلكترونية' },
-        { year: '2024', event: isEn ? 'Achieved EGP 15 Million in Donations' : 'تحقيق 15 مليون جنيه تبرعات' },
+        { year: '2010', event: 'تأسيس الجمعية'},
+        { year: '2012', event: 'افتتاح أول دار أيتام'},
+        { year: '2015', event: 'إطلاق برنامج القوافل الطبية'},
+        { year: '2018', event: 'الوصول لـ 10,000 مستفيد' },
+        { year: '2020', event: 'إطلاق المنصة الإلكترونية'},
+        { year: '2024', event: 'تحقيق 15 مليون جنيه تبرعات'},
     ];
 
     const particles = [];
@@ -413,7 +414,7 @@ function About() {
                             fontSize: { xs: '2.2rem', md: '3.5rem' },
                             color: 'common.white',
                             mb: 2,
-                            letterSpacing: isEn ? '-0.02em' : '0',
+                            letterSpacing: '0',
                             animation: `${fadeInUp} 0.5s ease both`,
                         }}
                     >
@@ -430,7 +431,7 @@ function About() {
                             animation: `${fadeInUp} 0.5s ease both 0.1s`,
                         }}
                     >
-                        {t('about.subtitle')}
+                        {aboutUs.story || t('about.subtitle')}
                     </Typography>
                 </Container>
             </HeroSection>
@@ -447,7 +448,7 @@ function About() {
                                 {t('about.vision')}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6, fontSize: '0.95rem', maxWidth: 360 }}>
-                                {t('about.visionText')}
+                                {aboutUs.vision || t('about.visionText')}
                             </Typography>
                         </SectionHalf>
 
@@ -461,7 +462,7 @@ function About() {
                                 {t('about.mission')}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6, fontSize: '0.95rem', maxWidth: 360 }}>
-                                {t('about.missionText')}
+                                {aboutUs.mission || t('about.missionText')}
                             </Typography>
                         </SectionHalf>
                     </UnifiedSection>
@@ -489,7 +490,7 @@ function About() {
                                             {item.title}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6, fontSize: '0.95rem' }}>
-                                            {item.desc}
+                                            {i === 0 && aboutUs.values ? aboutUs.values : item.desc}
                                         </Typography>
                                     </Box>
                                 </ValueCard>
@@ -583,7 +584,7 @@ function About() {
                                 { label: t('about.regNumber'), value: '1234 / 2010', icon: 'fa-id-card' },
                                 { label: t('about.commercialReg'), value: '56789', icon: 'fa-file-signature' },
                                 { label: t('about.taxNumber'), value: '123-456-789', icon: 'fa-file-invoice-dollar' },
-                                { label: t('about.headquarters'), value: isEn ? 'Cairo, Egypt' : 'القاهرة، مصر', icon: 'fa-location-dot' }
+                                { label: t('about.headquarters'), value: 'القاهرة، مصر', icon: 'fa-location-dot' }
                             ].map((item, idx) => (
                                 <Grid item xs={12} sm={6} md={3} key={idx}>
                                     <Box

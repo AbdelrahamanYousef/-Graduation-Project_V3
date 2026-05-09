@@ -38,7 +38,7 @@ const ARABIC_FONT = "'Cairo', 'Tajawal', sans-serif";
 const LATIN_FONT = "'Inter', 'Manrope', sans-serif";
 
 const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
-const isEn = () => getLanguage() === 'en';
+
 
 // ─────────────────────────────────────────────
 //  ANIMATIONS

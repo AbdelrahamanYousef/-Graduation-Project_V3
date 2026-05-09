@@ -122,10 +122,10 @@ const FilterBar = styled(Box)(({ theme }) => {
         WebkitBackdropFilter: 'blur(14px)',
         borderBottom: `1px solid ${dk ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
         padding: theme.spacing(1.2, 0),
-        marginLeft: theme.spacing(-2),
-        marginRight: theme.spacing(-2),
-        paddingLeft: theme.spacing(2),
-        paddingRight: theme.spacing(2),
+        marginInlineStart: theme.spacing(-2),
+        marginInlineEnd: theme.spacing(-2),
+        paddingInlineStart: theme.spacing(2),
+        paddingInlineEnd: theme.spacing(2),
     };
 });
 
@@ -297,7 +297,7 @@ function SafeImage({ src, alt, className, sx }) {
 function CampaignCardItem({ project, index, onClick, onDonate }) {
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
-    const isEn = getLanguage() === 'en';
+    
 
     const pct = Math.min(100, Math.round((project.raised / project.goal) * 100));
     const title = loc(project.title, project.titleEn);
@@ -322,11 +322,11 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                 }} />
 
                 {/* Badges */}
-                <GlassBadge sx={{ top: 10, ...(isEn ? { left: 10 } : { right: 10 }) }}>
+                <GlassBadge sx={{ top: 10, ...({ right: 10 }) }}>
                     <i className="fa-solid fa-tag" style={{ fontSize: '0.75rem' }} />
                     {prog}
                 </GlassBadge>
-                <GlassBadge sx={{ top: 10, ...(isEn ? { right: 10 } : { left: 10 }) }}>
+                <GlassBadge sx={{ top: 10, ...({ left: 10 }) }}>
                     <i className="fa-solid fa-hourglass-half" style={{ fontSize: '0.75rem' }} />
                     {project.daysLeft} {loc('يوم', 'days')}
                 </GlassBadge>
@@ -359,7 +359,7 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                 flex: 1, display: 'flex', flexDirection: 'column',
                 p: '18px !important',
                 '&:last-child': { pb: '18px !important' },
-                direction: isEn ? 'ltr' : 'rtl',
+                direction: 'rtl',
             }}>
                 {/* Title */}
                 <Typography sx={{
@@ -526,7 +526,7 @@ const WALLETS = [
 function QuickDonateModal({ open, onClose, project }) {
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
-    const isEn = getLanguage() === 'en';
+    
     const { dispatch } = useAdminData();
 
     // Step: 'info' → 'method' → 'card' | 'wallet' → 'success'
@@ -656,7 +656,7 @@ function QuickDonateModal({ open, onClose, project }) {
                     borderRadius: '24px',
                     overflow: 'hidden',
                     bgcolor: dk ? DARK_CARD : '#fff',
-                    direction: isEn ? 'ltr' : 'rtl',
+                    direction: 'rtl',
                 },
             }}
             BackdropProps={{
@@ -693,7 +693,7 @@ function QuickDonateModal({ open, onClose, project }) {
                                 '&:hover': { bgcolor: 'rgba(255,255,255,0.25)', transform: 'scale(1.1)' },
                             }}
                         >
-                            <i className={`fa-solid fa-arrow-${isEn ? 'left' : 'right'}`} style={{ fontSize: '0.8rem' }} />
+                            <i className={`fa-solid fa-arrow-${'right'}`} style={{ fontSize: '0.8rem' }} />
                         </IconButton>
                     ) : (
                         <Box sx={{ width: 32 }} />
@@ -881,7 +881,7 @@ function QuickDonateModal({ open, onClose, project }) {
                                     {loc('فيزا، ماستركارد، ميزة', 'Visa, Mastercard, Meeza')}
                                 </Typography>
                             </Box>
-                            <i className={`fa-solid fa-chevron-${isEn ? 'right' : 'left'}`} style={{ fontSize: '0.75rem', color: dk ? alpha(DARK_TEXT, 0.3) : '#bbb' }} />
+                            <i className={`fa-solid fa-chevron-${'left'}`} style={{ fontSize: '0.75rem', color: dk ? alpha(DARK_TEXT, 0.3) : '#bbb' }} />
                         </Box>
 
                         {/* Mobile Wallet Option */}
@@ -916,7 +916,7 @@ function QuickDonateModal({ open, onClose, project }) {
                                     {loc('فودافون، أورانج، اتصالات، وي', 'Vodafone, Orange, Etisalat, WE')}
                                 </Typography>
                             </Box>
-                            <i className={`fa-solid fa-chevron-${isEn ? 'right' : 'left'}`} style={{ fontSize: '0.75rem', color: dk ? alpha(DARK_TEXT, 0.3) : '#bbb' }} />
+                            <i className={`fa-solid fa-chevron-${'left'}`} style={{ fontSize: '0.75rem', color: dk ? alpha(DARK_TEXT, 0.3) : '#bbb' }} />
                         </Box>
                     </>
                 )}
@@ -1158,11 +1158,12 @@ function QuickDonateModal({ open, onClose, project }) {
 function Campaigns() {
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
-    const isEn = getLanguage() === 'en';
+    
     const navigate = useNavigate();
 
     // Read live data from shared context
-    const { state, activePrograms } = useAdminData();
+    const { state } = useAdminData();
+    const activePrograms = state.programs?.filter(p => !p.status || p.status === 'active') || [];
     const projects = state.projects;
     const programs = activePrograms;
 
@@ -1197,9 +1198,9 @@ function Campaigns() {
                     <Box sx={{ width: 40, height: 3, borderRadius: 2, bgcolor: alpha('#fff', 0.3), mx: 'auto', mb: 2 }} />
                     <Typography sx={{
                         fontWeight: 900,
-                        fontFamily: isEn ? LATIN_FONT : ARABIC_FONT,
+                        fontFamily: ARABIC_FONT,
                         animation: `${fadeInUp} 0.5s ease both`,
-                        letterSpacing: isEn ? '-0.02em' : 0,
+                        letterSpacing: 0,
                         mb: 1,
                         fontSize: { xs: '1.5rem', md: '2rem' },
                         color: '#fff',
@@ -1207,7 +1208,7 @@ function Campaigns() {
                         {loc('الحملات الخيرية', 'Charity Campaigns')}
                     </Typography>
                     <Typography sx={{
-                        fontFamily: isEn ? LATIN_FONT : ARABIC_FONT,
+                        fontFamily: ARABIC_FONT,
                         color: alpha('#fff', 0.65),
                         lineHeight: 1.7,
                         fontSize: { xs: '0.82rem', md: '0.9rem' },

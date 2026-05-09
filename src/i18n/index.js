@@ -1,49 +1,16 @@
 import ar from './ar.json';
-import en from './en.json';
 
-const translations = { ar, en };
+const translations = { ar };
 
-// Initialize from localStorage immediately, so getLanguage() is correct on first render
-let currentLanguage = (() => {
-  try {
-    return localStorage.getItem('nour-lang') || 'ar';
-  } catch {
-    return 'ar';
-  }
-})();
-
-// Apply direction + lang attribute right away (before any React renders)
+// Apply direction + lang attribute right away
 try {
-  document.documentElement.dir = currentLanguage === 'ar' ? 'rtl' : 'ltr';
-  document.documentElement.lang = currentLanguage;
+  document.documentElement.dir = 'rtl';
+  document.documentElement.lang = 'ar';
 } catch { /* SSR / test env */ }
 
-/**
- * Set the current language
- * @param {string} lang - 'ar' or 'en'
- */
-export const setLanguage = (lang) => {
-  if (translations[lang]) {
-    currentLanguage = lang;
-    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang;
-    localStorage.setItem('nour-lang', lang);
-  }
-};
-
-/**
- * Get the current language
- * @returns {string} Current language code
- */
-export const getLanguage = () => currentLanguage;
-
-/**
- * Initialize language from localStorage or default to Arabic
- */
-export const initLanguage = () => {
-  const savedLang = localStorage.getItem('nour-lang') || 'ar';
-  setLanguage(savedLang);
-};
+export const setLanguage = () => {};
+export const getLanguage = () => 'ar';
+export const initLanguage = () => {};
 
 /**
  * Get a translation by key path (e.g., 'nav.home')
@@ -53,14 +20,13 @@ export const initLanguage = () => {
  */
 export const t = (keyPath, params = {}) => {
   const keys = keyPath.split('.');
-  let value = translations[currentLanguage];
+  let value = translations['ar'];
 
   for (const key of keys) {
     if (value && typeof value === 'object') {
       value = value[key];
     } else {
-      // Fallback to English if key not found in current language
-      value = keys.reduce((obj, k) => obj?.[k], translations.en);
+      value = undefined;
       break;
     }
   }
@@ -80,12 +46,12 @@ export const t = (keyPath, params = {}) => {
  * @returns {string} Formatted currency string
  */
 export const formatCurrency = (amount) => {
-  const formatted = new Intl.NumberFormat(currentLanguage === 'ar' ? 'ar-EG' : 'en-EG', {
+  const formatted = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(amount);
 
-  return currentLanguage === 'ar' ? `${formatted} ج.م` : `EGP ${formatted}`;
+  return `${formatted} ج.م`;
 };
 
 /**
@@ -99,7 +65,7 @@ export const formatDate = (date, options = {}) => {
   const defaultOptions = { year: 'numeric', month: 'long', day: 'numeric' };
 
   return new Intl.DateTimeFormat(
-    currentLanguage === 'ar' ? 'ar-EG' : 'en-EG',
+    'ar-EG',
     { ...defaultOptions, ...options }
   ).format(dateObj);
 };
@@ -110,7 +76,7 @@ export const formatDate = (date, options = {}) => {
  * @returns {string} Formatted number string
  */
 export const formatNumber = (num) => {
-  return new Intl.NumberFormat(currentLanguage === 'ar' ? 'ar-EG' : 'en-EG').format(num);
+  return new Intl.NumberFormat('en-US').format(num);
 };
 
 export default { t, setLanguage, getLanguage, initLanguage, formatCurrency, formatDate, formatNumber };
