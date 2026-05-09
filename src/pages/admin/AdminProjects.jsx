@@ -2,10 +2,9 @@ import { useState, useCallback } from 'react';
 import {
     Box, Grid, Card, CardContent, Typography, Button, IconButton,
     TextField, MenuItem, Stack, LinearProgress, Tooltip, useTheme, alpha,
-    Snackbar, Alert
+    Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, List, ListItem, ListItemText, Divider, Select, FormControl, InputLabel
 } from '@mui/material';
 import { AdminPageHeader, AdminFilterBar, AdminFormDialog, AdminStatusChip } from '../../components/admin';
-import { programs as staticPrograms } from '../../data/mockData';
 import { formatCurrency, t } from '../../i18n';
 import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 
@@ -16,15 +15,24 @@ function AdminProjects() {
     const theme = useTheme();
     const { state, dispatch } = useAdminData();
     const projectsList = state.projects;
-    const programsList = state.programs.length > 0 ? state.programs : staticPrograms;
+    const programsList = state.programs;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editProject, setEditProject] = useState(null);
     const [filter, setFilter] = useState('all');
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
+    const [updatesModalOpen, setUpdatesModalOpen] = useState(false);
+    const [updatesProject, setUpdatesProject] = useState(null);
+    const [newUpdateText, setNewUpdateText] = useState('');
 
     const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '' };
     const [formData, setFormData] = useState(emptyForm);
+    const [deleteConfirm, setDeleteConfirm] = useState({ open: false, project: null });
+
+    const handleStatusChange = (project, newStatus) => {
+        dispatch(adminActions.updateProject({ ...project, status: newStatus }));
+        setSnackbar({ open: true, msg: `تم تغيير حالة المشروع إلى ${newStatus}`, severity: 'success' });
+    };
 
     const toggleFeatured = useCallback((project) => {
         dispatch(adminActions.toggleFeatured(project.id));
@@ -99,9 +107,41 @@ function AdminProjects() {
     };
 
     const handleDelete = useCallback((project) => {
+        setDeleteConfirm({ open: true, project });
+    }, []);
+
+    const confirmDelete = () => {
+        const { project } = deleteConfirm;
+        if (!project) return;
         dispatch(adminActions.deleteProject(project.id));
         setSnackbar({ open: true, msg: `تم حذف المشروع "${project.title}"`, severity: 'success' });
-    }, [dispatch]);
+        setDeleteConfirm({ open: false, project: null });
+    };
+
+    const handleManageUpdates = (project) => {
+        setUpdatesProject(project);
+        setUpdatesModalOpen(true);
+    };
+
+    const handleAddUpdate = () => {
+        if (!newUpdateText.trim()) return;
+        const newUpdate = { id: Date.now(), text: newUpdateText, date: new Date().toLocaleDateString('ar-EG') };
+        dispatch(adminActions.updateProject({
+            ...updatesProject,
+            updates: [...(updatesProject.updates || []), newUpdate]
+        }));
+        setUpdatesProject(prev => ({ ...prev, updates: [...(prev.updates || []), newUpdate] }));
+        setNewUpdateText('');
+        setSnackbar({ open: true, msg: 'تم إضافة التحديث بنجاح', severity: 'success' });
+    };
+
+    const handleDeleteUpdate = (updateId) => {
+        const newUpdates = (updatesProject.updates || []).filter(u => u.id !== updateId);
+        dispatch(adminActions.updateProject({ ...updatesProject, updates: newUpdates }));
+        setUpdatesProject(prev => ({ ...prev, updates: newUpdates }));
+        setSnackbar({ open: true, msg: 'تم حذف التحديث', severity: 'success' });
+    };
+
 
     const filteredProjects = filter === 'all' ? projectsList : projectsList.filter(p => p.status === filter);
 
@@ -180,6 +220,19 @@ function AdminProjects() {
                                 </CardContent>
 
                                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider', display: 'flex', gap: 1, alignItems: 'center' }}>
+                                    <FormControl size="small" sx={{ minWidth: 100 }}>
+                                        <Select
+                                            value={project.status || 'draft'}
+                                            onChange={(e) => handleStatusChange(project, e.target.value)}
+                                            sx={{ fontSize: '0.875rem' }}
+                                        >
+                                            <MenuItem value="draft">مسودة</MenuItem>
+                                            <MenuItem value="active">نشط</MenuItem>
+                                            <MenuItem value="completed">مكتمل</MenuItem>
+                                            <MenuItem value="archived">مؤرشف</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <Box sx={{ flexGrow: 1 }} />
                                     <Tooltip title={project.featured ? t('admin.projectsPage.removeFeatured') : t('admin.projectsPage.addFeatured')}>
                                         <IconButton size="small" onClick={() => toggleFeatured(project)}
                                             sx={{
@@ -190,12 +243,21 @@ function AdminProjects() {
                                             <i className={project.featured ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
                                         </IconButton>
                                     </Tooltip>
-                                    <Button size="small" variant="outlined" fullWidth onClick={() => handleEdit(project)}>
-                                        {t('admin.projectsPage.edit')}
-                                    </Button>
-                                    <IconButton size="small" color="error" onClick={() => handleDelete(project)}>
-                                        <i className="fa-solid fa-trash" style={{ fontSize: 14 }} />
-                                    </IconButton>
+                                    <Tooltip title="تحديثات المشروع">
+                                        <IconButton size="small" color="info" onClick={() => handleManageUpdates(project)}>
+                                            <i className="fa-solid fa-bullhorn" style={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title={t('admin.projectsPage.edit')}>
+                                        <IconButton size="small" color="primary" onClick={() => handleEdit(project)}>
+                                            <i className="fa-solid fa-pen-to-square" style={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip title={t('common.delete')}>
+                                        <IconButton size="small" color="error" onClick={() => handleDelete(project)}>
+                                            <i className="fa-solid fa-trash" style={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Box>
                             </Card>
                         </Grid>
@@ -236,10 +298,71 @@ function AdminProjects() {
                     textAlign: 'center', bgcolor: 'action.hover', cursor: 'pointer',
                 }}>
                     <Typography variant="body2" color="text.secondary">
-                        <i className="fa-solid fa-camera" style={{ marginRight: 8 }} />{t('admin.projectsPage.imageUpload')}
+                        <i className="fa-solid fa-camera" style={{ marginInlineEnd: 8 }} />{t('admin.projectsPage.imageUpload')}
                     </Typography>
                 </Box>
             </AdminFormDialog>
+
+            {/* Delete Confirmation */}
+            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, project: null })}>
+                <DialogTitle>تأكيد الحذف</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        هل أنت متأكد من حذف مشروع "{deleteConfirm.project?.title}"؟
+                        {deleteConfirm.project?.raised > 0 && (
+                            <Typography color="error" sx={{ mt: 2, fontWeight: 'bold' }}>
+                                تحذير: هذا المشروع يحتوي على تبرعات بقيمة {formatCurrency(deleteConfirm.project.raised)}! 
+                                حذفه قد يؤدي إلى فقدان السجلات المرتبطة به.
+                            </Typography>
+                        )}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setDeleteConfirm({ open: false, project: null })} color="inherit">إلغاء</Button>
+                    <Button onClick={confirmDelete} color="error" variant="contained">حذف نهائياً</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Updates Modal */}
+            <Dialog open={updatesModalOpen} onClose={() => setUpdatesModalOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>إدارة تحديثات المشروع: {updatesProject?.title}</DialogTitle>
+                <DialogContent dividers>
+                    <List disablePadding>
+                        {(!updatesProject?.updates || updatesProject.updates.length === 0) ? (
+                            <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>لا توجد تحديثات حالياً</Typography>
+                        ) : (
+                            updatesProject.updates.map((update, i) => (
+                                <Box key={update.id}>
+                                    <ListItem
+                                        secondaryAction={
+                                            <IconButton edge="end" size="small" color="error" onClick={() => handleDeleteUpdate(update.id)}>
+                                                <i className="fa-solid fa-trash" style={{ fontSize: 12 }} />
+                                            </IconButton>
+                                        }
+                                    >
+                                        <ListItemText
+                                            primary={update.text}
+                                            secondary={update.date}
+                                        />
+                                    </ListItem>
+                                    {i < updatesProject.updates.length - 1 && <Divider />}
+                                </Box>
+                            ))
+                        )}
+                    </List>
+                    <Box sx={{ mt: 3, display: 'flex', gap: 1 }}>
+                        <TextField
+                            fullWidth size="small" label="تحديث جديد..."
+                            value={newUpdateText} onChange={(e) => setNewUpdateText(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleAddUpdate(); }}
+                        />
+                        <Button variant="contained" onClick={handleAddUpdate}>إضافة</Button>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setUpdatesModalOpen(false)}>إغلاق</Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={3500} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>

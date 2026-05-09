@@ -1,20 +1,39 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
     Box, Grid, Card, CardContent, Typography, LinearProgress,
-    useTheme, alpha, Snackbar, Alert
+    useTheme, alpha, Snackbar, Alert, TextField
 } from '@mui/material';
 import { AdminPageHeader, AdminStatsGrid, AdminFilterBar, AdminDataTable, AdminFormDialog } from '../../components/admin';
 import { formatCurrency, t } from '../../i18n';
-import { financeMonthlyData, financeDisbursements as initialDisbursements } from '../../data/adminMockData';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 
 /**
  * Admin Finance Page — with approve/reject disbursements
  */
 function AdminFinance() {
     const theme = useTheme();
+    const { state, dispatch } = useAdminData();
+    const disbursements = state.disbursements;
     const [activeTab, setActiveTab] = useState('overview');
-    const [disbursements, setDisbursements] = useState(initialDisbursements);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const emptyForm = { beneficiary: '', type: '', amount: '', date: new Date().toLocaleDateString('en-CA') };
+    const [formData, setFormData] = useState(emptyForm);
+
+    const currentYear = new Date().getFullYear();
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    
+    const financeMonthlyData = useMemo(() => {
+        return months.map((month, index) => {
+            const income = state.donations
+                .filter(d => d.status === 'completed' && d.date && new Date(d.date).getMonth() === index && new Date(d.date).getFullYear() === currentYear)
+                .reduce((sum, d) => sum + d.amount, 0);
+            const expenses = disbursements
+                .filter(d => d.status === 'approved' && d.date && new Date(d.date).getMonth() === index && new Date(d.date).getFullYear() === currentYear)
+                .reduce((sum, d) => sum + d.amount, 0);
+            return { month, income, expenses };
+        });
+    }, [state.donations, disbursements, currentYear]);
 
     const totals = financeMonthlyData.reduce((acc, m) => ({
         income: acc.income + m.income,
@@ -35,9 +54,9 @@ function AdminFinance() {
     ];
 
     const handleApprove = useCallback((row) => {
-        setDisbursements(prev => prev.map(d => d.id === row.id ? { ...d, status: 'approved' } : d));
+        dispatch(adminActions.updateDisbursement({ ...row, status: 'approved' }));
         setSnackbar({ open: true, msg: `تم اعتماد صرف ${formatCurrency(row.amount)} لـ "${row.beneficiary}"`, severity: 'success' });
-    }, []);
+    }, [dispatch]);
 
     const handleViewDisbursement = useCallback((row) => {
         setSnackbar({ open: true, msg: `عرض تفاصيل: ${row.beneficiary} — ${formatCurrency(row.amount)}`, severity: 'info' });
@@ -55,19 +74,37 @@ function AdminFinance() {
         { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل', onClick: (row) => handleViewDisbursement(row) },
         { icon: 'fa-solid fa-check', tooltip: 'اعتماد', show: (row) => row.status === 'pending', color: 'success', onClick: (row) => handleApprove(row) },
         { icon: 'fa-solid fa-xmark', tooltip: 'رفض', show: (row) => row.status === 'pending', color: 'error', onClick: (row) => {
-            setDisbursements(prev => prev.map(d => d.id === row.id ? { ...d, status: 'inactive' } : d));
+            dispatch(adminActions.updateDisbursement({ ...row, status: 'rejected' }));
             setSnackbar({ open: true, msg: `تم رفض طلب الصرف`, severity: 'warning' });
         }},
     ];
 
-    const maxValue = Math.max(...financeMonthlyData.flatMap(m => [m.income, m.expenses]));
+    const maxValue = Math.max(1, ...financeMonthlyData.flatMap(m => [m.income, m.expenses]));
+
+    const handleAddSubmit = () => {
+        if (!formData.beneficiary || !formData.amount) {
+            setSnackbar({ open: true, msg: 'يرجى إدخال جميع الحقول الإلزامية', severity: 'error' });
+            return;
+        }
+        dispatch(adminActions.addDisbursement({
+            id: Math.max(0, ...disbursements.map(d => d.id)) + 1,
+            beneficiary: formData.beneficiary,
+            type: formData.type || 'عام',
+            amount: Number(formData.amount),
+            date: formData.date,
+            status: 'pending'
+        }));
+        setSnackbar({ open: true, msg: 'تم إضافة طلب الصرف', severity: 'success' });
+        setIsAddModalOpen(false);
+        setFormData(emptyForm);
+    };
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <AdminPageHeader
                 title={t('admin.financePage.title')}
                 subtitle={t('admin.financePage.subtitle')}
-                action={{ label: t('admin.financePage.newDisbursement'), icon: 'fa-solid fa-plus', onClick: () => setSnackbar({ open: true, msg: 'نموذج طلب الصرف — قريباً', severity: 'info' }) }}
+                action={{ label: t('admin.financePage.newDisbursement'), icon: 'fa-solid fa-plus', onClick: () => setIsAddModalOpen(true) }}
                 secondaryAction={{ label: t('admin.financePage.exportReport'), icon: 'fa-solid fa-download', onClick: () => setSnackbar({ open: true, msg: 'جاري تصدير التقرير المالي...', severity: 'success' }) }}
             />
 
@@ -111,11 +148,7 @@ function AdminFinance() {
                     </Card>
 
                     <Grid container spacing={2}>
-                        {[
-                            { label: 'كفالة الأيتام', spent: 320000, total: 500000, color: 'primary' },
-                            { label: 'الرعاية الصحية', spent: 180000, total: 300000, color: 'info' },
-                            { label: 'الإغاثة العاجلة', spent: 450000, total: 600000, color: 'error' },
-                        ].map((budget, i) => (
+                        {[].map((budget, i) => (
                             <Grid item xs={12} md={4} key={i}>
                                 <Card elevation={0} sx={{ border: 1, borderColor: 'divider', p: 2 }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -144,6 +177,21 @@ function AdminFinance() {
                     {t('admin.financePage.budgets')} — قريباً...
                 </Typography>
             )}
+
+            <AdminFormDialog
+                open={isAddModalOpen}
+                onClose={() => { setIsAddModalOpen(false); setFormData(emptyForm); }}
+                onSubmit={handleAddSubmit}
+                title="إضافة طلب صرف جديد"
+                submitLabel="إضافة"
+            >
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+                    <TextField label="اسم المستفيد / الجهة" fullWidth required value={formData.beneficiary} onChange={(e) => setFormData({ ...formData, beneficiary: e.target.value })} />
+                    <TextField label="المبلغ (ج.م)" type="number" fullWidth required value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
+                    <TextField label="نوع المصروف" fullWidth value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })} />
+                    <TextField label="التاريخ" type="date" InputLabelProps={{ shrink: true }} fullWidth value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                </Box>
+            </AdminFormDialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>

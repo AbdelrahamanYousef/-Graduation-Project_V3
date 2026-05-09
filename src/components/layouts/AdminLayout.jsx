@@ -39,11 +39,10 @@ function AdminLayout() {
     const location = useLocation();
     const navigate = useNavigate();
     const { adminUser, logout, updateAdminPhoto } = useAuth();
-    const { isDark, toggleTheme, language, toggleLanguage } = useAppTheme();
+    const { isDark, toggleTheme } = useAppTheme();
     const { notifications, unreadCount, markAsRead, markAllAsRead, initNotifications } = useNotifications();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-    const isEn = getLanguage() === 'en';
 
     // State
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -97,6 +96,7 @@ function AdminLayout() {
         { path: '/admin/beneficiaries', label: t('admin.beneficiaries'), icon: 'fa-solid fa-users' },
         { path: '/admin/finance', label: t('admin.finance'), icon: 'fa-solid fa-credit-card' },
         { path: '/admin/reports', label: t('admin.reports'), icon: 'fa-solid fa-chart-line' },
+        { path: '/admin/cms', label: 'إدارة المحتوى', icon: 'fa-solid fa-pen-nib' },
         { path: '/admin/settings', label: t('admin.settings'), icon: 'fa-solid fa-gear' },
     ];
 
@@ -111,9 +111,9 @@ function AdminLayout() {
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                 <Box component={Link} to="/admin" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none', color: 'inherit' }}>
                     <i className="fa-solid fa-moon" style={{ fontSize: '1.5rem' }}></i>
-                    <Typography variant="h6" fontWeight="bold">{isEn ? 'Nour' : 'نور'}</Typography>
+                    <Typography variant="h6" fontWeight="bold">نور</Typography>
                     <Box sx={{ bgcolor: 'secondary.light', px: 1, py: 0.25, borderRadius: 1 }}>
-                        <Typography variant="caption" fontWeight="bold" sx={{ color: 'secondary.contrastText' }}>{isEn ? 'Admin' : 'إدارة'}</Typography>
+                        <Typography variant="caption" fontWeight="bold" sx={{ color: 'secondary.contrastText' }}>إدارة</Typography>
                     </Box>
                 </Box>
             </Box>
@@ -160,8 +160,8 @@ function AdminLayout() {
 
             {/* Sidebar Footer */}
             <Box sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                <ButtonBaseLink to="/" label={isEn ? 'Back to Site' : 'العودة للموقع'} icon="fa-solid fa-house" />
-                <ButtonBaseAction onClick={handleLogout} label={isEn ? 'Logout' : 'تسجيل الخروج'} icon="fa-solid fa-right-from-bracket" color="error.light" />
+                <ButtonBaseLink to="/" label="العودة للموقع" icon="fa-solid fa-house" />
+                <ButtonBaseAction onClick={handleLogout} label="تسجيل الخروج" icon="fa-solid fa-right-from-bracket" color="error.light" />
             </Box>
         </Box>
     );
@@ -175,7 +175,7 @@ function AdminLayout() {
                 elevation={0}
                 sx={{
                     width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-                    [language === 'ar' ? 'mr' : 'ml']: { md: `${DRAWER_WIDTH}px` },
+                    ml: { md: `${DRAWER_WIDTH}px` },
                     bgcolor: 'background.paper',
                     borderBottom: 1,
                     borderColor: 'divider',
@@ -206,7 +206,7 @@ function AdminLayout() {
                     }}>
                         <i className="fa-solid fa-magnifying-glass" style={{ color: theme.palette.text.secondary }}></i>
                         <InputBase
-                            placeholder={isEn ? 'Search...' : 'بحث...'}
+                            placeholder="بحث..."
                             sx={{ ml: 1, flex: 1 }}
                         />
                     </Box>
@@ -215,10 +215,6 @@ function AdminLayout() {
 
                     {/* Actions */}
                     <Stack direction="row" spacing={1} alignItems="center">
-                        <Button onClick={toggleLanguage} size="small" sx={{ minWidth: 'auto', px: 1.5, border: 1, borderColor: 'divider', color: 'inherit', borderRadius: 1.5, height: 36 }}>
-                            <Typography variant="caption" fontWeight="bold">عربي / English</Typography>
-                        </Button>
-
                         <IconButton onClick={toggleTheme} size="small" sx={{ border: 1, borderColor: 'divider', width: 36, height: 36 }}>
                             <i className={isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>
                         </IconButton>
@@ -249,10 +245,10 @@ function AdminLayout() {
                                 </Avatar>
                                 <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'start' }}>
                                     <Typography variant="subtitle2" lineHeight={1.2}>
-                                        {isEn ? (adminUser?.nameEn || adminUser?.name || 'Admin') : (adminUser?.name || 'المسؤول')}
+                                        {adminUser?.name || 'المسؤول'}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
-                                        {isEn ? (adminUser?.roleEn || adminUser?.role || 'Manager') : (adminUser?.role || 'مدير')}
+                                        {adminUser?.role || 'مدير'}
                                     </Typography>
                                 </Box>
                             </ListItemButton>
@@ -272,7 +268,7 @@ function AdminLayout() {
                     open={mobileOpen}
                     onClose={handleDrawerToggle}
                     ModalProps={{ keepMounted: true }}
-                    anchor={language === 'ar' ? 'right' : 'left'}
+                    anchor="left"
                     sx={{
                         display: { xs: 'block', md: 'none' },
                         '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
@@ -284,7 +280,7 @@ function AdminLayout() {
                 {/* Desktop Drawer */}
                 <Drawer
                     variant="permanent"
-                    anchor={language === 'ar' ? 'right' : 'left'}
+                    anchor="left"
                     sx={{
                         display: { xs: 'none', md: 'block' },
                         '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH },
@@ -304,7 +300,7 @@ function AdminLayout() {
                     width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
                     minHeight: '100vh',
                     mt: 8, // Height of AppBar
-                    [language === 'ar' ? 'mr' : 'ml']: { md: `${DRAWER_WIDTH}px` }
+                    ml: { md: `${DRAWER_WIDTH}px` }
                 }}
             >
                 <Outlet />
@@ -355,10 +351,10 @@ function AdminLayout() {
                             <Box sx={{ color: 'primary.main', mt: 0.5 }}><i className={n.icon}></i></Box>
                             <Box sx={{ flex: 1 }}>
                                 <Typography variant="subtitle2" fontWeight={!n.read ? 'bold' : 'normal'}>
-                                    {isEn ? n.titleEn : n.title}
+                                    {n.title}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" display="block" sx={{ my: 0.5 }}>
-                                    {isEn ? n.messageEn : n.message}
+                                    {n.message}
                                 </Typography>
                                 <Typography variant="caption" color="text.disabled">
                                     {getTimeAgo(n.time)}
@@ -388,10 +384,10 @@ function AdminLayout() {
                     </Avatar>
                     <Box>
                         <Typography variant="subtitle1" fontWeight="bold">
-                            {isEn ? (adminUser?.nameEn || adminUser?.name) : adminUser?.name}
+                            {adminUser?.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                            {isEn ? (adminUser?.roleEn || adminUser?.role) : adminUser?.role}
+                            {adminUser?.role}
                         </Typography>
                     </Box>
                 </Box>
@@ -403,14 +399,14 @@ function AdminLayout() {
 
                 <MenuItem component={Link} to="/admin/settings" onClick={handleProfileClose}>
                     <ListItemIcon><i className="fa-solid fa-gear"></i></ListItemIcon>
-                    <ListItemText primary={isEn ? 'Settings' : 'الإعدادات'} />
+                    <ListItemText primary="الإعدادات" />
                 </MenuItem>
 
                 <Divider sx={{ my: 1 }} />
 
                 <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
                     <ListItemIcon sx={{ color: 'error.main' }}><i className="fa-solid fa-right-from-bracket"></i></ListItemIcon>
-                    <ListItemText primary={isEn ? 'Logout' : 'تسجيل الخروج'} />
+                    <ListItemText primary="تسجيل الخروج" />
                 </MenuItem>
             </Menu>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, cloneElement } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar,
@@ -33,6 +33,7 @@ import { t, getLanguage } from '../../i18n';
 import { useTheme as useAppTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useAdminData } from '../../contexts/AdminDataContext';
 
 // --- Components for Navbar ---
 
@@ -68,16 +69,21 @@ function DonorLayout({ children, scrolled }) {
     const theme = useTheme();
     const location = useLocation();
     const navigate = useNavigate();
-    const { isDark, toggleTheme, language, toggleLanguage } = useAppTheme();
+    const { isDark, toggleTheme } = useAppTheme();
     const { isDonorLoggedIn, donorUser, donorLogout } = useAuth();
     const { notifications, unreadCount, markAsRead, markAllAsRead, initNotifications } = useNotifications();
-    const isEn = getLanguage() === 'en';
+    const { state } = useAdminData();
+    const orgInfo = state?.settings?.organization || { name: 'نور', email: 'info@nour-charity.org', phone: '+20 2 1234 5678', address: 'القاهرة، مصر' };
+    const socialLinks = state?.settings?.social || {};
 
     // State
     const [mobileOpen, setMobileOpen] = useState(false);
     const [anchorElUser, setAnchorElUser] = useState(null);
     const [anchorElNav, setAnchorElNav] = useState(null);
     const [notifAnchorEl, setNotifAnchorEl] = useState(null);
+    const [hideAnnouncement, setHideAnnouncement] = useState(false);
+
+    const showAnnouncement = state.content?.announcements?.active && state.content?.announcements?.text && !hideAnnouncement;
 
     // Initialize notifications
     useEffect(() => {
@@ -112,17 +118,16 @@ function DonorLayout({ children, scrolled }) {
         return location.pathname.startsWith(path);
     };
 
-    // Helper: Get Initials
     const getInitials = useCallback(() => {
         if (!donorUser) return '';
-        const name = isEn ? (donorUser.nameEn || donorUser.name) : donorUser.name;
+        const name = donorUser.name;
         return name?.split(' ').map(w => w[0]).slice(0, 2).join('') || '?';
-    }, [donorUser, isEn]);
+    }, [donorUser]);
 
     const getUserName = useCallback(() => {
         if (!donorUser) return '';
-        return isEn ? (donorUser.nameEn || donorUser.name) : donorUser.name;
-    }, [donorUser, isEn]);
+        return donorUser.name;
+    }, [donorUser]);
 
     const getTimeAgo = useCallback((isoTime) => {
         const diff = Math.floor((Date.now() - new Date(isoTime).getTime()) / 60000);
@@ -136,7 +141,7 @@ function DonorLayout({ children, scrolled }) {
         <Box sx={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ py: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, borderBottom: 1, borderColor: 'divider' }}>
                 <i className="fa-solid fa-moon" style={{ fontSize: '1.5rem', color: theme.palette.primary.main }}></i>
-                <Typography variant="h6" color="primary" fontWeight="bold">نور</Typography>
+                <Typography variant="h6" color="primary" fontWeight="bold">{orgInfo.name || 'نور'}</Typography>
             </Box>
             <List sx={{ flex: 1, px: 2 }}>
                 {navLinks.map((item) => (
@@ -171,9 +176,6 @@ function DonorLayout({ children, scrolled }) {
             <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                 <Stack spacing={2}>
                     <Stack direction="row" spacing={1}>
-                        <Button fullWidth variant="outlined" size="small" onClick={toggleLanguage} startIcon={<i className="fa-solid fa-globe"></i>}>
-                            عربي / English
-                        </Button>
                         <Button fullWidth variant="outlined" size="small" onClick={toggleTheme} startIcon={<i className={isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>}>
                             {isDark ? 'Light' : 'Dark'}
                         </Button>
@@ -193,7 +195,16 @@ function DonorLayout({ children, scrolled }) {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <AppBar position="fixed" color="inherit" sx={{ bgcolor: theme.palette.navbar.glass, backdropFilter: `blur(${theme.palette.navbar.blur})`, color: theme.palette.navbar.text }} elevation={scrolled ? 4 : 0}>
+            {showAnnouncement && (
+                <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1201, bgcolor: 'primary.main', color: 'primary.contrastText', py: 0.8, px: 4, textAlign: 'center', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                    <i className="fa-solid fa-bullhorn"></i>
+                    {state.content.announcements.text}
+                    <IconButton size="small" onClick={() => setHideAnnouncement(true)} sx={{ position: 'absolute', right: 8, color: 'inherit', py: 0 }}>
+                        <i className="fa-solid fa-xmark" style={{ fontSize: '1rem' }} />
+                    </IconButton>
+                </Box>
+            )}
+            <AppBar position="fixed" color="inherit" sx={{ top: showAnnouncement ? 36 : 0, transition: 'top 0.3s ease', bgcolor: theme.palette.navbar.glass, backdropFilter: `blur(${theme.palette.navbar.blur})`, color: theme.palette.navbar.text }} elevation={scrolled ? 4 : 0}>
                 <Container maxWidth="xl">
                     <Toolbar disableGutters sx={{ minHeight: { xs: 64, md: 72 } }}>
                         {/* Mobile Menu Icon */}
@@ -206,7 +217,7 @@ function DonorLayout({ children, scrolled }) {
                         {/* Logo */}
                         <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1.2, textDecoration: 'none', color: 'inherit', flexGrow: { xs: 1, md: 0 } }}>
                             <i className="fa-solid fa-moon" style={{ fontSize: '1.6rem', color: '#fff', filter: isDark ? 'drop-shadow(0 0 6px rgba(255,255,255,0.25))' : 'none', transition: 'filter 0.3s ease' }}></i>
-                            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' }, color: '#fff', fontWeight: 800, fontSize: '1.4rem', letterSpacing: '0.04em' }}>نور</Typography>
+                            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' }, color: '#fff', fontWeight: 800, fontSize: '1.4rem', letterSpacing: '0.04em' }}>{orgInfo.name || 'نور'}</Typography>
                         </Box>
 
                         {/* Desktop Nav */}
@@ -230,14 +241,9 @@ function DonorLayout({ children, scrolled }) {
 
                         {/* Actions */}
                         <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
-                            {/* Language & Theme - Desktop Only */}
+                            {/* Theme - Desktop Only */}
                             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1 }}>
-                                <Tooltip title={language === 'ar' ? 'Switch to English' : 'التبديل العربية'}>
-                                    <Button onClick={toggleLanguage} size="small" sx={{ minWidth: 'auto', px: 1.5, border: 1, borderColor: alpha(theme.palette.common.white, 0.3), color: 'inherit', borderRadius: 1.5 }}>
-                                        <Typography variant="caption" fontWeight="bold">عربي / English</Typography>
-                                    </Button>
-                                </Tooltip>
-                                <Tooltip title={isDark ? 'Light Mode' : 'Dark Mode'}>
+                                <Tooltip title={isDark ? 'الوضع المضيء' : 'الوضع الليلي'}>
                                     <IconButton onClick={toggleTheme} size="small" sx={{ border: 1, borderColor: alpha(theme.palette.common.white, 0.3), color: 'inherit' }}>
                                         <i className={isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon'}></i>
                                     </IconButton>
@@ -281,10 +287,10 @@ function DonorLayout({ children, scrolled }) {
                                                         <Box sx={{ mt: 0.5, color: 'primary.main' }}><i className={n.icon}></i></Box>
                                                         <Box sx={{ flex: 1 }}>
                                                             <Typography variant="subtitle2" fontWeight={n.read ? 'normal' : 'bold'}>
-                                                                {isEn ? n.titleEn : n.title}
+                                                                {n.title}
                                                             </Typography>
                                                             <Typography variant="caption" display="block" color="text.secondary" sx={{ mb: 0.5 }}>
-                                                                {isEn ? n.messageEn : n.message}
+                                                                {n.message}
                                                             </Typography>
                                                             <Typography variant="caption" color="primary">
                                                                 {getTimeAgo(n.time)}
@@ -298,7 +304,7 @@ function DonorLayout({ children, scrolled }) {
                                     </Menu>
 
                                     {/* User Menu */}
-                                    <Tooltip title={isEn ? "Open settings" : "فتح الإعدادات"}>
+                                    <Tooltip title={"فتح الإعدادات"}>
                                         <IconButton onClick={handleOpenUserMenu} sx={{ p: 0, border: `2px solid ${theme.palette.primary.main}` }}>
                                             <Avatar src={donorUser?.photo} alt={getUserName()} sx={{ width: 32, height: 32 }}>
                                                 {!donorUser?.photo && getInitials()}
@@ -373,7 +379,7 @@ function DonorLayout({ children, scrolled }) {
             {/* Mobile Drawer */}
             <Drawer
                 variant="temporary"
-                anchor={language === 'ar' ? 'right' : 'left'}
+                anchor="right"
                 open={mobileOpen}
                 onClose={handleDrawerToggle}
                 ModalProps={{ keepMounted: true }}
@@ -426,7 +432,7 @@ function DonorLayout({ children, scrolled }) {
                         <Grid item xs={12} md={3}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                 <i className="fa-solid fa-moon" style={{ color: theme.palette.primary.main, fontSize: '1.5rem' }}></i>
-                                <Typography variant="h6" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold">نور</Typography>
+                                <Typography variant="h6" sx={{ color: (t) => t.palette.footer.heading }} fontWeight="bold">{orgInfo.name || 'نور'}</Typography>
                             </Box>
                             <Typography variant="body2" sx={{ color: (t) => t.palette.footer.textMuted, mb: 2, lineHeight: 1.8 }}>
                                 {t('footer.aboutText')}
@@ -472,15 +478,15 @@ function DonorLayout({ children, scrolled }) {
                             <Stack spacing={2} sx={{ mt: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-envelope" style={{ fontSize: '0.9rem' }}></i>
-                                    <Typography variant="body2">info@nour-charity.org</Typography>
+                                    <Typography variant="body2">{orgInfo.email}</Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-phone" style={{ fontSize: '0.9rem' }}></i>
-                                    <Typography variant="body2">+20 2 1234 5678</Typography>
+                                    <Typography variant="body2">{orgInfo.phone}</Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                     <i className="fa-solid fa-location-dot" style={{ fontSize: '0.9rem' }}></i>
-                                    <Typography variant="body2">القاهرة، مصر</Typography>
+                                    <Typography variant="body2">{orgInfo.address}</Typography>
                                 </Box>
                             </Stack>
                         </Grid>
@@ -491,9 +497,18 @@ function DonorLayout({ children, scrolled }) {
                                 {t('footer.followUs')}
                             </Typography>
                             <Stack direction="row" spacing={1.5} sx={{ mt: 1 }}>
-                                {['facebook-f', 'x-twitter', 'instagram', 'youtube'].map((icon) => (
+                                {[
+                                    { icon: 'facebook-f', link: socialLinks.facebook },
+                                    { icon: 'x-twitter', link: socialLinks.twitter },
+                                    { icon: 'instagram', link: socialLinks.instagram },
+                                    { icon: 'youtube', link: socialLinks.youtube }
+                                ].map(({ icon, link }) => (
                                     <IconButton
                                         key={icon}
+                                        component="a"
+                                        href={link || '#'}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         sx={{
                                             bgcolor: (t) => t.palette.footer.iconBg,
                                             color: (t) => t.palette.footer.textMuted,
@@ -501,6 +516,7 @@ function DonorLayout({ children, scrolled }) {
                                             height: 42,
                                             borderRadius: '10px',
                                             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            display: link ? 'inline-flex' : 'none',
                                             '&:hover': {
                                                 bgcolor: (t) => t.palette.footer.iconHover,
                                                 color: 'white',
@@ -534,7 +550,7 @@ function DonorLayout({ children, scrolled }) {
                         }}
                     >
                         <Typography variant="caption" sx={{ color: (t) => t.palette.footer.textMuted }}>
-                            © 2024 نور. {t('footer.rights')}
+                            © {new Date().getFullYear()} {orgInfo.name || 'نور'}. {t('footer.rights')}
                         </Typography>
                         <Stack direction="row" spacing={3}>
                             <Link to="/privacy" style={{ textDecoration: 'none', color: 'inherit' }}>

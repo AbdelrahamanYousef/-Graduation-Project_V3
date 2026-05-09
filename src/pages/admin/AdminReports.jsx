@@ -8,20 +8,64 @@ import { AdminPageHeader, AdminStatsGrid, AdminIconBox } from '../../components/
 import { t, formatCurrency, formatNumber } from '../../i18n';
 import { recentReports, reportTypes } from '../../data/adminMockData';
 
+import { useAdminData } from '../../contexts/AdminDataContext';
+
 /**
  * Admin Reports Page — with working create/view/download buttons
  */
 function AdminReports() {
     const theme = useTheme();
-    const [reports, setReports] = useState(recentReports);
+    const { state } = useAdminData();
+    const dashboardStats = state.dashboardStats || {};
+    const [reports, setReports] = useState(recentReports || []);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
     const quickStats = [
-        { label: t('admin.reportsPage.totalDonations'), value: formatCurrency(2450000), icon: 'fa-solid fa-coins', color: 'success' },
-        { label: t('admin.reportsPage.donorCount'), value: formatNumber(1240), icon: 'fa-solid fa-users', color: 'primary' },
-        { label: t('admin.reportsPage.newBeneficiaries'), value: '156', icon: 'fa-solid fa-user-plus', color: 'info' },
-        { label: t('admin.reportsPage.completedProjects'), value: '8', icon: 'fa-solid fa-circle-check', color: 'warning' },
+        { label: t('admin.reportsPage.totalDonations'), value: formatCurrency(dashboardStats.totalDonations || 0), icon: 'fa-solid fa-coins', color: 'success' },
+        { label: t('admin.reportsPage.donorCount'), value: formatNumber(new Set(state.donations.map(d => d.donor || d.donorName)).size), icon: 'fa-solid fa-users', color: 'primary' },
+        { label: t('admin.reportsPage.newBeneficiaries'), value: formatNumber(state.beneficiaries?.length || 0), icon: 'fa-solid fa-user-plus', color: 'info' },
+        { label: t('admin.reportsPage.completedProjects'), value: formatNumber(state.projects.filter(p => p.status === 'completed').length), icon: 'fa-solid fa-circle-check', color: 'warning' },
     ];
+
+    const generateCSV = (typeTitle) => {
+        let headers = [];
+        let rows = [];
+        
+        if (typeTitle.includes('تبرعات')) {
+            headers = ['ID', 'المتبرع', 'المبلغ', 'المشروع', 'التاريخ', 'الحالة'];
+            rows = state.donations.map(d => [d.id, `"${d.donor || ''}"`, d.amount, `"${d.project || ''}"`, d.date || d.time || '', d.status || '']);
+        } else if (typeTitle.includes('مشاريع')) {
+            headers = ['ID', 'المشروع', 'الهدف', 'تم جمعه', 'الحالة'];
+            rows = state.projects.map(p => [p.id, `"${p.title}"`, p.goal, p.raised || 0, p.status || 'active']);
+        } else if (typeTitle.includes('مستفيدين')) {
+            headers = ['ID', 'الاسم', 'النوع', 'البرنامج', 'المحافظة', 'الحالة'];
+            rows = state.beneficiaries.map(b => [b.id, `"${b.name}"`, b.type, `"${b.program || ''}"`, `"${b.location || ''}"`, b.status || 'active']);
+        } else if (typeTitle.includes('مالي')) {
+            headers = ['النوع', 'الجهة / المتبرع', 'المبلغ', 'التاريخ', 'الحالة'];
+            const incomeRows = state.donations.map(d => ['إيراد (تبرع)', `"${d.donor}"`, d.amount, d.date || '', d.status || '']);
+            const expenseRows = state.disbursements.map(d => ['مصروف', `"${d.beneficiary}"`, d.amount, d.date || '', d.status || '']);
+            rows = [...incomeRows, ...expenseRows];
+        } else {
+            headers = ['الوصف', 'القيمة'];
+            rows = [
+                ['إجمالي التبرعات', dashboardStats.totalDonations || 0],
+                ['عدد المستفيدين', dashboardStats.beneficiaries || 0],
+                ['المشاريع النشطة', dashboardStats.activeProjects || 0],
+            ];
+        }
+        
+        const csvRows = [headers.join(','), ...rows.map(r => r.join(','))];
+        const csvString = csvRows.join('\n');
+        const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Report_${typeTitle}_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
 
     const handleCreateReport = (type) => {
         const newReport = {
@@ -29,11 +73,12 @@ function AdminReports() {
             title: type.title,
             icon: type.icon,
             color: type.color,
-            period: 'الربع الأول 2025',
+            period: 'تقرير مخصص',
             generated: new Date().toLocaleDateString('ar-EG'),
         };
         setReports(prev => [newReport, ...prev]);
-        setSnackbar({ open: true, msg: `تم إنشاء التقرير "${type.title}" بنجاح`, severity: 'success' });
+        generateCSV(type.title);
+        setSnackbar({ open: true, msg: `تم إنشاء وتحميل التقرير "${type.title}" بنجاح`, severity: 'success' });
     };
 
     const handleViewReport = (report) => {
@@ -41,7 +86,8 @@ function AdminReports() {
     };
 
     const handleDownloadReport = (report) => {
-        setSnackbar({ open: true, msg: `جاري تحميل: ${report.title}...`, severity: 'success' });
+        generateCSV(report.title);
+        setSnackbar({ open: true, msg: `تم تحميل التقرير: ${report.title}`, severity: 'success' });
     };
 
     const handleDeleteReport = (reportId) => {
@@ -85,7 +131,7 @@ function AdminReports() {
                                     <Typography variant="body1" fontWeight="bold" sx={{ mt: 1.5 }}>{rt.title}</Typography>
                                     <Typography variant="caption" color="text.secondary">{rt.desc}</Typography>
                                     <Button size="small" color={rt.color} sx={{ mt: 1, p: 0, minWidth: 0, fontWeight: 'bold' }}>
-                                        {t('admin.reportsPage.create')} <i className="fa-solid fa-arrow-left" style={{ marginRight: 4 }} />
+                                        {t('admin.reportsPage.create')} <i className="fa-solid fa-arrow-left" style={{ marginInlineEnd: 4 }} />
                                     </Button>
                                 </Card>
                             </Grid>

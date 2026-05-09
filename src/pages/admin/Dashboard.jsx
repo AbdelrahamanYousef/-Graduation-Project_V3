@@ -10,52 +10,93 @@ import { t, formatCurrency } from '../../i18n';
 import { AdminPageHeader, AdminStatsGrid } from '../../components/admin';
 import { getPriorityColor } from '../../utils/admin.helpers';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import { dashboardPendingTasks, dashboardActivities } from '../../data/adminMockData';
+import { dashboardPendingTasks } from '../../data/adminMockData';
 
 /**
  * Dashboard — reads all stats from shared AdminDataContext (real data)
  */
 function Dashboard() {
     const theme = useTheme();
-    const { state, dashboardStats } = useAdminData();
+    const { state } = useAdminData();
+    const dashboardStats = state.dashboardStats || {};
 
-    const [tasks, setTasks] = useState(dashboardPendingTasks);
-    const [snackbar, setSnackbar] = useState({ open: false, msg: '' });
+    const [tasks, setTasks] = useState(dashboardPendingTasks || []);
+    const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
     const handleCompleteTask = useCallback((taskId) => {
         setTasks(prev => prev.filter(t => t.id !== taskId));
-        setSnackbar({ open: true, msg: 'تم إنهاء المهمة بنجاح ✓' });
+        setSnackbar({ open: true, msg: 'تم إنهاء المهمة بنجاح ✓', severity: 'success' });
     }, []);
+
+    const handleExportCSV = () => {
+        if (!state.donations || state.donations.length === 0) {
+            setSnackbar({ open: true, msg: 'لا توجد بيانات لتصديرها', severity: 'error' });
+            return;
+        }
+        
+        const headers = ['ID', 'المتبرع', 'المبلغ', 'المشروع', 'طريقة الدفع', 'التاريخ', 'الحالة'];
+        const csvRows = [headers.join(',')];
+        
+        state.donations.forEach(d => {
+            const row = [
+                d.id,
+                `"${d.donor || ''}"`,
+                d.amount,
+                `"${d.project || ''}"`,
+                d.method || '',
+                d.date || d.time || '',
+                d.status || ''
+            ];
+            csvRows.push(row.join(','));
+        });
+        
+        const csvString = csvRows.join('\n');
+        const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Nour_Donations_Report_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        setSnackbar({ open: true, msg: 'تم تصدير التقرير بنجاح ✓', severity: 'success' });
+    };
 
     // Live KPIs derived from real context data
     const kpis = [
         {
             label: 'إجمالي التبرعات',
-            value: formatCurrency(dashboardStats.totalRevenue),
+            value: formatCurrency(dashboardStats.totalDonations || 0),
             icon: 'fa-solid fa-coins',
             color: 'success',
             change: `${state.donations.length} تبرع`,
+            link: '/admin/donations',
         },
         {
             label: 'المشاريع النشطة',
-            value: String(dashboardStats.activeProjects),
+            value: String(dashboardStats.activeProjects || 0),
             icon: 'fa-solid fa-clipboard-list',
             color: 'primary',
-            change: `من أصل ${dashboardStats.totalProjects} مشروع`,
+            change: `من أصل ${dashboardStats.totalProjects || 0} مشروع`,
+            link: '/admin/projects',
         },
         {
-            label: 'البرامج المفعّلة',
-            value: String(state.programs.filter(p => !p.status || p.status === 'active').length),
+            label: 'عدد البرامج',
+            value: String(dashboardStats.totalPrograms || 0),
             icon: 'fa-solid fa-folder-open',
             color: 'info',
-            change: `الكل: ${state.programs.length}`,
+            change: 'إجمالي البرامج',
+            link: '/admin/programs',
         },
         {
-            label: 'الحالات الأشد احتياجاً',
-            value: String(state.projects.filter(p => p.featured).length),
-            icon: 'fa-solid fa-star',
+            label: 'المستفيدون المسجّلون',
+            value: String(dashboardStats.beneficiaries || 0),
+            icon: 'fa-solid fa-users',
             color: 'warning',
-            change: 'مميزة في الرئيسية',
+            change: 'إجمالي الحالات',
+            link: '/admin/beneficiaries',
         },
     ];
 
@@ -74,7 +115,7 @@ function Dashboard() {
             <AdminPageHeader
                 title={t('admin.dashboard')}
                 subtitle="مرحباً بك في لوحة تحكم جمعية نور الخيرية 👋"
-                secondaryAction={{ label: t('admin.exportReport'), icon: 'fa-solid fa-download', onClick: () => setSnackbar({ open: true, msg: 'جاري تصدير التقرير...' }) }}
+                secondaryAction={{ label: t('admin.exportReport'), icon: 'fa-solid fa-download', onClick: handleExportCSV }}
             />
 
             <AdminStatsGrid stats={kpis} columns={3} />
@@ -200,7 +241,7 @@ function Dashboard() {
                                     { label: 'مشاريع مكتملة', value: state.projects.filter(p => p.status === 'completed').length, icon: 'fa-solid fa-circle-check', color: 'success' },
                                     { label: 'حالات عاجلة مميزة', value: state.projects.filter(p => p.featured).length, icon: 'fa-solid fa-star', color: 'warning' },
                                     { label: 'عدد البرامج', value: state.programs.length, icon: 'fa-solid fa-folder-open', color: 'info' },
-                                    { label: 'المتبرعون الفريدون', value: dashboardStats.totalDonors, icon: 'fa-solid fa-users', color: 'secondary' },
+                                    { label: 'طلبات صرف معلقة', value: dashboardStats.pendingDisbursements || 0, icon: 'fa-solid fa-clock', color: 'secondary' },
                                 ].map((item, i) => (
                                     <ListItem key={i} divider={i !== 4}>
                                         <ListItemAvatar sx={{ minWidth: 40 }}>
@@ -224,11 +265,15 @@ function Dashboard() {
                                 <Typography variant="h6" fontWeight="bold">{t('admin.recentActivity')}</Typography>
                             </Box>
                             <List disablePadding>
-                                {dashboardActivities.map((activity) => (
+                                {state.activities.length === 0 ? (
+                                    <Box sx={{ p: 3, textAlign: 'center' }}>
+                                        <Typography variant="body2" color="text.secondary">لا توجد نشاطات حديثة</Typography>
+                                    </Box>
+                                ) : state.activities.map((activity) => (
                                     <ListItem key={activity.id} alignItems="flex-start">
                                         <ListItemAvatar sx={{ minWidth: 40 }}>
-                                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette[activity.color].main, 0.1), color: `${activity.color}.main`, fontSize: 14 }}>
-                                                <i className={activity.icon} />
+                                            <Avatar sx={{ width: 32, height: 32, bgcolor: alpha(theme.palette[activity.color || 'primary'].main, 0.1), color: `${activity.color || 'primary'}.main`, fontSize: 14 }}>
+                                                <i className={activity.icon || 'fa-solid fa-bolt'} />
                                             </Avatar>
                                         </ListItemAvatar>
                                         <ListItemText
@@ -236,7 +281,7 @@ function Dashboard() {
                                             primaryTypographyProps={{ variant: 'body2', fontWeight: 'medium' }}
                                             secondary={
                                                 <Stack direction="row" spacing={1} component="span" sx={{ fontSize: '0.75rem', mt: 0.5 }}>
-                                                    <span>{activity.user}</span><span>•</span><span>{activity.time}</span>
+                                                    <span>{activity.user || 'المدير'}</span><span>•</span><span>{new Date(activity.timestamp).toLocaleString('ar-EG')}</span>
                                                 </Stack>
                                             }
                                         />
@@ -248,8 +293,8 @@ function Dashboard() {
                 </Grid>
             </Grid>
 
-            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ open: false, msg: '' })} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <Alert severity="success" variant="filled">{snackbar.msg}</Alert>
+            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+                <Alert severity={snackbar.severity || 'success'} variant="filled">{snackbar.msg}</Alert>
             </Snackbar>
         </Box>
     );

@@ -105,7 +105,7 @@ function Login() {
     const navigate = useNavigate();
     const theme = useTheme();
     const { isDonorLoggedIn, donorLogin } = useAuth();
-    const isEn = getLanguage() === 'en';
+    
     const [step, setStep] = useState('phone'); // phone | otp | register
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState(['', '', '', '']);
@@ -200,7 +200,7 @@ function Login() {
                     </Box>
 
                     <Typography variant="h1" sx={{ color: 'white', mb: 2, fontWeight: 'bold' }}>
-                        {isEn ? 'Nour' : 'نور'}
+                        {'نور'}
                     </Typography>
 
                     <Typography variant="h5" sx={{ opacity: 0.9, maxWidth: 400, mx: 'auto', mb: 6, lineHeight: 1.6 }}>
@@ -214,16 +214,16 @@ function Login() {
                         divider={<Box sx={{ width: 1, height: 40, bgcolor: 'rgba(255,255,255,0.2)' }} />}
                     >
                         <Box>
-                            <Typography variant="h5" fontWeight="bold">{isEn ? '15M+' : '١٥ مليون+'}</Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{isEn ? 'Donations' : 'تبرعات'}</Typography>
+                            <Typography variant="h5" fontWeight="bold">{'١٥ مليون+'}</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{'تبرعات'}</Typography>
                         </Box>
                         <Box>
-                            <Typography variant="h5" fontWeight="bold">{isEn ? '12,000+' : '١٢,٠٠٠+'}</Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{isEn ? 'Beneficiaries' : 'مستفيد'}</Typography>
+                            <Typography variant="h5" fontWeight="bold">{'١٢,٠٠٠+'}</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{'مستفيد'}</Typography>
                         </Box>
                         <Box>
-                            <Typography variant="h5" fontWeight="bold">{isEn ? '87+' : '٨٧+'}</Typography>
-                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{isEn ? 'Projects' : 'مشروع'}</Typography>
+                            <Typography variant="h5" fontWeight="bold">{'٨٧+'}</Typography>
+                            <Typography variant="caption" sx={{ opacity: 0.8 }}>{'مشروع'}</Typography>
                         </Box>
                     </Stack>
                 </Box>
@@ -300,7 +300,7 @@ function Login() {
                                         color: 'text.secondary'
                                     }}
                                 >
-                                    {isEn ? 'or' : 'أو'}
+                                    {'أو'}
                                 </Typography>
                                 <Box sx={{
                                     position: 'absolute',
@@ -319,7 +319,7 @@ function Login() {
                                 onClick={() => navigate('/')}
                                 sx={{ py: 1.5, color: 'text.secondary', borderColor: 'divider' }}
                             >
-                                {t('auth.continueAsGuest')} {isEn ? '→' : '←'}
+                                {t('auth.continueAsGuest')} {'←'}
                             </Button>
                         </Box>
                     )}
@@ -401,7 +401,7 @@ function Login() {
                                         label={t('auth.registerName')}
                                         value={regName}
                                         onChange={(e) => setRegName(e.target.value)}
-                                        placeholder={isEn ? 'e.g. Ahmed Mohamed' : 'مثال: أحمد محمد'}
+                                        placeholder={'مثال: أحمد محمد'}
                                         fullWidth
                                         autoFocus
                                     />
@@ -410,7 +410,7 @@ function Login() {
                                         type="email"
                                         value={regEmail}
                                         onChange={(e) => setRegEmail(e.target.value)}
-                                        placeholder={isEn ? 'e.g. ahmed@email.com' : 'مثال: ahmed@email.com'}
+                                        placeholder={'مثال: ahmed@email.com'}
                                         fullWidth
                                     />
                                     <Button
@@ -421,7 +421,7 @@ function Login() {
                                         disabled={!regName.trim() || loading}
                                         sx={{ py: 1.5 }}
                                     >
-                                        {loading ? t('common.loading') : t('auth.startJourney')} {isEn ? '→' : '←'}
+                                        {loading ? t('common.loading') : t('auth.startJourney')} {'←'}
                                     </Button>
                                 </Stack>
                             </form>
@@ -433,7 +433,7 @@ function Login() {
                                 }}
                                 sx={{ mt: 2, width: '100%', color: 'text.secondary' }}
                             >
-                                {isEn ? 'Skip for now' : 'تخطي الآن'} {isEn ? '→' : '←'}
+                                {'تخطي الآن'} {'←'}
                             </Button>
                         </Box>
                     )}

@@ -29,6 +29,7 @@ const AdminBeneficiaries = lazy(() => import('../pages/admin/AdminBeneficiaries'
 const AdminFinance = lazy(() => import('../pages/admin/AdminFinance'));
 const AdminReports = lazy(() => import('../pages/admin/AdminReports'));
 const AdminSettings = lazy(() => import('../pages/admin/AdminSettings'));
+const AdminCMS = lazy(() => import('../pages/admin/AdminCMS'));
 const AdminLogin = lazy(() => import('../pages/admin/AdminLogin'));
 
 // ─── Placeholder for unimplemented pages ────────────────────
@@ -92,6 +93,7 @@ export default function AppRoutes() {
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="settings" element={<AdminSettings />} />
+                <Route path="cms" element={<AdminCMS />} />
             </Route>
         </Routes>
     );

@@ -3,34 +3,68 @@ import {
     Box, Card, CardContent, Typography, TextField, Grid,
     Switch, Button, Chip, MenuItem,
     List, ListItem, ListItemText, ListItemSecondaryAction,
-    Avatar, useTheme, alpha, Snackbar, Alert
+    Avatar, useTheme, alpha, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions
 } from '@mui/material';
 import { AdminPageHeader, AdminFilterBar, AdminDataTable, AdminIconBox, AdminFormDialog } from '../../components/admin';
 import { t } from '../../i18n';
 import { settingsUsers as initialUsers, settingsIntegrations as initialIntegrations, settingsNotifications } from '../../data/adminMockData';
 import { getStatusColor, getStatusLabel } from '../../utils/admin.helpers';
+import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 
 /**
  * Admin Settings Page — with working forms, user CRUD, and toggles
  */
 function AdminSettings() {
     const theme = useTheme();
+    const { state, dispatch } = useAdminData();
     const [activeTab, setActiveTab] = useState('general');
-    const [users, setUsers] = useState(initialUsers);
-    const [integrations, setIntegrations] = useState(initialIntegrations);
+    const [users, setUsers] = useState(initialUsers || []);
+    const [integrations, setIntegrations] = useState(initialIntegrations || []);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editUser, setEditUser] = useState(null);
+    const [resetDialog, setResetDialog] = useState({ open: false, input: '' });
 
     // Org form state
-    const [orgData, setOrgData] = useState({ name: 'جمعية نور الخيرية', email: 'info@nour.org', phone: '+20 2 1234 5678', address: 'القاهرة، مصر' });
+    const [orgData, setOrgData] = useState({
+        name: state.settings?.organization?.name || state.settings?.orgName || 'جمعية نور الخيرية',
+        email: state.settings?.organization?.email || state.settings?.email || 'info@nour.org',
+        phone: state.settings?.organization?.phone || state.settings?.phone || '+20 2 1234 5678',
+        address: state.settings?.organization?.address || state.settings?.address || 'القاهرة، مصر',
+        workingHours: state.settings?.organization?.workingHours || state.settings?.workingHours || 'من 9 صباحاً إلى 5 مساءً',
+    });
+    const [socialData, setSocialData] = useState({
+        facebook: state.settings?.social?.facebook || '',
+        twitter: state.settings?.social?.twitter || '',
+        instagram: state.settings?.social?.instagram || '',
+        youtube: state.settings?.social?.youtube || '',
+        whatsapp: state.settings?.social?.whatsapp || '',
+    });
     const [sysData, setSysData] = useState({ language: 'ar', timezone: 'africa-cairo', currency: 'egp' });
 
     // User form state
     const emptyUserForm = { name: '', email: '', role: 'محرر', status: 'active' };
     const [userForm, setUserForm] = useState(emptyUserForm);
 
-    const handleSaveOrg = () => setSnackbar({ open: true, msg: 'تم حفظ بيانات المؤسسة بنجاح ✓', severity: 'success' });
+    const handleSaveOrg = () => {
+        dispatch({ type: 'UPDATE_SETTINGS', payload: {
+            organization: {
+                name: orgData.name,
+                email: orgData.email,
+                phone: orgData.phone,
+                address: orgData.address,
+                workingHours: orgData.workingHours,
+            },
+            social: socialData,
+            // Legacy flat fields for backward compat
+            orgName: orgData.name,
+            email: orgData.email,
+            phone: orgData.phone,
+            address: orgData.address,
+            workingHours: orgData.workingHours,
+        }});
+        setSnackbar({ open: true, msg: 'تم حفظ بيانات المؤسسة بنجاح ✓', severity: 'success' });
+    };
     const handleSaveSys = () => setSnackbar({ open: true, msg: 'تم حفظ إعدادات النظام بنجاح ✓', severity: 'success' });
 
     const handleAddUser = () => { setEditUser(null); setUserForm(emptyUserForm); setIsUserModalOpen(true); };
@@ -64,8 +98,18 @@ function AdminSettings() {
         setIntegrations(prev => prev.map((intg, i) =>
             i === index ? { ...intg, status: intg.status === 'connected' ? 'disconnected' : 'connected' } : intg
         ));
-        setSnackbar({ open: true, msg: 'تم تحديث حالة التكامل', severity: 'success' });
+        setSnackbar({ open: true, msg: 'تم تحديث حالة وسيلة الدفع', severity: 'success' });
     }, []);
+
+    const handleResetAll = () => {
+        if (resetDialog.input === 'حذف جميع البيانات') {
+            dispatch(adminActions.resetAll());
+            setSnackbar({ open: true, msg: 'تم إعادة تعيين جميع البيانات إلى حالتها الافتراضية', severity: 'warning' });
+            setResetDialog({ open: false, input: '' });
+        } else {
+            setSnackbar({ open: true, msg: 'النص غير متطابق. لم يتم حذف البيانات.', severity: 'error' });
+        }
+    };
 
     const handleToggleNotification = (index) => {
         setSnackbar({ open: true, msg: 'تم تحديث إعداد الإشعارات', severity: 'success' });
@@ -75,7 +119,7 @@ function AdminSettings() {
         { label: t('admin.settingsPage.general'), value: 'general', icon: 'fa-solid fa-gear' },
         { label: `${t('admin.settingsPage.usersTab')} (${users.length})`, value: 'users', icon: 'fa-solid fa-users' },
         { label: t('admin.settingsPage.notifications'), value: 'notifications', icon: 'fa-solid fa-bell' },
-        { label: t('admin.settingsPage.integrations'), value: 'integrations', icon: 'fa-solid fa-plug' },
+        { label: 'بوابات الدفع', value: 'integrations', icon: 'fa-solid fa-credit-card' },
     ];
 
     const userColumns = [
@@ -126,6 +170,13 @@ function AdminSettings() {
                                 <TextField label={t('admin.settingsPage.email')} value={orgData.email} onChange={e => setOrgData(d => ({ ...d, email: e.target.value }))} fullWidth />
                                 <TextField label={t('admin.settingsPage.phone')} value={orgData.phone} onChange={e => setOrgData(d => ({ ...d, phone: e.target.value }))} fullWidth />
                                 <TextField label={t('admin.settingsPage.address')} value={orgData.address} onChange={e => setOrgData(d => ({ ...d, address: e.target.value }))} fullWidth />
+                                <TextField label="مواعيد العمل" value={orgData.workingHours} onChange={e => setOrgData(d => ({ ...d, workingHours: e.target.value }))} fullWidth />
+                                <Typography variant="subtitle2" fontWeight="bold" sx={{ mt: 1 }}>روابط التواصل الاجتماعي</Typography>
+                                <TextField label="فيسبوك" value={socialData.facebook} onChange={e => setSocialData(d => ({ ...d, facebook: e.target.value }))} fullWidth placeholder="https://facebook.com/..." InputProps={{ startAdornment: <Box component="i" className="fa-brands fa-facebook" sx={{ mr: 1, color: '#1877F2' }} /> }} />
+                                <TextField label="تويتر / X" value={socialData.twitter} onChange={e => setSocialData(d => ({ ...d, twitter: e.target.value }))} fullWidth placeholder="https://x.com/..." InputProps={{ startAdornment: <Box component="i" className="fa-brands fa-x-twitter" sx={{ mr: 1 }} /> }} />
+                                <TextField label="إنستغرام" value={socialData.instagram} onChange={e => setSocialData(d => ({ ...d, instagram: e.target.value }))} fullWidth placeholder="https://instagram.com/..." InputProps={{ startAdornment: <Box component="i" className="fa-brands fa-instagram" sx={{ mr: 1, color: '#E4405F' }} /> }} />
+                                <TextField label="يوتيوب" value={socialData.youtube} onChange={e => setSocialData(d => ({ ...d, youtube: e.target.value }))} fullWidth placeholder="https://youtube.com/..." InputProps={{ startAdornment: <Box component="i" className="fa-brands fa-youtube" sx={{ mr: 1, color: '#FF0000' }} /> }} />
+                                <TextField label="واتسآب" value={socialData.whatsapp} onChange={e => setSocialData(d => ({ ...d, whatsapp: e.target.value }))} fullWidth placeholder="https://wa.me/..." InputProps={{ startAdornment: <Box component="i" className="fa-brands fa-whatsapp" sx={{ mr: 1, color: '#25D366' }} /> }} />
                                 <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={handleSaveOrg}>{t('admin.settingsPage.saveChanges')}</Button>
                             </CardContent>
                         </Card>
@@ -149,6 +200,20 @@ function AdminSettings() {
                                     <MenuItem value="usd">دولار أمريكي (USD)</MenuItem>
                                 </TextField>
                                 <Button variant="contained" sx={{ alignSelf: 'flex-start' }} onClick={handleSaveSys}>{t('admin.settingsPage.saveChanges')}</Button>
+                            </CardContent>
+                        </Card>
+
+                        <Card elevation={0} sx={{ border: 1, borderColor: 'error.main', mt: 3, bgcolor: alpha(theme.palette.error.main, 0.05) }}>
+                            <Box sx={{ p: 2, borderBottom: 1, borderColor: 'error.main', color: 'error.main' }}>
+                                <Typography variant="h6" fontWeight="bold">منطقة الخطر (Danger Zone)</Typography>
+                            </Box>
+                            <CardContent>
+                                <Typography variant="body2" sx={{ mb: 2 }}>
+                                    حذف جميع البيانات (تبرعات، مشاريع، مستفيدين، إلخ) وإعادة النظام لحالته الأولية الافتراضية.
+                                </Typography>
+                                <Button variant="contained" color="error" onClick={() => setResetDialog({ open: true, input: '' })}>
+                                    إعادة تعيين النظام
+                                </Button>
                             </CardContent>
                         </Card>
                     </Grid>
@@ -238,6 +303,36 @@ function AdminSettings() {
                     <MenuItem value="مراجع">مراجع</MenuItem>
                 </TextField>
             </AdminFormDialog>
+
+            {/* Reset Data Confirmation Dialog */}
+            <Dialog open={resetDialog.open} onClose={() => setResetDialog({ open: false, input: '' })}>
+                <DialogTitle sx={{ color: 'error.main', fontWeight: 'bold' }}>تحذير: إعادة تعيين جميع البيانات</DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ mb: 2 }}>
+                        أنت على وشك حذف جميع السجلات من النظام. لا يمكن التراجع عن هذا الإجراء!
+                        الرجاء كتابة <strong style={{ color: 'red' }}>حذف جميع البيانات</strong> للتأكيد.
+                    </DialogContentText>
+                    <TextField 
+                        fullWidth 
+                        autoFocus
+                        color="error"
+                        placeholder="حذف جميع البيانات" 
+                        value={resetDialog.input} 
+                        onChange={(e) => setResetDialog(prev => ({ ...prev, input: e.target.value }))} 
+                    />
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setResetDialog({ open: false, input: '' })} color="inherit">إلغاء</Button>
+                    <Button 
+                        onClick={handleResetAll} 
+                        color="error" 
+                        variant="contained" 
+                        disabled={resetDialog.input !== 'حذف جميع البيانات'}
+                    >
+                        حذف نهائياً
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
                 <Alert severity={snackbar.severity} variant="filled">{snackbar.msg}</Alert>

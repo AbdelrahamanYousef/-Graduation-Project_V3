@@ -64,7 +64,7 @@ function ProjectDetails() {
     const theme = useTheme();
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
-    const isEn = getLanguage() === 'en';
+    
 
     // Read live data from shared context
     const { state } = useAdminData();
@@ -77,17 +77,17 @@ function ProjectDetails() {
         return (
             <Box sx={{ py: 12, textAlign: 'center' }}>
                 <Typography variant="h4" gutterBottom>
-                    {isEn ? 'Project not found' : 'المشروع غير موجود'}
+                    {'المشروع غير موجود'}
                 </Typography>
                 <Button component={Link} to="/projects" variant="contained">
-                    {isEn ? 'Back to Projects' : 'العودة للمشاريع'}
+                    {'العودة للمشاريع'}
                 </Button>
             </Box>
         );
     }
 
-    const title = isEn ? (project.titleEn || project.title) : project.title;
-    const program = isEn ? (project.programEn || project.program) : project.program;
+    const title = project.title;
+    const program = project.program;
     const percentage = Math.round((project.raised / project.goal) * 100);
 
     const handleTabChange = (event, newValue) => {
@@ -166,10 +166,10 @@ function ProjectDetails() {
                                     <Typography variant="h5" fontWeight="bold" gutterBottom>{t('projectDetails.projectGoals')}</Typography>
                                     <Box component="ul" sx={{ pl: 2 }}>
                                         {[
-                                            isEn ? 'Reach targeted groups in the most underserved areas' : 'الوصول إلى الفئات المستهدفة في المناطق الأكثر احتياجًا',
-                                            isEn ? 'Provide direct financial and in-kind support' : 'توفير الدعم المادي والعيني بشكل مباشر',
-                                            isEn ? 'Ensure full transparency in donation distribution' : 'ضمان الشفافية الكاملة في توزيع التبرعات',
-                                            isEn ? 'Regular monitoring and impact assessment' : 'متابعة وتقييم الأثر بشكل دوري'
+                                            'الوصول إلى الفئات المستهدفة في المناطق الأكثر احتياجًا',
+                                            'توفير الدعم المادي والعيني بشكل مباشر',
+                                            'ضمان الشفافية الكاملة في توزيع التبرعات',
+                                            'متابعة وتقييم الأثر بشكل دوري'
                                         ].map((goal, index) => (
                                             <Typography component="li" key={index} sx={{ mb: 1 }}>{goal}</Typography>
                                         ))}
@@ -183,7 +183,7 @@ function ProjectDetails() {
                                 <Stack spacing={3}>
                                     {projectUpdates.length === 0 ? (
                                         <Typography color="text.secondary" textAlign="center" sx={{ py: 4 }}>
-                                            {isEn ? 'No updates at this time' : 'لا توجد تحديثات حالياً'}
+                                            {'لا توجد تحديثات حالياً'}
                                         </Typography>
                                     ) : (
                                         projectUpdates.map(update => (
@@ -199,7 +199,7 @@ function ProjectDetails() {
                                                         <Typography variant="h6" gutterBottom>{update.title}</Typography>
                                                         <Typography variant="body2" color="text.secondary" paragraph>{update.content}</Typography>
                                                         <Typography variant="caption" color="text.disabled">
-                                                            <i className="fa-regular fa-calendar" style={{ marginRight: 6 }}></i>
+                                                            <i className="fa-regular fa-calendar" style={{ marginInlineEnd: 6 }}></i>
                                                             {formatDate(update.date)}
                                                         </Typography>
                                                     </Box>
@@ -217,10 +217,10 @@ function ProjectDetails() {
                                     <Typography variant="h5" fontWeight="bold" gutterBottom>{t('projectDetails.budgetBreakdown')}</Typography>
                                     <Stack spacing={3} sx={{ mt: 3 }}>
                                         {[
-                                            { label: isEn ? 'Supplies & Materials' : 'المستلزمات والمواد', value: 60 },
-                                            { label: isEn ? 'Transportation & Distribution' : 'النقل والتوزيع', value: 20 },
-                                            { label: isEn ? 'Operations & Management' : 'التشغيل والإدارة', value: 15 },
-                                            { label: isEn ? 'Emergency & Reserve' : 'الطوارئ والاحتياطي', value: 5 }
+                                            { label: 'المستلزمات والمواد', value: 60 },
+                                            { label: 'النقل والتوزيع', value: 20 },
+                                            { label: 'التشغيل والإدارة', value: 15 },
+                                            { label: 'الطوارئ والاحتياطي', value: 5 }
                                         ].map((item, index) => (
                                             <Box key={index}>
                                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -239,9 +239,9 @@ function ProjectDetails() {
                             {activeTab === 3 && (
                                 <Stack spacing={2}>
                                     {[
-                                        { q: isEn ? 'How can I make sure my donation reaches those in need?' : 'كيف يمكنني التأكد من وصول تبرعي؟', a: isEn ? 'We are committed to full transparency and publish regular updates on donation distribution with photos and detailed reports.' : 'نلتزم بالشفافية الكاملة وننشر تحديثات دورية عن توزيع التبرعات مع صور وتقارير مفصلة.' },
-                                        { q: isEn ? 'Can I set up a monthly donation?' : 'هل يمكنني التبرع بشكل شهري؟', a: isEn ? 'Yes, you can set up a recurring monthly donation to support this project on an ongoing basis.' : 'نعم، يمكنك إعداد تبرع شهري متكرر لدعم المشروع بشكل مستمر.' },
-                                        { q: isEn ? 'Are donations tax-deductible?' : 'هل التبرع معفى من الضرائب؟', a: isEn ? 'Yes, donations are tax-exempt under Egyptian law, and we provide official receipts.' : 'نعم، التبرعات معفاة من الضرائب وفقًا للقوانين المصرية ونوفر إيصالات رسمية.' }
+                                        { q: 'كيف يمكنني التأكد من وصول تبرعي؟', a: 'نلتزم بالشفافية الكاملة وننشر تحديثات دورية عن توزيع التبرعات مع صور وتقارير مفصلة.'},
+                                        { q: 'هل يمكنني التبرع بشكل شهري؟', a: 'نعم، يمكنك إعداد تبرع شهري متكرر لدعم المشروع بشكل مستمر.'},
+                                        { q: 'هل التبرع معفى من الضرائب؟', a: 'نعم، التبرعات معفاة من الضرائب وفقًا للقوانين المصرية ونوفر إيصالات رسمية.'}
                                     ].map((faq, index) => (
                                         <Paper key={index} elevation={0} variant="outlined" sx={{ p: 2 }}>
                                             <Typography variant="subtitle1" fontWeight="bold" gutterBottom>{faq.q}</Typography>
@@ -263,7 +263,7 @@ function ProjectDetails() {
                                             {formatCurrency(project.raised)}
                                         </Typography>
                                         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                            {isEn ? 'from' : 'من'} {formatCurrency(project.goal)}
+                                            {'من'} {formatCurrency(project.goal)}
                                         </Typography>
                                     </Box>
                                     <LinearProgress
@@ -274,7 +274,7 @@ function ProjectDetails() {
                                     <Grid container justifyContent="space-between" textAlign="center">
                                         <Grid item>
                                             <Typography variant="h6" fontWeight="bold">{percentage}%</Typography>
-                                            <Typography variant="caption" color="text.secondary">{isEn ? 'funded' : 'مكتمل'}</Typography>
+                                            <Typography variant="caption" color="text.secondary">{'مكتمل'}</Typography>
                                         </Grid>
                                         <Grid item>
                                             <Typography variant="h6" fontWeight="bold">{formatNumber(project.donors)}</Typography>

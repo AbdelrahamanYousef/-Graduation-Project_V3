@@ -55,7 +55,8 @@ const ProgramIconWrapper = styled(Box)(({ theme, bgcolor }) => ({
 
 function Programs() {
     const theme = useTheme();
-    const { state, activePrograms } = useAdminData();
+    const { state } = useAdminData();
+    const activePrograms = state.programs?.filter(p => !p.status || p.status === 'active') || [];
     const programs = activePrograms;       // only active programs
     const projects = state.projects;       // projects from context
 

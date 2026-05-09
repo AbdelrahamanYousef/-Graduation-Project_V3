@@ -180,7 +180,7 @@ const inputSx = (theme) => ({
 function Volunteer() {
     const containerRef = useRef(null); // Keep ref if needed for logic, though animations are CSS-in-JS now
     const theme = useTheme();
-    const isEn = getLanguage() === 'en';
+    
     const [form, setForm] = useState({ name: '', email: '', phone: '', area: '', message: '' });
     const [submitted, setSubmitted] = useState(false);
     const [touched, setTouched] = useState({});
@@ -203,35 +203,35 @@ function Volunteer() {
     const getHelper = (field) => {
         if (!getError(field)) return ' ';
         if (field === 'name' && form.name && form.name.trim().length < 3)
-            return isEn ? 'Name must be at least 3 characters' : 'الاسم يجب أن يكون 3 أحرف على الأقل';
+            return 'الاسم يجب أن يكون 3 أحرف على الأقل';
         if (field === 'email' && form.email)
-            return isEn ? 'Enter a valid email' : 'أدخل بريدًا صالحًا';
+            return 'أدخل بريدًا صالحًا';
         if (field === 'phone' && form.phone)
-            return isEn ? 'Enter a valid phone (10–15 digits)' : 'أدخل رقمًا صالحًا (10–15 رقم)';
-        return isEn ? 'This field is required' : 'هذا الحقل مطلوب';
+            return 'أدخل رقمًا صالحًا (10–15 رقم)';
+        return 'هذا الحقل مطلوب';
     };
 
     const volunteerAreas = [
-        { id: 'medical', icon: 'fa-solid fa-hospital', label: isEn ? 'Medical' : 'طبي', desc: isEn ? 'Participate in medical convoys and health awareness' : 'المشاركة في القوافل الطبية والتوعية الصحية' },
-        { id: 'education', icon: 'fa-solid fa-book-open', label: isEn ? 'Educational' : 'تعليمي', desc: isEn ? 'Teaching children, literacy programs, and tutoring' : 'تعليم الأطفال ومحو الأمية والدروس الخصوصية' },
-        { id: 'community', icon: 'fa-solid fa-people-roof', label: isEn ? 'Community' : 'مجتمعي', desc: isEn ? 'Local community development and social initiatives' : 'تنمية المجتمعات المحلية والمبادرات الاجتماعية' },
-        { id: 'tech', icon: 'fa-solid fa-laptop-code', label: isEn ? 'Technical' : 'تقني', desc: isEn ? 'Design, development, and digital infrastructure support' : 'التصميم والبرمجة ودعم البنية التحتية الرقمية' },
-        { id: 'admin', icon: 'fa-solid fa-clipboard-list', label: isEn ? 'Administrative' : 'إداري', desc: isEn ? 'Organization, management, and project planning' : 'التنظيم والإدارة والتخطيط للمشاريع' },
-        { id: 'field', icon: 'fa-solid fa-truck', label: isEn ? 'Field Work' : 'ميداني', desc: isEn ? 'Distribution, relief, and direct field work' : 'التوزيع والإغاثة والعمل الميداني المباشر' },
+        { id: 'medical', icon: 'fa-solid fa-hospital', label: 'طبي', desc: 'المشاركة في القوافل الطبية والتوعية الصحية'},
+        { id: 'education', icon: 'fa-solid fa-book-open', label: 'تعليمي', desc: 'تعليم الأطفال ومحو الأمية والدروس الخصوصية'},
+        { id: 'community', icon: 'fa-solid fa-people-roof', label: 'مجتمعي', desc: 'تنمية المجتمعات المحلية والمبادرات الاجتماعية'},
+        { id: 'tech', icon: 'fa-solid fa-laptop-code', label: 'تقني', desc: 'التصميم والبرمجة ودعم البنية التحتية الرقمية'},
+        { id: 'admin', icon: 'fa-solid fa-clipboard-list', label: 'إداري', desc: 'التنظيم والإدارة والتخطيط للمشاريع'},
+        { id: 'field', icon: 'fa-solid fa-truck', label: 'ميداني', desc: 'التوزيع والإغاثة والعمل الميداني المباشر'},
     ];
 
     const impactNumbers = [
-        { value: '2,500+', label: isEn ? 'Active Volunteers' : 'متطوع نشط', icon: 'fa-solid fa-users' },
-        { value: '50,000+', label: isEn ? 'Volunteer Hours' : 'ساعة تطوعية', icon: 'fa-solid fa-clock' },
-        { value: '120+', label: isEn ? 'Communities Served' : 'مجتمع مستفيد', icon: 'fa-solid fa-people-roof' },
-        { value: '35+', label: isEn ? 'Volunteer Projects' : 'مشروع تطوعي', icon: 'fa-solid fa-bullseye' },
+        { value: '2,500+', label: 'متطوع نشط', icon: 'fa-solid fa-users' },
+        { value: '50,000+', label: 'ساعة تطوعية', icon: 'fa-solid fa-clock' },
+        { value: '120+', label: 'مجتمع مستفيد', icon: 'fa-solid fa-people-roof' },
+        { value: '35+', label: 'مشروع تطوعي', icon: 'fa-solid fa-bullseye' },
     ];
 
     const reasons = [
-        { icon: 'fa-solid fa-heart', title: isEn ? 'Great Reward' : 'أجر عظيم', desc: isEn ? 'Volunteering is one of the greatest forms of charity' : 'التطوع من أعظم أبواب الخير والصدقة الجارية' },
-        { icon: 'fa-solid fa-handshake', title: isEn ? 'New Friends' : 'صداقات جديدة', desc: isEn ? 'Join a community of like-minded volunteers' : 'انضم لمجتمع من المتطوعين المحبين للخير' },
-        { icon: 'fa-solid fa-arrow-trend-up', title: isEn ? 'Develop Skills' : 'تطوير مهاراتك', desc: isEn ? 'Gain practical experience and develop your professional skills' : 'اكتسب خبرات عملية وطوّر مهاراتك المهنية' },
-        { icon: 'fa-solid fa-earth-americas', title: isEn ? 'Real Impact' : 'أثر حقيقي', desc: isEn ? 'Witness your direct impact on people\'s lives' : 'شاهد تأثيرك المباشر على حياة المحتاجين' },
+        { icon: 'fa-solid fa-heart', title: 'أجر عظيم', desc: 'التطوع من أعظم أبواب الخير والصدقة الجارية'},
+        { icon: 'fa-solid fa-handshake', title: 'صداقات جديدة', desc: 'انضم لمجتمع من المتطوعين المحبين للخير'},
+        { icon: 'fa-solid fa-arrow-trend-up', title: 'تطوير مهاراتك', desc: 'اكتسب خبرات عملية وطوّر مهاراتك المهنية'},
+        { icon: 'fa-solid fa-earth-americas', title: 'أثر حقيقي', desc: 'شاهد تأثيرك المباشر على حياة المحتاجين'},
     ];
 
     const handleSubmit = (e) => {
@@ -760,7 +760,7 @@ function Volunteer() {
                                             fontSize: '1rem',
                                             letterSpacing: '-0.01em'
                                         }}>
-                                            {isEn ? "Join us and make a difference" : "انضم إلينا واصنع الفرق"}
+                                            {"انضم إلينا واصنع الفرق"}
                                         </Typography>
                                         <Divider sx={{ my: 1.5, opacity: 0.5, width: '40%', mx: 'auto', borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />
                                         <Typography variant="body2" sx={{ 
@@ -768,7 +768,7 @@ function Volunteer() {
                                             lineHeight: 1.7, 
                                             fontSize: '0.88rem',
                                         }}>
-                                            {isEn ? "We will contact you to determine the best area and time to volunteer." : "سنتواصل معك لتحديد أنسب مجال ووقت للتطوع."}
+                                            {"سنتواصل معك لتحديد أنسب مجال ووقت للتطوع."}
                                         </Typography>
                                     </Box>
                                 </Paper>
@@ -916,7 +916,7 @@ function Volunteer() {
                                             >
                                                 {submitted ? (
                                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                        {isEn ? 'Registered Successfully!' : 'تم التسجيل بنجاح!'} <i className="fa-solid fa-check"></i>
+                                                        {'تم التسجيل بنجاح!'} <i className="fa-solid fa-check"></i>
                                                     </Box>
                                                 ) : t('common.joinNow')}
                                             </Button>

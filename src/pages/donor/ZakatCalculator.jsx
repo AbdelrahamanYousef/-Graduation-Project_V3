@@ -24,6 +24,7 @@ import { getLanguage, formatCurrency, formatNumber } from '../../i18n';
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { getMetalPrices, calculateNisab } from '../../services/goldPriceService';
+import { useAdminData } from '../../contexts/AdminDataContext';
 
 // ─── Design Tokens ───────────────────────────────────────────────
 
@@ -102,15 +103,17 @@ const TABS = [
 export default function ZakatCalculator() {
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
-    const isEn = getLanguage() === 'en';
-    const font = isEn ? LATIN_FONT : ARABIC_FONT;
-    const dir = isEn ? 'ltr' : 'rtl';
+    
+    const font = ARABIC_FONT;
+    const dir = 'rtl';
 
     // ── State ──
     const [activeTab, setActiveTab] = useState('cash');
     const [prices, setPrices] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showInfoModal, setShowInfoModal] = useState(false);
+    
+    const { state } = useAdminData();
 
     const [cash, setCash] = useState('');
     const [goldEntries, setGoldEntries] = useState([{ id: 1, grams: '', karat: '24' }]);
@@ -128,7 +131,21 @@ export default function ZakatCalculator() {
     const updateGoldEntry = (id, field, value) => setGoldEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
 
     // ── Fetch Prices ──
-    useEffect(() => { (async () => { setPrices(await getMetalPrices()); setLoading(false); })(); }, []);
+    useEffect(() => {
+        const zakatConfig = state?.content?.zakatConfig;
+        if (zakatConfig && zakatConfig.goldPrice && zakatConfig.silverPrice) {
+            setPrices({
+                gold24k: zakatConfig.goldPrice,
+                gold21k: zakatConfig.goldPrice * (21 / 24),
+                gold18k: zakatConfig.goldPrice * (18 / 24),
+                silver: zakatConfig.silverPrice,
+                isLive: false // Admin controlled is considered estimated/manual
+            });
+            setLoading(false);
+        } else {
+            (async () => { setPrices(await getMetalPrices()); setLoading(false); })();
+        }
+    }, [state?.content?.zakatConfig]);
 
     // ── Debounced Calculation ──
     useEffect(() => {
@@ -237,13 +254,13 @@ export default function ZakatCalculator() {
                     <Box sx={{
                         display: 'inline-flex', alignItems: 'center', gap: 1,
                         mt: 2, px: 2, py: 0.5, borderRadius: '20px',
-                        bgcolor: prices?.isLive ? 'rgba(0,177,106,0.2)' : 'rgba(255,193,7,0.2)',
-                        border: `1px solid ${prices?.isLive ? 'rgba(0,177,106,0.4)' : 'rgba(255,193,7,0.4)'}`,
+                        bgcolor: state?.content?.zakatConfig ? 'rgba(0,177,106,0.2)' : (prices?.isLive ? 'rgba(0,177,106,0.2)' : 'rgba(255,193,7,0.2)'),
+                        border: `1px solid ${state?.content?.zakatConfig ? 'rgba(0,177,106,0.4)' : (prices?.isLive ? 'rgba(0,177,106,0.4)' : 'rgba(255,193,7,0.4)')}`,
                         animation: `${fadeInUp} 0.5s ease 0.25s both`,
                     }}>
-                        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: prices?.isLive ? '#00e676' : '#ffc107', animation: `${pulse} 2s ease infinite` }} />
+                        <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: state?.content?.zakatConfig ? '#00e676' : (prices?.isLive ? '#00e676' : '#ffc107'), animation: `${pulse} 2s ease infinite` }} />
                         <Typography sx={{ fontFamily: font, fontSize: '0.72rem', color: '#fff', fontWeight: 600 }}>
-                            {prices?.isLive ? loc('أسعار حية من goldapi.io', 'Live prices from goldapi.io') : loc('أسعار تقديرية', 'Estimated prices')}
+                            {state?.content?.zakatConfig ? loc('أسعار معتمدة من الإدارة', 'Admin verified prices') : (prices?.isLive ? loc('أسعار حية من goldapi.io', 'Live prices from goldapi.io') : loc('أسعار تقديرية', 'Estimated prices'))}
                         </Typography>
                     </Box>
                 </Container>
@@ -270,7 +287,7 @@ export default function ZakatCalculator() {
                                 '&:hover': { bgcolor: active ? (dk ? alpha(tab.color, 0.18) : '#fff') : (dk ? 'rgba(255,255,255,0.06)' : '#fff'), boxShadow: `0 4px 14px ${alpha(tab.color, 0.15)}` },
                             }}>
                                 <i className={`fa-solid ${tab.icon}`} style={{ fontSize: '1.05rem' }} />
-                                {isEn ? tab.labelEn : tab.labelAr}
+                                {tab.labelAr}
                             </Button>
                         );
                     })}
@@ -330,7 +347,7 @@ export default function ZakatCalculator() {
                     </Box>
                     {/* Arrow */}
                     <Box sx={{ flexShrink: 0, animation: `${bounceX} 1.5s ease infinite`, color: G_GREEN, fontSize: '1rem' }}>
-                        <i className={`fa-solid ${isEn ? 'fa-arrow-right' : 'fa-arrow-left'}`} />
+                        <i className={`fa-solid ${'fa-arrow-left'}`} />
                     </Box>
                 </Box>
 
@@ -341,7 +358,7 @@ export default function ZakatCalculator() {
                     <Box sx={{
                         flex: { xs: '1 1 auto', md: '0 0 calc(66.666% - 14px)' },
                         width: { xs: '100%', md: 'calc(66.666% - 14px)' },
-                        order: { xs: 1, md: isEn ? 1 : 2 },
+                        order: { xs: 1, md: 2},
                     }}>
 
                         {/* ── CASH ── */}
@@ -475,12 +492,12 @@ export default function ZakatCalculator() {
                                             color="primary" value={irrigationMode} exclusive fullWidth
                                             orientation="vertical"
                                             onChange={(e, val) => { if (val) setIrrigationMode(val); }}
-                                            sx={{ '& .MuiToggleButton-root': { justifyContent: isEn ? 'flex-start' : 'flex-end', px: 2, py: 1.2, textTransform: 'none', borderColor: dk ? 'rgba(255,255,255,0.08)' : '#e8e8e8', color: dk ? DARK_TEXT : '#555', '&.Mui-selected': { bgcolor: alpha(G_GREEN, 0.1), color: G_GREEN, borderColor: alpha(G_GREEN, 0.3) } } }}
+                                            sx={{ '& .MuiToggleButton-root': { justifyContent: 'flex-end', px: 2, py: 1.2, textTransform: 'none', borderColor: dk ? 'rgba(255,255,255,0.08)' : '#e8e8e8', color: dk ? DARK_TEXT : '#555', '&.Mui-selected': { bgcolor: alpha(G_GREEN, 0.1), color: G_GREEN, borderColor: alpha(G_GREEN, 0.3) } } }}
                                         >
                                             <ToggleButton value="natural">
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                                                     <i className="fa-solid fa-cloud-rain" style={{ fontSize: '0.95rem', color: '#3b82f6', flexShrink: 0 }} />
-                                                    <Box sx={{ textAlign: isEn ? 'left' : 'right', flex: 1 }}>
+                                                    <Box sx={{ textAlign: 'right', flex: 1 }}>
                                                         <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', fontFamily: font }}>
                                                             {loc('ري طبيعي (بالأمطار)', 'Natural (Rain-fed)')}
                                                         </Typography>
@@ -493,7 +510,7 @@ export default function ZakatCalculator() {
                                             <ToggleButton value="mixed">
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                                                     <i className="fa-solid fa-droplet" style={{ fontSize: '0.95rem', color: '#8b5cf6', flexShrink: 0 }} />
-                                                    <Box sx={{ textAlign: isEn ? 'left' : 'right', flex: 1 }}>
+                                                    <Box sx={{ textAlign: 'right', flex: 1 }}>
                                                         <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', fontFamily: font }}>
                                                             {loc('ري مشترك (طبيعي + صناعي)', 'Mixed (Rain + Machine)')}
                                                         </Typography>
@@ -506,7 +523,7 @@ export default function ZakatCalculator() {
                                             <ToggleButton value="irrigated">
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%' }}>
                                                     <i className="fa-solid fa-faucet-drip" style={{ fontSize: '0.95rem', color: '#f59e0b', flexShrink: 0 }} />
-                                                    <Box sx={{ textAlign: isEn ? 'left' : 'right', flex: 1 }}>
+                                                    <Box sx={{ textAlign: 'right', flex: 1 }}>
                                                         <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', fontFamily: font }}>
                                                             {loc('ري صناعي (بالآلات بتكلفة)', 'Artificial (Irrigated/Machines)')}
                                                         </Typography>
@@ -528,7 +545,7 @@ export default function ZakatCalculator() {
                     <Box sx={{
                         flex: { xs: '1 1 auto', md: '0 0 calc(33.333% - 14px)' },
                         width: { xs: '100%', md: 'calc(33.333% - 14px)' },
-                        order: { xs: 2, md: isEn ? 2 : 1 },
+                        order: { xs: 2, md: 1},
                     }}>
                         <Box sx={{ position: 'sticky', top: 85 }}>
                             <Card elevation={0} sx={{
@@ -629,7 +646,7 @@ export default function ZakatCalculator() {
                                     {prices?.lastUpdated && (
                                         <Typography sx={{ mt: 2, fontFamily: font, fontSize: '0.68rem', color: dk ? alpha(DARK_TEXT, 0.35) : '#bbb', textAlign: 'center' }}>
                                             {loc('آخر تحديث: ', 'Updated: ')}
-                                            {prices.lastUpdated.toLocaleTimeString(isEn ? 'en' : 'ar', { hour: '2-digit', minute: '2-digit' })}
+                                            {prices.lastUpdated.toLocaleTimeString('ar', { hour: '2-digit', minute: '2-digit' })}
                                         </Typography>
                                     )}
                                 </Box>

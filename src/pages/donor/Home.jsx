@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -17,7 +17,7 @@ import {
     alpha
 } from '@mui/material';
 import { t, formatCurrency, getLanguage, formatNumber } from '../../i18n'; // Added formatNumber
-import { impactStats as initialStats, updates, donationAmounts, testimonials } from '../../data/mockData';
+import { updates, donationAmounts, testimonials, impactStats as originalImpactStats } from '../../data/mockData';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import styled from '@emotion/styled';
 import { keyframes } from '@emotion/react';
@@ -233,30 +233,90 @@ function Home() {
     const [selectedAmount, setSelectedAmount] = useState(null);
     const [donateProject, setDonateProject] = useState(null);
     const navigate = useNavigate();
-    const lang = getLanguage();
-    const isEn = lang === 'en';
 
     // Read from shared context — reflects admin changes in real time
-    const { state, featuredProjects, activePrograms } = useAdminData();
-    const programs = activePrograms;         // only active programs visible on home
-    const featuredProjectsList = featuredProjects; // featured = urgent cases
-    const impactStats = state.stats;         // stats managed by admin
+    const { state } = useAdminData();
+    const dashboardStats = state.dashboardStats || {};
+    
+    // Derived lists
+    const programs = state.programs?.filter(p => !p.status || p.status === 'active') || [];
+    const featuredProjectsList = state.projects?.filter(p => p.featured) || [];
+    
+    // Dynamically calculate stats based on real data
+    const impactStats = {
+        totalDonations: dashboardStats.totalDonations || 0,
+        beneficiaries: dashboardStats.beneficiaries || 0,
+        projects: dashboardStats.totalProjects || 0,
+        donors: dashboardStats.totalDonors || new Set(state.donations?.map(d => d.donor || d.donorName)).size || 0,
+    };
 
     // Consistent section py value
     const sectionPy = theme.custom.sectionPadding;
 
-    // Transform impactStats object into array for rendering
-    const statsArray = [
-        { icon: 'fa-solid fa-coins', value: impactStats.totalDonations, label: t('home.totalDonations') },
-        { icon: 'fa-solid fa-users', value: impactStats.beneficiaries, label: t('home.beneficiaries') },
-        { icon: 'fa-solid fa-folder-open', value: impactStats.projects, label: t('home.projects') },
-        { icon: 'fa-solid fa-heart', value: impactStats.donors, label: t('home.donors') },
-    ];
+    const [currentVerseIndex, setCurrentVerseIndex] = useState(0);
+
+    // Filter active announcements
+    const activeAnnouncements = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        return (state.content?.announcements || []).filter(a => {
+            if (!a.active) return false;
+            if (a.startDate && a.startDate > today) return false;
+            if (a.endDate && a.endDate < today) return false;
+            return true;
+        });
+    }, [state.content?.announcements]);
+
+    // Active islamic content
+    const activeVerses = useMemo(() => {
+        return (state.content?.quranicVerses || []).filter(v => v.active);
+    }, [state.content?.quranicVerses]);
+
+    // Rotation effect for islamic content
+    useEffect(() => {
+        if (state.content?.islamicDisplayMode !== 'rotating' || activeVerses.length <= 1) return;
+        const interval = setInterval(() => {
+            setCurrentVerseIndex(prev => (prev + 1) % activeVerses.length);
+        }, (state.content?.islamicRotationInterval || 5) * 1000);
+        return () => clearInterval(interval);
+    }, [state.content?.islamicDisplayMode, state.content?.islamicRotationInterval, activeVerses.length]);
+
+    // Calculate or override stats
+    const displayStats = useMemo(() => {
+        const config = state.content?.statsConfig;
+        if (config?.override) {
+            return [
+                { icon: 'fa-solid fa-coins', value: config.totalDonations || 0, label: t('home.totalDonations') },
+                { icon: 'fa-solid fa-users', value: config.beneficiaries || 0, label: t('home.beneficiaries') },
+                { icon: 'fa-solid fa-folder-open', value: config.projects || 0, label: t('home.projects') },
+                { icon: 'fa-solid fa-calendar-days', value: config.years || 0, label: 'سنوات العطاء' },
+            ];
+        }
+        return [
+            { icon: 'fa-solid fa-coins', value: impactStats.totalDonations || 0, label: t('home.totalDonations') },
+            { icon: 'fa-solid fa-users', value: impactStats.beneficiaries || 0, label: t('home.beneficiaries') },
+            { icon: 'fa-solid fa-folder-open', value: impactStats.projects || 0, label: t('home.projects') },
+            { icon: 'fa-solid fa-heart', value: impactStats.donors || 0, label: t('home.donors') },
+        ];
+    }, [state.content?.statsConfig, impactStats]);
 
     return (
         <Box sx={{ overflowX: 'hidden' }}>
+            {/* ========== ANNOUNCEMENTS BANNERS ========== */}
+            {activeAnnouncements.map((ann, i) => (
+                <Box key={ann.id || i} sx={{ bgcolor: ann.type === 'urgent' ? 'error.main' : ann.type === 'success' ? 'success.main' : ann.type === 'seasonal' ? 'warning.main' : 'info.main', color: 'white', py: 1, px: 2, textAlign: 'center', fontWeight: 'bold' }}>
+                    {ann.title && <Box component="span" sx={{ mr: 1, textDecoration: 'underline' }}>{ann.title}:</Box>}
+                    {ann.text}
+                </Box>
+            ))}
+
             {/* ========== HERO ========== */}
-            <HeroSection>
+            <HeroSection sx={{
+                ...(state.settings?.heroStyle === 'image' && state.content?.heroBanner?.image && {
+                    backgroundImage: `linear-gradient(${theme.palette.hero.overlay}, ${theme.palette.hero.overlay}), url(${state.content.heroBanner.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                })
+            }}>
                 <Container>
                     <Grid container spacing={4} alignItems="center">
                         <Grid item xs={12} md={6}>
@@ -272,7 +332,7 @@ function Home() {
                                         animation: `${fadeInUp} 0.8s ease forwards`
                                     }}
                                 >
-                                    {t('home.heroTitle')}
+                                    {state.content?.heroBanner?.title || t('home.heroTitle')}
                                 </Typography>
                                 <Typography
                                     variant="h5"
@@ -285,19 +345,26 @@ function Home() {
                                         animationFillMode: 'forwards'
                                     }}
                                 >
-                                    {t('home.heroSubtitle')}
+                                    {state.content?.heroBanner?.subtitle || t('home.heroSubtitle')}
                                 </Typography>
-                                <Typography
-                                    variant="body2"
-                                    sx={{
-                                        mb: 4,
-                                        color: alpha(theme.palette.common.white, 0.8),
-                                        display: 'block',
-                                        fontSize: '0.875rem'
-                                    }}
-                                >
-                                    {t('home.heroSubtitle2')}
-                                </Typography>
+                                {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'rotating' && (
+                                    <Box sx={{ mb: 4, minHeight: 60 }}>
+                                        <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: '1.1rem', fontStyle: 'italic' }}>
+                                            "{activeVerses[currentVerseIndex].text}"
+                                            {activeVerses[currentVerseIndex].reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.85rem', opacity: 0.8 }}>- {activeVerses[currentVerseIndex].reference}</Box>}
+                                        </Typography>
+                                    </Box>
+                                )}
+                                {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'stacked' && (
+                                    <Stack spacing={2} sx={{ mb: 4 }}>
+                                        {activeVerses.map(verse => (
+                                            <Typography key={verse.id} variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: '1rem', fontStyle: 'italic', borderLeft: '3px solid', borderColor: 'primary.main', pl: 2 }}>
+                                                "{verse.text}"
+                                                {verse.reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.8rem', opacity: 0.8 }}>- {verse.reference}</Box>}
+                                            </Typography>
+                                        ))}
+                                    </Stack>
+                                )}
 
                                 <Stack
                                     direction={{ xs: 'column', sm: 'row' }}
@@ -407,7 +474,7 @@ function Home() {
             <Box sx={{ py: sectionPy, bgcolor: 'background.default' }}>
                 <Container maxWidth="lg">
                     <Grid container spacing={3} justifyContent="center">
-                        {statsArray.map((stat, i) => (
+                        {displayStats.map((stat, i) => (
                             <Grid item xs={6} md={3} key={i} sx={{ display: 'flex' }}>
                                 <StatCard elevation={0}>
                                     <StatIcon className="stat-icon">
@@ -431,7 +498,7 @@ function Home() {
                 <Container>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
                         <Typography variant="h3" fontWeight="bold">{t('home.ourPrograms')}</Typography>
-                        <Button component={Link} to="/programs" endIcon={isEn ? '→' : '←'}>
+                        <Button component={Link} to="/programs" endIcon={'←'}>
                             {t('common.viewAll')}
                         </Button>
                     </Box>
@@ -458,7 +525,7 @@ function Home() {
                                         <i className={program.icon}></i>
                                     </Box>
                                     <Typography variant="h6" fontWeight="bold">
-                                        {isEn ? program.nameEn : program.name}
+                                        {program.name}
                                     </Typography>
                                 </ProgramCard>
                             </Grid>
@@ -522,7 +589,7 @@ function Home() {
                                 }}
                             >
                                 <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '0.7rem' }} />
-                                {isEn ? 'Urgent' : 'عاجل'}
+                                {'عاجل'}
                             </Box>
                         </Box>
                         <Typography
@@ -550,7 +617,7 @@ function Home() {
                         {featuredProjectsList.length === 0 ? (
                             <Box sx={{ textAlign: 'center', py: 6, color: 'text.secondary' }}>
                                 <i className="fa-regular fa-star" style={{ fontSize: 48, opacity: 0.3 }} />
-                                <Typography sx={{ mt: 2 }}>{isEn ? 'No urgent cases featured yet' : 'لا توجد حالات مميزة بعد'}</Typography>
+                                <Typography sx={{ mt: 2 }}>{'لا توجد حالات مميزة بعد'}</Typography>
                             </Box>
                         ) : featuredProjectsList.map((project, i) => (
                             <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }, display: 'flex', justifyContent: 'center' }}>
@@ -571,7 +638,7 @@ function Home() {
                             to="/campaigns"
                             variant="outlined"
                             color="primary"
-                            endIcon={isEn ? '→' : '←'}
+                            endIcon={'←'}
                             sx={{
                                 borderRadius: '999px',
                                 px: 4,
@@ -668,7 +735,6 @@ function Home() {
                             variant="contained"
                             size="large"
                             fullWidth
-                            disabled={!selectedAmount}
                             sx={{
                                 height: 56,
                                 fontSize: '1.1rem',
@@ -676,27 +742,21 @@ function Home() {
                                 borderRadius: (t) => `${t.custom.radius.pill}px`,
                                 textTransform: 'none',
                                 transition: 'all 250ms ease',
-                                ...(!selectedAmount ? {} : {
-                                    background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-                                    boxShadow: isDark
-                                        ? '0 4px 16px rgba(0,0,0,0.35)'
-                                        : `0 4px 16px ${alpha(theme.palette.primary.main, 0.30)}`,
-                                }),
-                                '&:hover:not(:disabled)': {
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                                boxShadow: isDark
+                                    ? '0 4px 16px rgba(0,0,0,0.35)'
+                                    : `0 4px 16px ${alpha(theme.palette.primary.main, 0.30)}`,
+                                '&:hover': {
                                     background: `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
                                     boxShadow: isDark
                                         ? '0 6px 24px rgba(0,0,0,0.45)'
                                         : `0 6px 24px ${alpha(theme.palette.primary.main, 0.35)}`,
                                 },
-                                '&:active:not(:disabled)': {
+                                '&:active': {
                                     transform: 'scale(0.985)',
                                 },
                                 '&:focus-visible': {
                                     boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.35)}`,
-                                },
-                                '&.Mui-disabled': {
-                                    bgcolor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)',
-                                    color: isDark ? 'rgba(255,255,255,0.30)' : 'rgba(0,0,0,0.30)',
                                 },
                             }}
                         >
@@ -707,6 +767,7 @@ function Home() {
             </QuickDonateSection>
 
             {/* ========== TESTIMONIALS ========== */}
+            {(state.content?.testimonials && state.content.testimonials.length > 0) && (
             <Box sx={{
                 pt: sectionPy,
                 pb: { xs: 4, md: 6 },
@@ -717,20 +778,20 @@ function Home() {
                         {t('home.testimonials')}
                     </Typography>
                     <Grid container spacing={3}>
-                        {testimonials.map((testimonial) => (
+                        {state.content.testimonials.map((testimonial) => (
                             <Grid item xs={12} sm={6} md={4} key={testimonial.id} sx={{ display: 'flex' }}>
                                 <TestimonialCardItem
-                                    text={isEn ? testimonial.textEn : testimonial.text}
-                                    name={isEn ? testimonial.nameEn : testimonial.name}
-                                    role={isEn ? testimonial.roleEn : testimonial.role}
-                                    initial={testimonial.avatarInitial}
-                                    isEn={isEn}
+                                    text={testimonial.content || testimonial.text}
+                                    name={testimonial.name}
+                                    role={testimonial.role}
+                                    initial={testimonial.name?.charAt(0)}
                                 />
                             </Grid>
                         ))}
                     </Grid>
                 </Container>
             </Box>
+            )}
 
             {/* ========== LATEST UPDATES ========== */}
             <Box sx={{
@@ -755,7 +816,7 @@ function Home() {
                         <Button
                             component={Link}
                             to="/updates"
-                            endIcon={isEn ? '→' : '←'}
+                            endIcon={'←'}
                             sx={{
                                 fontWeight: 500,
                                 color: 'primary.main',
@@ -807,7 +868,7 @@ function Home() {
                                         },
                                     }}
                                 >
-                                    <Box sx={{ flex: 1, textAlign: isEn ? 'left' : 'right' }}>
+                                    <Box sx={{ flex: 1, textAlign: 'right'}}>
                                         <Typography
                                             variant="body1"
                                             sx={{
@@ -944,10 +1005,10 @@ function Home() {
 
 // --- Sub Components ---
 
-function ProjectCard({ project, isEn }) {
+function ProjectCard({ project }) {
     const theme = useTheme();
     const percentage = Math.round((project.raised / project.goal) * 100);
-    const title = isEn ? (project.titleEn || project.title) : project.title;
+    const title = project.title;
 
     return (
         <Card sx={{
@@ -966,7 +1027,7 @@ function ProjectCard({ project, isEn }) {
                 />
                 {project.daysLeft <= 10 && (
                     <Chip
-                        label={isEn ? 'Urgent' : 'عاجل'}
+                        label={'عاجل'}
                         color="error"
                         size="small"
                         sx={{ position: 'absolute', top: 12, right: 12, fontWeight: 'bold' }}
@@ -975,7 +1036,7 @@ function ProjectCard({ project, isEn }) {
             </Box>
             <CardContent sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <Typography variant="caption" color="primary" fontWeight="bold" gutterBottom>
-                    {isEn ? (project.programEn || project.program) : project.program}
+                    {project.program}
                 </Typography>
                 <Typography variant="h6" fontWeight="bold" gutterBottom sx={{ flex: 1 }}>
                     {title}
@@ -983,8 +1044,8 @@ function ProjectCard({ project, isEn }) {
 
                 <Box sx={{ mt: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                        <Typography variant="body2" fontWeight="bold">{percentage}% {isEn ? 'funded' : 'مكتمل'}</Typography>
-                        <Typography variant="body2" color="text.secondary">{project.daysLeft} {isEn ? 'days left' : 'يوم متبقي'}</Typography>
+                        <Typography variant="body2" fontWeight="bold">{percentage}% {'مكتمل'}</Typography>
+                        <Typography variant="body2" color="text.secondary">{project.daysLeft} {'يوم متبقي'}</Typography>
                     </Box>
                     <LinearProgress variant="determinate" value={percentage > 100 ? 100 : percentage} />
                 </Box>
@@ -1003,7 +1064,7 @@ function ProjectCard({ project, isEn }) {
     );
 }
 
-function TestimonialCardItem({ text, name, role, initial, isEn }) {
+function TestimonialCardItem({ text, name, role, initial }) {
     return (
         <TestimonialCard elevation={0}>
             {/* Quote Mark is handled by styled component ::before */}
@@ -1048,7 +1109,7 @@ function TestimonialCardItem({ text, name, role, initial, isEn }) {
                     {initial || name.charAt(0)}
                 </Avatar>
 
-                <Box sx={{ textAlign: isEn ? 'left' : 'right' }}> {/* Name and Role */}
+                <Box sx={{ textAlign: 'right'}}> {/* Name and Role */}
                     <Typography variant="subtitle1" fontWeight="bold" sx={{ color: 'text.primary' }}>
                         {name}
                     </Typography>

@@ -68,7 +68,8 @@ function Projects() {
     const [sortBy, setSortBy] = useState('newest');
 
     // Read live data from shared context
-    const { state, activePrograms } = useAdminData();
+    const { state } = useAdminData();
+    const activePrograms = state.programs?.filter(p => !p.status || p.status === 'active') || [];
     const projects = state.projects;       // live projects list
     const programs = activePrograms;       // only active programs
 
