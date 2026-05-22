@@ -9,17 +9,17 @@
  *   GET /api/XAG/EGP → Silver price per gram
  */
 
-const API_KEY = 'goldapi-dnq1c19mkvjypse-io';
+const API_KEY = 'goldapi-582e07652a109798e1a9d95b040c535a-io';
 const BASE_URL = 'https://www.goldapi.io/api';
 const CACHE_KEY = 'zakat_metal_prices';
 const CACHE_DURATION_MS = 8 * 60 * 60 * 1000; // 8 hours → 3 updates/day
 
 // Fallback prices (EGP per gram) — safety net if API is unreachable
 const FALLBACK = {
-    gold24k: 4200,
-    gold21k: 3675,
-    gold18k: 3150,
-    silver: 56,
+    gold24k: 7700,
+    gold21k: 6737,
+    gold18k: 5775,
+    silver: 129,
 };
 
 // ─── Cache Helpers ───────────────────────────────────────────────
@@ -131,6 +131,14 @@ export async function getMetalPrices() {
  */
 export function calculateNisab(gold24kPrice) {
     return 85 * gold24kPrice;
+}
+
+/**
+ * Calculate the dynamic Nisab based on current silver price.
+ * Nisab = 595 grams of silver
+ */
+export function calculateSilverNisab(silverPrice) {
+    return 595 * silverPrice;
 }
 
 /**

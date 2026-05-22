@@ -52,38 +52,60 @@ function buildInitialState() {
             heroStyle: 'gradient',
             borderRadius: 'medium'
         }),
-        content: loadFromStorage(STORAGE_KEYS.content, {
-            heroBanner: {
-                title: 'معاً نصنع الأمل ونبني المستقبل',
-                subtitle: 'نعمل على توفير حياة كريمة للفئات الأكثر احتياجاً من خلال برامج تنموية مستدامة',
-            },
-            quranicVerses: [
-                { id: 1, text: 'وَمَا أَنفَقْتُم مِّن شَيْءٍ فَهُوَ يُخْلِفُهُ ۖ وَهُوَ خَيْرُ الرَّازِقِينَ', reference: 'سورة سبأ: 39', active: true, type: 'quran' }
-            ],
-            islamicDisplayMode: 'rotating', // rotating, stacked
-            islamicRotationInterval: 5,
-            announcements: [
-                { id: 1, title: 'عاجل', text: 'إغاثة عاجلة لإخواننا في غزة، تبرع الآن لإنقاذ الأرواح.', type: 'urgent', active: true, startDate: '', endDate: '' }
-            ],
-            testimonials: initialTestimonials || [],
-            aboutUs: {
-                story: 'مؤسسة خيرية تهدف للتنمية المستدامة.',
-                vision: 'مجتمع متكافل ومستدام.',
-                mission: 'توفير حياة كريمة للفئات الأكثر احتياجاً.',
-                values: 'الشفافية، العطاء، التنمية.'
-            },
-            statsConfig: {
-                override: false,
-                totalDonations: 15000000,
-                beneficiaries: 500000,
-                projects: 120,
-                years: 10
-            },
-            zakatConfig: {
-                goldPrice: 3800,
-                silverPrice: 45
+        content: (() => {
+            const fallbackContent = {
+                heroBanner: {
+                    title: 'معاً نصنع الأمل ونبني المستقبل',
+                    subtitle: 'نعمل على توفير حياة كريمة للفئات الأكثر احتياجاً من خلال برامج تنموية مستدامة',
+                },
+                quranicVerses: [
+                    { id: 1, text: 'وَمَا أَنفَقْتُم مِّن شَيْءٍ فَهُوَ يُخْلِفُهُ ۖ وَهُوَ خَيْرُ الرَّازِقِينَ', reference: 'سورة سبأ: 39', active: true, type: 'quran' }
+                ],
+                islamicDisplayMode: 'rotating', // rotating, stacked
+                islamicRotationInterval: 5,
+                announcements: [
+                    { id: 1, title: 'عاجل', text: 'إغاثة عاجلة لإخواننا في غزة، تبرع الآن لإنقاذ الأرواح.', type: 'urgent', active: true, startDate: '', endDate: '' }
+                ],
+                testimonials: initialTestimonials || [],
+                aboutUs: {
+                    story: 'مؤسسة خيرية تهدف للتنمية المستدامة.',
+                    vision: 'مجتمع متكافل ومستدام.',
+                    mission: 'توفير حياة كريمة للفئات الأكثر احتياجاً.',
+                    values: 'الشفافية، العطاء، التنمية.'
+                },
+                statsConfig: {
+                    override: false,
+                    totalDonations: 15000000,
+                    beneficiaries: 500000,
+                    projects: 120,
+                    years: 10
+                },
+                zakatConfig: {
+                    useLiveApi: true,
+                    goldPrice: 7700,
+                    silverPrice: 129
+                }
+            };
+            const loaded = loadFromStorage(STORAGE_KEYS.content, fallbackContent);
+            if (loaded) {
+                if (!loaded.zakatConfig) {
+                    loaded.zakatConfig = { ...fallbackContent.zakatConfig };
+                } else {
+                    if (loaded.zakatConfig.goldPrice < 5000) {
+                        loaded.zakatConfig.goldPrice = 7700;
+                        loaded.zakatConfig.useLiveApi = true;
+                    }
+                    if (loaded.zakatConfig.silverPrice < 80) {
+                        loaded.zakatConfig.silverPrice = 129;
+                        loaded.zakatConfig.useLiveApi = true;
+                    }
+                    if (loaded.zakatConfig.useLiveApi === undefined) {
+                        loaded.zakatConfig.useLiveApi = true;
+                    }
+                }
             }
-        }),
+            return loaded;
+        })(),
     };
 }
 

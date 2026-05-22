@@ -29,75 +29,222 @@ const fadeInUp = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
-`;
-
 const pulseGlow = keyframes`
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(1.05); }
 `;
 
+const circlePulse = keyframes`
+  0%, 100% { transform: scale(1); opacity: 0.05; }
+  50% { transform: scale(1.08); opacity: 0.10; }
+`;
+
+// Hero-specific animations — GPU-accelerated (transform + opacity only)
+const sineFloat = keyframes`
+  0%   { transform: translateY(0px); }
+  25%  { transform: translateY(-10px); }
+  50%  { transform: translateY(-18px); }
+  75%  { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+`;
+
+const heartPulse = keyframes`
+  0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 12px rgba(255,107,107,0.5)); }
+  50%      { transform: scale(1.12); opacity: 0.85; filter: drop-shadow(0 0 24px rgba(255,107,107,0.8)); }
+`;
+
+const particleRise = keyframes`
+  0%   { transform: translateY(0) scale(1); opacity: 0.7; }
+  60%  { opacity: 0.4; }
+  100% { transform: translateY(-90px) scale(0.5); opacity: 0; }
+`;
+
+const orbitSpin = keyframes`
+  from { transform: rotateX(65deg) rotateZ(0deg); }
+  to   { transform: rotateX(65deg) rotateZ(360deg); }
+`;
+
+const orbitSpinReverse = keyframes`
+  from { transform: rotateX(65deg) rotateZ(360deg); }
+  to   { transform: rotateX(65deg) rotateZ(0deg); }
+`;
+
+const badgeFloat1 = keyframes`
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  33%      { transform: translateY(-8px) translateX(4px); }
+  66%      { transform: translateY(4px) translateX(-3px); }
+`;
+
+const badgeFloat2 = keyframes`
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  40%      { transform: translateY(6px) translateX(-5px); }
+  70%      { transform: translateY(-5px) translateX(3px); }
+`;
+
 // --- Styled Components ---
 
-const HeroSection = styled(Box)(({ theme }) => ({
-    position: 'relative',
-    background: `radial-gradient(circle at 30% 40%, ${theme.palette.hero.overlay}, transparent 40%), linear-gradient(135deg, ${theme.palette.hero.base} 0%, ${theme.palette.hero.dark} 100%)`,
-    color: theme.palette.common.white,
-    padding: theme.spacing(6, 0),
-    overflow: 'hidden',
-    minHeight: '90vh',
-    display: 'flex',
+const HeroSection = styled(Box, {
+    shouldForwardProp: (prop) => prop !== 'announcementVisible',
+})(({ theme, announcementVisible }) => {
+    const ptMobile = announcementVisible ? '88px' : '64px';
+    const ptDesktop = announcementVisible ? '148px' : '112px';
+    return {
+        position: 'relative',
+        background: `radial-gradient(circle at 30% 40%, ${theme.palette.hero.overlay}, transparent 40%), linear-gradient(135deg, ${theme.palette.hero.base} 0%, ${theme.palette.hero.dark} 100%)`,
+        color: theme.palette.common.white,
+        paddingTop: ptMobile,
+        paddingBottom: '60px',
+        overflow: 'hidden',
+        minHeight: { xs: 'auto', sm: '80vh', md: '90vh' },
+        display: 'flex',
+        alignItems: 'center',
+        [theme.breakpoints.up('sm')]: {
+            paddingBottom: '80px',
+        },
+        [theme.breakpoints.up('md')]: {
+            paddingTop: ptDesktop,
+            paddingBottom: '160px',
+            minHeight: '90vh',
+        },
+    };
+});
+
+const HeroGrid = styled(Box)(({ theme }) => ({
+    display: 'grid',
+    gridTemplateColumns: '1fr',
+    gap: theme.spacing(4),
     alignItems: 'center',
-    '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        width: '60%',
-        height: '100%',
-        background: 'radial-gradient(ellipse at 70% 30%, rgba(255,255,255,0.08) 0%, transparent 60%)',
-        pointerEvents: 'none',
-    },
+    width: '100%',
     [theme.breakpoints.up('md')]: {
-        padding: 0,
-        minHeight: '90vh',
+        gridTemplateColumns: '1fr 1fr',
+        gap: theme.spacing(6),
+        minHeight: '70vh',
     },
 }));
 
 const HeroContent = styled(Box)(({ theme }) => ({
     position: 'relative',
-    zIndex: 2,
+    zIndex: 5,
     textAlign: 'center',
+    order: 1,
     [theme.breakpoints.up('md')]: {
         textAlign: 'right',
+        order: 1,
     },
 }));
 
-const HeroVisual = styled(Box)(({ theme }) => ({
+const HeroIllustrationContainer = styled(Box)(({ theme }) => ({
     position: 'relative',
-    height: 400,
+    width: '100%',
+    maxWidth: '380px',
+    aspectRatio: '1',
+    margin: '0 auto',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: theme.spacing(8),
+    order: 2,
+    [theme.breakpoints.up('xs')]: {
+        maxWidth: '280px',
+    },
+    [theme.breakpoints.up('sm')]: {
+        maxWidth: '380px',
+    },
     [theme.breakpoints.up('md')]: {
-        marginTop: 0,
-        height: 600,
+        maxWidth: '500px',
+        order: 2,
     },
 }));
 
-const HeroCircle = styled(Box)(({ theme, size, color, delay }) => ({
+const HeroCircle = styled(Box)(({ theme, size, color, delay }) => {
+    const baseSize = Number(size) || 300;
+    return {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        margin: 'auto',
+        width: baseSize * 0.55,
+        height: baseSize * 0.55,
+        borderRadius: '50%',
+        backgroundColor: color,
+        opacity: 0.06,
+        animation: `${circlePulse} 8s ease-in-out infinite`,
+        animationDelay: delay,
+        pointerEvents: 'none',
+        [theme.breakpoints.up('sm')]: {
+            width: baseSize * 0.75,
+            height: baseSize * 0.75,
+        },
+        [theme.breakpoints.up('md')]: {
+            width: baseSize,
+            height: baseSize,
+        },
+    };
+});
+
+const OrbitalRing = styled(Box)(({ theme, ringSize, duration, reverse }) => ({
     position: 'absolute',
-    width: size,
-    height: size,
+    top: '50%',
+    left: '50%',
+    width: `clamp(${ringSize * 0.55}px, ${ringSize * 0.08}vw, ${ringSize}px)`,
+    height: `clamp(${ringSize * 0.55}px, ${ringSize * 0.08}vw, ${ringSize}px)`,
+    marginTop: `clamp(-${ringSize * 0.275}px, -${ringSize * 0.04}vw, -${ringSize / 2}px)`,
+    marginLeft: `clamp(-${ringSize * 0.275}px, -${ringSize * 0.04}vw, -${ringSize / 2}px)`,
     borderRadius: '50%',
-    backgroundColor: color,
-    opacity: 0.1,
-    animation: `${float} 6s ease-in-out infinite`,
-    animationDelay: delay,
+    border: '1px solid rgba(255,255,255,0.10)',
+    pointerEvents: 'none',
+    animation: `${reverse ? orbitSpinReverse : orbitSpin} ${duration}s linear infinite`,
+    transformStyle: 'preserve-3d',
+    willChange: 'transform',
+    zIndex: 3,
+    '&::after': {
+        content: '""',
+        position: 'absolute',
+        top: -3,
+        left: '50%',
+        width: 6,
+        height: 6,
+        borderRadius: '50%',
+        backgroundColor: 'rgba(255,255,255,0.25)',
+    },
+}));
+
+const GlassBadge = styled(Box)(({ theme }) => ({
+    position: 'absolute',
+    display: 'none',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    padding: theme.spacing(1, 2),
+    borderRadius: 14,
+    background: 'rgba(255,255,255,0.12)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.18)',
+    color: theme.palette.common.white,
+    fontSize: '0.8rem',
+    fontWeight: 600,
+    zIndex: 10,
+    pointerEvents: 'none',
+    whiteSpace: 'nowrap',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+    willChange: 'transform',
+    [theme.breakpoints.up('sm')]: {
+        display: 'flex',
+    },
+}));
+
+const HeroParticle = styled(Box)(({ delay, leftPos, size }) => ({
+    position: 'absolute',
+    top: '38%',
+    left: leftPos || '50%',
+    fontSize: size || '0.7rem',
+    color: 'rgba(255,107,107,0.7)',
+    animation: `${particleRise} 4s ease-out infinite`,
+    animationDelay: delay || '0s',
+    pointerEvents: 'none',
+    zIndex: 4,
+    willChange: 'transform, opacity',
 }));
 
 const StatCard = styled(Card)(({ theme }) => ({
@@ -237,11 +384,11 @@ function Home() {
     // Read from shared context — reflects admin changes in real time
     const { state } = useAdminData();
     const dashboardStats = state.dashboardStats || {};
-    
+
     // Derived lists
     const programs = state.programs?.filter(p => !p.status || p.status === 'active') || [];
     const featuredProjectsList = state.projects?.filter(p => p.featured) || [];
-    
+
     // Dynamically calculate stats based on real data
     const impactStats = {
         totalDonations: dashboardStats.totalDonations || 0,
@@ -255,16 +402,7 @@ function Home() {
 
     const [currentVerseIndex, setCurrentVerseIndex] = useState(0);
 
-    // Filter active announcements
-    const activeAnnouncements = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        return (state.content?.announcements || []).filter(a => {
-            if (!a.active) return false;
-            if (a.startDate && a.startDate > today) return false;
-            if (a.endDate && a.endDate < today) return false;
-            return true;
-        });
-    }, [state.content?.announcements]);
+
 
     // Active islamic content
     const activeVerses = useMemo(() => {
@@ -299,191 +437,294 @@ function Home() {
         ];
     }, [state.content?.statsConfig, impactStats]);
 
+    const [announcementVisible, setAnnouncementVisible] = useState(false);
+
+    useEffect(() => {
+        const checkVisibility = () => {
+            const list = state.content?.announcements || [];
+            const today = new Date().toISOString().split('T')[0];
+            const active = list.find(a => {
+                if (!a.active) return false;
+                if (a.startDate && a.startDate > today) return false;
+                if (a.endDate && a.endDate < today) return false;
+                return true;
+            });
+            
+            if (active) {
+                const dismissedId = sessionStorage.getItem('dismissed_announcement_id');
+                const dismissedText = sessionStorage.getItem('dismissed_announcement_text');
+                const isDismissed = dismissedId === String(active.id) || dismissedText === active.text;
+                setAnnouncementVisible(!isDismissed);
+            } else {
+                setAnnouncementVisible(false);
+            }
+        };
+
+        checkVisibility();
+
+        const handleAnnouncementChange = () => {
+            checkVisibility();
+        };
+
+        window.addEventListener('announcement_change', handleAnnouncementChange);
+        return () => {
+            window.removeEventListener('announcement_change', handleAnnouncementChange);
+        };
+    }, [state.content?.announcements]);
+
     return (
         <Box sx={{ overflowX: 'hidden' }}>
-            {/* ========== ANNOUNCEMENTS BANNERS ========== */}
-            {activeAnnouncements.map((ann, i) => (
-                <Box key={ann.id || i} sx={{ bgcolor: ann.type === 'urgent' ? 'error.main' : ann.type === 'success' ? 'success.main' : ann.type === 'seasonal' ? 'warning.main' : 'info.main', color: 'white', py: 1, px: 2, textAlign: 'center', fontWeight: 'bold' }}>
-                    {ann.title && <Box component="span" sx={{ mr: 1, textDecoration: 'underline' }}>{ann.title}:</Box>}
-                    {ann.text}
-                </Box>
-            ))}
+
 
             {/* ========== HERO ========== */}
-            <HeroSection sx={{
-                ...(state.settings?.heroStyle === 'image' && state.content?.heroBanner?.image && {
-                    backgroundImage: `linear-gradient(${theme.palette.hero.overlay}, ${theme.palette.hero.overlay}), url(${state.content.heroBanner.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                })
-            }}>
-                <Container>
-                    <Grid container spacing={4} alignItems="center">
-                        <Grid item xs={12} md={6}>
-                            <HeroContent>
-                                <Typography
-                                    variant="h1"
-                                    fontWeight="900"
-                                    sx={{
-                                        lineHeight: 1.2,
-                                        mb: 2,
-                                        fontSize: { xs: '2.5rem', md: '4rem' },
-                                        color: 'common.white',
-                                        animation: `${fadeInUp} 0.8s ease forwards`
-                                    }}
-                                >
-                                    {state.content?.heroBanner?.title || t('home.heroTitle')}
-                                </Typography>
-                                <Typography
-                                    variant="h5"
-                                    sx={{
-                                        mb: 4,
-                                        lineHeight: 1.6,
-                                        color: alpha(theme.palette.common.white, 0.85),
-                                        animation: `${fadeInUp} 0.8s ease forwards 0.2s`,
-                                        opacity: 0,
-                                        animationFillMode: 'forwards'
-                                    }}
-                                >
-                                    {state.content?.heroBanner?.subtitle || t('home.heroSubtitle')}
-                                </Typography>
-                                {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'rotating' && (
-                                    <Box sx={{ mb: 4, minHeight: 60 }}>
-                                        <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: '1.1rem', fontStyle: 'italic' }}>
-                                            "{activeVerses[currentVerseIndex].text}"
-                                            {activeVerses[currentVerseIndex].reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.85rem', opacity: 0.8 }}>- {activeVerses[currentVerseIndex].reference}</Box>}
-                                        </Typography>
-                                    </Box>
-                                )}
-                                {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'stacked' && (
-                                    <Stack spacing={2} sx={{ mb: 4 }}>
-                                        {activeVerses.map(verse => (
-                                            <Typography key={verse.id} variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: '1rem', fontStyle: 'italic', borderLeft: '3px solid', borderColor: 'primary.main', pl: 2 }}>
-                                                "{verse.text}"
-                                                {verse.reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.8rem', opacity: 0.8 }}>- {verse.reference}</Box>}
-                                            </Typography>
-                                        ))}
-                                    </Stack>
-                                )}
-
-                                <Stack
-                                    direction={{ xs: 'column', sm: 'row' }}
-                                    spacing={2}
-                                    justifyContent={{ xs: 'center', md: 'flex-start' }}
-                                    sx={{ animation: `${fadeInUp} 0.8s ease forwards 0.4s`, opacity: 0, animationFillMode: 'forwards' }}
-                                >
-                                    <PillButton
-                                        component={Link}
-                                        to="/donate"
-                                        variant="contained"
-                                        color="primary"
-                                        size="large"
-                                        sx={{
-                                            boxShadow: '0 4px 14px 0 rgba(0,0,0,0.3)',
-                                            bgcolor: 'primary.dark',
-                                            '&:hover': { bgcolor: 'primary.800' }
-                                        }}
-                                    >
-                                        {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
-                                    </PillButton>
-                                    <PillButton
-                                        component={Link}
-                                        to="/campaigns"
-                                        variant="outlined"
-                                        size="large"
-                                        sx={{
-                                            color: 'common.white',
-                                            borderColor: alpha(theme.palette.common.white, 0.5),
-                                            '&:hover': {
-                                                borderColor: 'common.white',
-                                                bgcolor: alpha(theme.palette.common.white, 0.1)
-                                            }
-                                        }}
-                                    >
-                                        {t('common.learnMore')}
-                                    </PillButton>
-                                </Stack>
-                            </HeroContent>
-                        </Grid>
-                        <Grid item xs={12} md={6}>
-                            <HeroVisual>
-                                <HeroCircle size={400} color={theme.palette.hero.glow} delay="0s" />
-                                <HeroCircle size={280} color={theme.palette.hero.glow} delay="1s" />
-                                <HeroCircle size={150} color={theme.palette.hero.glow} delay="2s" />
-                                {/* Soft radial glow behind illustration */}
-                                <Box
-                                    sx={{
-                                        position: 'absolute',
-                                        width: 320,
-                                        height: 320,
-                                        borderRadius: '50%',
-                                        background: 'radial-gradient(circle, rgba(77,182,172,0.18) 0%, transparent 70%)',
-                                        pointerEvents: 'none',
-                                        zIndex: 0,
-                                    }}
-                                />
-                                <Box
-                                    sx={{
-                                        fontSize: '8rem',
-                                        color: 'common.white',
-                                        filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.2))',
-                                        animation: `${float} 4s ease-in-out infinite`,
-                                        position: 'relative',
-                                        zIndex: 1,
-                                    }}
-                                >
-                                    <i className="fa-solid fa-hand-holding-heart"></i>
-                                </Box>
-                            </HeroVisual>
-                        </Grid>
-                    </Grid>
-                </Container>
-            </HeroSection>
-
-            {/* Wave Divider */}
-            <Box
+            <HeroSection
+                announcementVisible={announcementVisible}
                 sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '100%',
-                    overflow: 'hidden',
-                    lineHeight: 0,
-                    zIndex: 2,
-                    mt: -1 // Fix any sub-pixel gap
+                    ...(state.settings?.heroStyle === 'image' && state.content?.heroBanner?.image && {
+                        backgroundImage: `linear-gradient(${theme.palette.hero.overlay}, ${theme.palette.hero.overlay}), url(${state.content.heroBanner.image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    })
                 }}
             >
-                <svg
-                    position="relative"
-                    display="block"
-                    width="calc(100% + 1.3px)"
-                    height="150px"
-                    viewBox="0 0 1440 320"
-                    preserveAspectRatio="none"
-                    style={{ display: 'block' }}
+                <Container>
+                    <HeroGrid>
+                        {/* --- Text Column --- */}
+                        <HeroContent>
+                            <Typography
+                                variant="h1"
+                                fontWeight="900"
+                                sx={{
+                                    lineHeight: 1.15,
+                                    mb: 2,
+                                    fontSize: 'clamp(1.8rem, 5vw, 4rem)',
+                                    color: 'common.white',
+                                    animation: `${fadeInUp} 0.8s ease forwards`,
+                                }}
+                            >
+                                {state.content?.heroBanner?.title || t('home.heroTitle')}
+                            </Typography>
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    mb: 4,
+                                    lineHeight: 1.7,
+                                    fontSize: 'clamp(0.88rem, 2vw, 1.25rem)',
+                                    color: alpha(theme.palette.common.white, 0.85),
+                                    animation: `${fadeInUp} 0.8s ease forwards 0.2s`,
+                                    opacity: 0,
+                                    animationFillMode: 'forwards',
+                                }}
+                            >
+                                {state.content?.heroBanner?.subtitle || t('home.heroSubtitle')}
+                            </Typography>
+                            {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'rotating' && (
+                                <Box sx={{ mb: 4, minHeight: 60 }}>
+                                    <Typography variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: 'clamp(0.85rem, 1.8vw, 1.15rem)', fontStyle: 'italic' }}>
+                                        "{activeVerses[currentVerseIndex].text}"
+                                        {activeVerses[currentVerseIndex].reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.85rem', opacity: 0.8 }}>- {activeVerses[currentVerseIndex].reference}</Box>}
+                                    </Typography>
+                                </Box>
+                            )}
+                            {activeVerses.length > 0 && state.content?.islamicDisplayMode === 'stacked' && (
+                                <Stack spacing={2} sx={{ mb: 4 }}>
+                                    {activeVerses.map(verse => (
+                                        <Typography key={verse.id} variant="body2" sx={{ color: alpha(theme.palette.common.white, 0.9), fontSize: 'clamp(0.8rem, 1.5vw, 1rem)', fontStyle: 'italic', borderLeft: '3px solid', borderColor: 'primary.main', pl: 2 }}>
+                                            "{verse.text}"
+                                            {verse.reference && <Box component="span" sx={{ display: 'block', mt: 0.5, fontSize: '0.8rem', opacity: 0.8 }}>- {verse.reference}</Box>}
+                                        </Typography>
+                                    ))}
+                                </Stack>
+                            )}
+
+                            <Stack
+                                direction={{ xs: 'column', sm: 'row' }}
+                                spacing={2}
+                                justifyContent={{ xs: 'center', md: 'flex-start' }}
+                                alignItems={{ xs: 'center', sm: 'stretch' }}
+                                sx={{
+                                    animation: `${fadeInUp} 0.8s ease forwards 0.4s`,
+                                    opacity: 0,
+                                    animationFillMode: 'forwards',
+                                    '& > a': {
+                                        width: { xs: '240px', sm: 'auto' }
+                                    }
+                                }}
+                            >
+                                <PillButton
+                                    component={Link}
+                                    to="/donate"
+                                    variant="contained"
+                                    color="primary"
+                                    size="large"
+                                    sx={{
+                                        boxShadow: '0 4px 14px 0 rgba(0,0,0,0.3)',
+                                        bgcolor: 'primary.dark',
+                                        '&:hover': { bgcolor: 'primary.800' }
+                                    }}
+                                >
+                                    {t('common.donate')} <i className="fa-solid fa-heart" style={{ marginInlineStart: 8 }}></i>
+                                </PillButton>
+                                <PillButton
+                                    component={Link}
+                                    to="/campaigns"
+                                    variant="outlined"
+                                    size="large"
+                                    sx={{
+                                        color: 'common.white',
+                                        borderColor: alpha(theme.palette.common.white, 0.5),
+                                        '&:hover': {
+                                            borderColor: 'common.white',
+                                            bgcolor: alpha(theme.palette.common.white, 0.1)
+                                        }
+                                    }}
+                                >
+                                    {t('common.learnMore')}
+                                </PillButton>
+                            </Stack>
+                        </HeroContent>
+
+                        {/* --- Illustration Column: 5-Layer Visual --- */}
+                        <HeroIllustrationContainer>
+                            {/* Layer 0: Radial glow backgrounds */}
+                            <HeroCircle size={400} color={theme.palette.hero.glow} delay="0s" />
+                            <HeroCircle size={280} color={theme.palette.hero.glow} delay="1.5s" />
+                            <HeroCircle size={150} color={theme.palette.hero.glow} delay="3s" />
+                            {/* Soft radial glow behind illustration */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    width: 'clamp(160px, 50%, 320px)',
+                                    height: 'clamp(160px, 50%, 320px)',
+                                    borderRadius: '50%',
+                                    background: 'radial-gradient(circle, rgba(77,182,172,0.22) 0%, transparent 70%)',
+                                    pointerEvents: 'none',
+                                    zIndex: 0,
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                }}
+                            />
+
+                            {/* Layer 4: Orbital Rings */}
+                            <OrbitalRing ringSize={340} duration={22} />
+                            <OrbitalRing ringSize={440} duration={32} reverse />
+
+                            {/* Layer 3: Particle Micro-Hearts */}
+                            <HeroParticle delay="0s" leftPos="42%" size="0.65rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                            <HeroParticle delay="0.8s" leftPos="55%" size="0.5rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                            <HeroParticle delay="1.6s" leftPos="48%" size="0.75rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                            <HeroParticle delay="2.4s" leftPos="60%" size="0.55rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                            <Box sx={{ display: { xs: 'none', md: 'contents' } }}>
+                                <HeroParticle delay="3.2s" leftPos="38%" size="0.6rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                                <HeroParticle delay="1.2s" leftPos="64%" size="0.5rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                                <HeroParticle delay="2.8s" leftPos="45%" size="0.7rem"><i className="fa-solid fa-heart" /></HeroParticle>
+                            </Box>
+
+                            {/* Layer 1: Base Hand */}
+                            <Box
+                                sx={{
+                                    fontSize: 'clamp(4rem, 12vw, 8.5rem)',
+                                    color: 'common.white',
+                                    filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.25))',
+                                    animation: `${sineFloat} 5s ease-in-out infinite`,
+                                    position: 'relative',
+                                    zIndex: 2,
+                                    lineHeight: 1,
+                                    willChange: 'transform',
+                                }}
+                            >
+                                <i className="fa-solid fa-hand-holding" />
+                            </Box>
+
+                            {/* Layer 2: Glowing Heart */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: '22%',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    fontSize: 'clamp(2rem, 6vw, 4rem)',
+                                    color: '#ff6b6b',
+                                    animation: `${heartPulse} 2.5s ease-in-out infinite`,
+                                    zIndex: 5,
+                                    lineHeight: 1,
+                                    willChange: 'transform, opacity, filter',
+                                }}
+                            >
+                                <i className="fa-solid fa-heart" />
+                            </Box>
+
+                            {/* Layer 5: Glassmorphic Badges */}
+                            <GlassBadge
+                                sx={{
+                                    top: '12%',
+                                    right: '-8%',
+                                    animation: `${badgeFloat1} 6s ease-in-out infinite`,
+                                }}
+                            >
+                                <i className="fa-solid fa-hand-holding-heart" style={{ fontSize: '0.9rem', color: '#4DB6AC' }} />
+                                {'تبرع جديد'}
+                            </GlassBadge>
+                            <GlassBadge
+                                sx={{
+                                    bottom: '18%',
+                                    left: '-5%',
+                                    animation: `${badgeFloat2} 8s ease-in-out infinite`,
+                                }}
+                            >
+                                <i className="fa-solid fa-chart-line" style={{ fontSize: '0.9rem', color: '#FFD54F' }} />
+                                {'نشاط حملة'}
+                            </GlassBadge>
+                        </HeroIllustrationContainer>
+                    </HeroGrid>
+                </Container>
+
+                {/* Wave Divider */}
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        width: '100%',
+                        overflow: 'hidden',
+                        lineHeight: 0,
+                        zIndex: 2,
+                        pointerEvents: 'none',
+                        '& svg': {
+                            height: { xs: '60px', sm: '100px', md: '150px' },
+                            width: 'calc(100% + 1.3px)',
+                        }
+                    }}
                 >
-                    <path
-                        fill={theme.palette.background.default}
-                        fillOpacity="1"
-                        d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
-                    ></path>
-                </svg>
-            </Box>
+                    <svg
+                        viewBox="0 0 1440 320"
+                        preserveAspectRatio="none"
+                        style={{ display: 'block' }}
+                    >
+                        <path
+                            fill={theme.palette.background.default}
+                            fillOpacity="1"
+                            d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,112C672,96,768,96,864,112C960,128,1056,160,1152,160C1248,160,1344,128,1392,112L1440,96L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"
+                        ></path>
+                    </svg>
+                </Box>
+            </HeroSection>
 
             {/* ========== IMPACT STATS ========== */}
-            <Box sx={{ py: sectionPy, bgcolor: 'background.default' }}>
+            <Box sx={{ py: { xs: 4, md: sectionPy }, bgcolor: 'background.default' }}>
                 <Container maxWidth="lg">
-                    <Grid container spacing={3} justifyContent="center">
+                    <Grid container spacing={{ xs: 2, sm: 3 }} justifyContent="center">
                         {displayStats.map((stat, i) => (
-                            <Grid item xs={6} md={3} key={i} sx={{ display: 'flex' }}>
+                            <Grid item xs={6} sm={6} md={3} key={i} sx={{ display: 'flex' }}>
                                 <StatCard elevation={0}>
                                     <StatIcon className="stat-icon">
                                         <i className={stat.icon}></i>
                                     </StatIcon>
-                                    <Typography variant="h3" fontWeight="900" sx={{ lineHeight: 1.1 }}>
+                                    <Typography variant="h4" sx={{ fontWeight: '800', lineHeight: 1.1, fontSize: { xs: '1.3rem', sm: '1.5rem', md: '2rem' } }}>
                                         {formatNumber(stat.value)}+
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.8rem', letterSpacing: '0.02em' }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem', md: '0.8rem' }, letterSpacing: '0.02em' }}>
                                         {stat.label}
                                     </Typography>
                                 </StatCard>
@@ -494,37 +735,37 @@ function Home() {
             </Box>
 
             {/* ========== PROGRAMS ========== */}
-            <Box sx={{ py: sectionPy }}>
+            <Box sx={{ py: { xs: 4, md: sectionPy } }}>
                 <Container>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 6 }}>
-                        <Typography variant="h3" fontWeight="bold">{t('home.ourPrograms')}</Typography>
-                        <Button component={Link} to="/programs" endIcon={'←'}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 3, md: 6 } }}>
+                        <Typography variant="h4" sx={{ fontWeight: 'bold', fontSize: { xs: '1.4rem', md: '2rem' } }}>{t('home.ourPrograms')}</Typography>
+                        <Button component={Link} to="/programs" endIcon={'←'} sx={{ fontSize: { xs: '0.75rem', md: '0.9rem' } }}>
                             {t('common.viewAll')}
                         </Button>
                     </Box>
-                    <Grid container spacing={3}>
+                    <Grid container spacing={{ xs: 2, sm: 3 }}>
                         {programs.map((program, i) => (
-                            <Grid item xs={6} md={3} key={program.id}>
+                            <Grid item xs={6} sm={6} md={3} key={program.id}>
                                 <ProgramCard elevation={0} color={program.color}>
                                     <Box
                                         className="program-icon"
                                         sx={{
-                                            width: 72,
-                                            height: 72,
+                                            width: { xs: 56, sm: 64, md: 72 },
+                                            height: { xs: 56, sm: 64, md: 72 },
                                             borderRadius: '50%',
                                             bgcolor: alpha(program.color, 0.1),
                                             color: program.color,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            fontSize: '1.75rem',
+                                            fontSize: { xs: '1.3rem', sm: '1.5rem', md: '1.75rem' },
                                             mb: 2,
                                             transition: 'all 0.3s ease'
                                         }}
                                     >
                                         <i className={program.icon}></i>
                                     </Box>
-                                    <Typography variant="h6" fontWeight="bold">
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: { xs: '0.85rem', sm: '0.95rem', md: '1rem' } }}>
                                         {program.name}
                                     </Typography>
                                 </ProgramCard>
@@ -536,7 +777,7 @@ function Home() {
 
             {/* ========== URGENT CASES — الحالات الأشد احتياجاً ========== */}
             <Box sx={{
-                py: sectionPy,
+                py: { xs: 4, md: sectionPy },
                 bgcolor: isDark
                     ? 'rgba(255,255,255,0.02)'
                     : alpha(theme.palette.primary.main, 0.025),
@@ -557,13 +798,13 @@ function Home() {
                 }} />
                 <Container>
                     {/* Section header */}
-                    <Box sx={{ textAlign: 'center', mb: 5 }}>
+                    <Box sx={{ textAlign: 'center', mb: { xs: 3, md: 5 } }}>
                         <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
                             <Typography
-                                variant="h3"
+                                variant="h4"
                                 fontWeight="900"
                                 sx={{
-                                    fontSize: { xs: '1.75rem', md: '2.4rem' },
+                                    fontSize: { xs: '1.3rem', sm: '1.75rem', md: '2.4rem' },
                                     background: isDark
                                         ? `linear-gradient(135deg, ${theme.palette.primary.light}, ${theme.palette.error.light})`
                                         : `linear-gradient(135deg, ${theme.palette.primary.dark}, ${theme.palette.error.main})`,
@@ -583,23 +824,24 @@ function Home() {
                                     px: 1.2,
                                     py: 0.4,
                                     borderRadius: '999px',
-                                    fontSize: '0.72rem',
+                                    fontSize: '0.65rem',
                                     fontWeight: 800,
                                     animation: `${pulseGlow} 2s ease-in-out infinite`,
                                 }}
                             >
-                                <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '0.7rem' }} />
+                                <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '0.6rem' }} />
                                 {'عاجل'}
                             </Box>
                         </Box>
                         <Typography
-                            variant="body1"
+                            variant="body2"
                             sx={{
                                 color: 'text.secondary',
                                 maxWidth: 500,
                                 mx: 'auto',
                                 lineHeight: 1.7,
                                 fontWeight: 400,
+                                fontSize: { xs: '0.8rem', md: '1rem' }
                             }}
                         >
                             {t('home.urgentCasesSubtitle')}
@@ -611,7 +853,7 @@ function Home() {
                         display: 'flex',
                         flexWrap: 'wrap',
                         justifyContent: 'center',
-                        gap: 3,
+                        gap: { xs: 2, md: 3 },
                         mb: 4,
                     }}>
                         {featuredProjectsList.length === 0 ? (
@@ -620,7 +862,7 @@ function Home() {
                                 <Typography sx={{ mt: 2 }}>{'لا توجد حالات مميزة بعد'}</Typography>
                             </Box>
                         ) : featuredProjectsList.map((project, i) => (
-                            <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(33.33% - 16px)' }, display: 'flex', justifyContent: 'center' }}>
+                            <Box key={project.id} sx={{ width: { xs: '100%', sm: 'calc(50% - 8px)', md: 'calc(33.33% - 12px)' }, display: 'flex', justifyContent: 'center' }}>
                                 <CampaignCardItem
                                     project={project}
                                     index={i}
@@ -641,11 +883,11 @@ function Home() {
                             endIcon={'←'}
                             sx={{
                                 borderRadius: '999px',
-                                px: 4,
-                                py: 1.2,
+                                px: { xs: 2.5, md: 4 },
+                                py: { xs: 0.8, md: 1.2 },
                                 fontWeight: 700,
                                 textTransform: 'none',
-                                fontSize: '0.95rem',
+                                fontSize: { xs: '0.8rem', md: '0.95rem' },
                                 borderWidth: '1.5px',
                                 transition: 'all 250ms ease',
                                 '&:hover': {
@@ -766,31 +1008,160 @@ function Home() {
                 </Container>
             </QuickDonateSection>
 
-            {/* ========== TESTIMONIALS ========== */}
-            {(state.content?.testimonials && state.content.testimonials.length > 0) && (
+            {/* ========== ZAKAT CTA ========== */}
             <Box sx={{
-                pt: sectionPy,
-                pb: { xs: 4, md: 6 },
-                bgcolor: isDark ? 'rgba(255,255,255,0.015)' : undefined,
+                py: sectionPy,
+                background: isDark
+                    ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.primary.dark, 0.12)} 100%)`
+                    : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.04)} 0%, ${alpha(theme.palette.primary.light, 0.06)} 100%)`,
+                borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eef2f6'}`,
+                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eef2f6'}`,
             }}>
-                <Container>
-                    <Typography variant="h3" fontWeight="bold" textAlign="center" sx={{ mb: 6 }}>
-                        {t('home.testimonials')}
-                    </Typography>
-                    <Grid container spacing={3}>
-                        {state.content.testimonials.map((testimonial) => (
-                            <Grid item xs={12} sm={6} md={4} key={testimonial.id} sx={{ display: 'flex' }}>
-                                <TestimonialCardItem
-                                    text={testimonial.content || testimonial.text}
-                                    name={testimonial.name}
-                                    role={testimonial.role}
-                                    initial={testimonial.name?.charAt(0)}
-                                />
-                            </Grid>
-                        ))}
-                    </Grid>
+                <Container maxWidth="md">
+                    <Card
+                        elevation={0}
+                        sx={{
+                            p: { xs: 3.5, md: 5 },
+                            borderRadius: '24px',
+                            background: isDark
+                                ? `linear-gradient(135deg, ${theme.palette.primary.dark} 0%, #112d2c 100%)`
+                                : `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                            color: '#fff',
+                            boxShadow: isDark
+                                ? '0 8px 32px rgba(0,0,0,0.3)'
+                                : `0 8px 30px ${alpha(theme.palette.primary.main, 0.25)}`,
+                            position: 'relative',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: { xs: 'column', md: 'row' },
+                            alignItems: 'center',
+                            gap: 4,
+                            '&:hover': {
+                                '& .zakat-icon-box': {
+                                    transform: 'scale(1.05) rotate(-5deg)',
+                                },
+                            },
+                        }}
+                    >
+                        {/* Decorative background circle */}
+                        <Box sx={{
+                            position: 'absolute',
+                            bottom: '-50px',
+                            left: '-50px',
+                            width: '200px',
+                            height: '200px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            pointerEvents: 'none',
+                        }} />
+
+                        {/* Icon Box */}
+                        <Box
+                            className="zakat-icon-box"
+                            sx={{
+                                width: 80,
+                                height: 80,
+                                borderRadius: '20px',
+                                bgcolor: 'rgba(255,255,255,0.12)',
+                                border: '1px solid rgba(255,255,255,0.18)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+                            }}
+                        >
+                            <i className="fa-solid fa-calculator" style={{ fontSize: '2.2rem', color: '#fff' }}></i>
+                        </Box>
+
+                        {/* Text Content */}
+                        <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'right' } }}>
+                            <Typography
+                                variant="h4"
+                                sx={{
+                                    fontFamily: "'Cairo', 'Tajawal', sans-serif",
+                                    fontWeight: 800,
+                                    fontSize: { xs: '1.4rem', md: '1.75rem' },
+                                    mb: 1.5,
+                                }}
+                            >
+                                {getLanguage() === 'en' ? 'Calculate Your Zakat Accurately' : 'احسب زكاتك بدقة وسهولة'}
+                            </Typography>
+                            <Typography
+                                variant="body1"
+                                sx={{
+                                    fontFamily: "'Cairo', 'Tajawal', sans-serif",
+                                    color: 'rgba(255,255,255,0.8)',
+                                    fontSize: { xs: '0.85rem', md: '0.92rem' },
+                                    lineHeight: 1.8,
+                                    maxWidth: 550,
+                                }}
+                            >
+                                {getLanguage() === 'en'
+                                    ? 'Use our advanced live calculator to compute Zakat on money, gold, silver, and agricultural crops based on real-time prices.'
+                                    : 'استخدم حاسبة الزكاة المتطورة لحساب زكاة أموالك، مدخراتك، الذهب، الفضة، والمحاصيل الزراعية بكل دقة بناءً على أسعار السوق الحية.'}
+                            </Typography>
+                        </Box>
+
+                        {/* CTA Button */}
+                        <Button
+                            component={Link}
+                            to="/zakat"
+                            variant="contained"
+                            sx={{
+                                bgcolor: '#fff',
+                                color: theme.palette.primary.dark,
+                                fontFamily: "'Cairo', 'Tajawal', sans-serif",
+                                fontWeight: 800,
+                                px: 4,
+                                py: 1.6,
+                                borderRadius: '14px',
+                                textTransform: 'none',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                                '&:hover': {
+                                    bgcolor: 'rgba(255,255,255,0.9)',
+                                    boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
+                                    transform: 'translateY(-2px)',
+                                },
+                                '&:active': {
+                                    transform: 'translateY(0)',
+                                },
+                            }}
+                        >
+                            {getLanguage() === 'en' ? 'Open Zakat Calculator' : 'افتح حاسبة الزكاة'}
+                            <i className="fa-solid fa-arrow-left" style={{ marginInlineStart: 8, fontSize: '0.85rem' }}></i>
+                        </Button>
+                    </Card>
                 </Container>
             </Box>
+
+            {/* ========== TESTIMONIALS ========== */}
+            {(state.content?.testimonials && state.content.testimonials.length > 0) && (
+                <Box sx={{
+                    pt: sectionPy,
+                    pb: { xs: 4, md: 6 },
+                    bgcolor: isDark ? 'rgba(255,255,255,0.015)' : undefined,
+                }}>
+                    <Container>
+                        <Typography variant="h3" fontWeight="bold" textAlign="center" sx={{ mb: 6 }}>
+                            {t('home.testimonials')}
+                        </Typography>
+                        <Grid container spacing={3}>
+                            {state.content.testimonials.map((testimonial) => (
+                                <Grid item xs={12} sm={6} md={4} key={testimonial.id} sx={{ display: 'flex' }}>
+                                    <TestimonialCardItem
+                                        text={testimonial.content || testimonial.text}
+                                        name={testimonial.name}
+                                        role={testimonial.role}
+                                        initial={testimonial.name?.charAt(0)}
+                                    />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Container>
+                </Box>
             )}
 
             {/* ========== LATEST UPDATES ========== */}
@@ -868,7 +1239,7 @@ function Home() {
                                         },
                                     }}
                                 >
-                                    <Box sx={{ flex: 1, textAlign: 'right'}}>
+                                    <Box sx={{ flex: 1, textAlign: 'right' }}>
                                         <Typography
                                             variant="body1"
                                             sx={{
@@ -1109,7 +1480,7 @@ function TestimonialCardItem({ text, name, role, initial }) {
                     {initial || name.charAt(0)}
                 </Avatar>
 
-                <Box sx={{ textAlign: 'right'}}> {/* Name and Role */}
+                <Box sx={{ textAlign: 'right' }}> {/* Name and Role */}
                     <Typography variant="subtitle1" fontWeight="bold" sx={{ color: 'text.primary' }}>
                         {name}
                     </Typography>

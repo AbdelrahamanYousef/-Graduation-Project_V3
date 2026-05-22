@@ -83,7 +83,42 @@ function DonorLayout({ children, scrolled }) {
     const [notifAnchorEl, setNotifAnchorEl] = useState(null);
     const [hideAnnouncement, setHideAnnouncement] = useState(false);
 
-    const showAnnouncement = state.content?.announcements?.active && state.content?.announcements?.text && !hideAnnouncement;
+    const activeAnnouncement = useMemo(() => {
+        const list = state.content?.announcements || [];
+        const today = new Date().toISOString().split('T')[0];
+        return list.find(a => {
+            if (!a.active) return false;
+            if (a.startDate && a.startDate > today) return false;
+            if (a.endDate && a.endDate < today) return false;
+            return true;
+        });
+    }, [state.content?.announcements]);
+
+    // Check sessionStorage on activeAnnouncement change
+    useEffect(() => {
+        if (activeAnnouncement) {
+            const dismissedId = sessionStorage.getItem('dismissed_announcement_id');
+            const dismissedText = sessionStorage.getItem('dismissed_announcement_text');
+            if (dismissedId === String(activeAnnouncement.id) || dismissedText === activeAnnouncement.text) {
+                setHideAnnouncement(true);
+            } else {
+                setHideAnnouncement(false);
+            }
+        } else {
+            setHideAnnouncement(false);
+        }
+    }, [activeAnnouncement]);
+
+    const showAnnouncement = activeAnnouncement && !hideAnnouncement;
+
+    const handleDismissAnnouncement = () => {
+        if (activeAnnouncement) {
+            sessionStorage.setItem('dismissed_announcement_id', String(activeAnnouncement.id || ''));
+            sessionStorage.setItem('dismissed_announcement_text', activeAnnouncement.text || '');
+        }
+        setHideAnnouncement(true);
+        window.dispatchEvent(new Event('announcement_change'));
+    };
 
     // Initialize notifications
     useEffect(() => {
@@ -196,15 +231,34 @@ function DonorLayout({ children, scrolled }) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
             {showAnnouncement && (
-                <Box sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1201, bgcolor: 'primary.main', color: 'primary.contrastText', py: 0.8, px: 4, textAlign: 'center', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1 }}>
+                <Box sx={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '36px',
+                    zIndex: 1201,
+                    bgcolor: activeAnnouncement.type === 'urgent' ? 'error.main' : activeAnnouncement.type === 'success' ? 'success.main' : activeAnnouncement.type === 'seasonal' ? 'warning.main' : 'info.main',
+                    color: 'white',
+                    px: 4,
+                    textAlign: 'center',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 1,
+                    boxSizing: 'border-box'
+                }}>
                     <i className="fa-solid fa-bullhorn"></i>
-                    {state.content.announcements.text}
-                    <IconButton size="small" onClick={() => setHideAnnouncement(true)} sx={{ position: 'absolute', right: 8, color: 'inherit', py: 0 }}>
+                    {activeAnnouncement.title && <Box component="span" sx={{ mr: 1, textDecoration: 'underline' }}>{activeAnnouncement.title}:</Box>}
+                    {activeAnnouncement.text}
+                    <IconButton size="small" onClick={handleDismissAnnouncement} sx={{ position: 'absolute', right: 8, color: 'inherit', py: 0 }}>
                         <i className="fa-solid fa-xmark" style={{ fontSize: '1rem' }} />
                     </IconButton>
                 </Box>
             )}
-            <AppBar position="fixed" color="inherit" sx={{ top: showAnnouncement ? 36 : 0, transition: 'top 0.3s ease', bgcolor: theme.palette.navbar.glass, backdropFilter: `blur(${theme.palette.navbar.blur})`, color: theme.palette.navbar.text }} elevation={scrolled ? 4 : 0}>
+            <AppBar position="fixed" color="inherit" sx={{ top: showAnnouncement ? 36 : 0, transition: 'top 0.3s ease', bgcolor: theme.palette.navbar.glass, backdropFilter: `blur(${theme.palette.navbar.blur})`, color: theme.palette.navbar.text, borderRadius: 0 }} elevation={scrolled ? 4 : 0}>
                 <Container maxWidth="xl">
                     <Toolbar disableGutters sx={{ minHeight: { xs: 64, md: 72 } }}>
                         {/* Mobile Menu Icon */}
@@ -352,7 +406,6 @@ function DonorLayout({ children, scrolled }) {
                                     sx={{
                                         display: { xs: 'none', md: 'flex' },
                                         position: 'relative',
-                                        borderRadius: 2,
                                         px: 2.5,
                                         transition: 'all 280ms ease',
                                         '&:hover': {
@@ -368,7 +421,7 @@ function DonorLayout({ children, scrolled }) {
                                 </Button>
                             )}
 
-                            <Button component={Link} to="/donate" variant="contained" size="small" sx={{ ml: 1, display: { xs: 'none', md: 'flex' }, borderRadius: 5 }}>
+                            <Button component={Link} to="/donate" variant="contained" size="small" sx={{ ml: 1, display: { xs: 'none', md: 'flex' } }}>
                                 {t('common.donate')}
                             </Button>
                         </Box>
@@ -389,7 +442,16 @@ function DonorLayout({ children, scrolled }) {
             </Drawer>
 
             {/* Main Content */}
-            <Box component="main" sx={{ flexGrow: 1, pb: { xs: 7, md: 0 }, pt: location.pathname === '/' ? 0 : { xs: 8, md: 9 } }}>
+            <Box component="main" sx={{
+                flexGrow: 1,
+                pb: { xs: 7, md: 0 },
+                pt: location.pathname === '/'
+                    ? 0
+                    : (showAnnouncement
+                        ? { xs: 12.5, md: 13.5 }
+                        : { xs: 8, md: 9 }
+                    )
+            }}>
                 {children}
             </Box>
 

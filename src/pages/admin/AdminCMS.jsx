@@ -331,12 +331,27 @@ export default function AdminCMS() {
                             إعدادات حساب الزكاة
                         </Typography>
                         <Divider sx={{ mb: 3 }} />
+                        <Box sx={{ mb: 4 }}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.zakatConfig.useLiveApi !== false}
+                                        onChange={(e) => handleChange('zakatConfig', 'useLiveApi', e.target.checked)}
+                                    />
+                                }
+                                label="تحديث أسعار الذهب والفضة تلقائياً بالربط مع أسعار السوق العالمية (Live API)"
+                            />
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 0.5, mr: 4 }}>
+                                عند التفعيل، سيقوم النظام تلقائياً بجلب الأسعار اللحظية من الإنترنت. ستُستخدم الأسعار اليدوية بالأسفل كاحتياطي فقط في حال تعذر الاتصال بالخدمة.
+                            </Typography>
+                        </Box>
                         <Grid container spacing={3}>
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
                                     type="number"
-                                    label="سعر جرام الذهب (عيار 24)"
+                                    label={formData.zakatConfig.useLiveApi !== false ? "سعر جرام الذهب الاحتياطي (عيار 24)" : "سعر جرام الذهب المعتمد (عيار 24)"}
+                                    helperText={formData.zakatConfig.useLiveApi !== false ? "يُستخدم كاحتياطي في حال فشل جلب السعر الحي" : "السعر الثابت المستخدم في الحساب"}
                                     value={formData.zakatConfig.goldPrice}
                                     onChange={(e) => handleChange('zakatConfig', 'goldPrice', Number(e.target.value))}
                                     InputProps={{
@@ -348,7 +363,8 @@ export default function AdminCMS() {
                                 <TextField
                                     fullWidth
                                     type="number"
-                                    label="سعر جرام الفضة"
+                                    label={formData.zakatConfig.useLiveApi !== false ? "سعر جرام الفضة الاحتياطي" : "سعر جرام الفضة المعتمد"}
+                                    helperText={formData.zakatConfig.useLiveApi !== false ? "يُستخدم كاحتياطي في حال فشل جلب السعر الحي" : "السعر الثابت المستخدم في الحساب"}
                                     value={formData.zakatConfig.silverPrice}
                                     onChange={(e) => handleChange('zakatConfig', 'silverPrice', Number(e.target.value))}
                                     InputProps={{

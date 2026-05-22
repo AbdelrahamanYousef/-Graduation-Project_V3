@@ -179,6 +179,13 @@ const getComponentOverrides = (mode) => ({
             },
         },
     },
+    MuiAppBar: {
+        styleOverrides: {
+            root: {
+                borderRadius: 0,
+            },
+        },
+    },
     MuiContainer: {
         defaultProps: {
             maxWidth: 'lg',
@@ -294,7 +301,7 @@ export function createNourTheme(mode = 'light', direction = 'ltr', settings = {}
             },
             // Navbar glass effect
             navbar: {
-                glass: 'rgba(15, 92, 84, 0.75)',
+                glass: 'rgba(15, 92, 84, 0.95)',
                 text: '#FFFFFF',
                 blur: '8px',
             },
