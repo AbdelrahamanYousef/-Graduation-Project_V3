@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { t, getLanguage } from '../../i18n';
+import { t } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -10,9 +10,14 @@ import {
     Grid,
     Typography,
     TextField,
-    InputAdornment,
     Stack,
-    alpha
+    Tabs,
+    Tab,
+    Alert,
+    CircularProgress,
+    alpha,
+    InputAdornment,
+    IconButton,
 } from '@mui/material';
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -65,10 +70,10 @@ const Particle = styled('div')(({ delay, top, left, size }) => ({
 }));
 
 const StyledOtpInput = styled('input')(({ theme }) => ({
-    width: 56,
+    width: 52,
     height: 56,
     textAlign: 'center',
-    fontSize: '1.5rem',
+    fontSize: '1.4rem',
     fontWeight: 'bold',
     border: `2px solid ${theme.palette.divider}`,
     borderRadius: theme.shape.borderRadius,
@@ -83,76 +88,125 @@ const StyledOtpInput = styled('input')(({ theme }) => ({
     },
 }));
 
-const RoleCard = styled(Box)(({ theme }) => ({
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
-    padding: theme.spacing(4, 2),
-    background: theme.palette.background.paper,
-    border: `2px solid ${theme.palette.divider}`,
-    borderRadius: theme.shape.borderRadius * 1.5,
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-        borderColor: theme.palette.primary.main,
-        boxShadow: theme.shadows[4],
-        transform: 'translateY(-5px)',
-    },
-}));
+const particles = [
+    { top: '10%', left: '15%', delay: '0s' },
+    { top: '30%', left: '80%', size: 10, delay: '0.7s' },
+    { top: '50%', left: '25%', size: 6, delay: '1.4s' },
+    { top: '70%', left: '65%', delay: '2.1s' },
+    { top: '20%', left: '50%', size: 12, delay: '2.8s' },
+    { top: '85%', left: '35%', size: 5, delay: '3.5s' },
+];
 
 function Login() {
     const navigate = useNavigate();
     const theme = useTheme();
-    const { isDonorLoggedIn, donorLogin } = useAuth();
-    
-    const [step, setStep] = useState('phone'); // phone | otp | register
-    const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState(['', '', '', '']);
-    const [loading, setLoading] = useState(false);
-    const [regName, setRegName] = useState('');
-    const [regEmail, setRegEmail] = useState('');
+    const { isDonorLoggedIn, donorLogin, registerDonor, verifyDonorEmail, resendDonorVerification } = useAuth();
 
-    // If already logged in, redirect to account
+    // Tab: 0 = Sign In, 1 = Sign Up
+    const [tab, setTab] = useState(0);
+    // Step: 'form' | 'verify'
+    const [step, setStep] = useState('form');
+
+    // Sign In fields
+    const [signInEmail, setSignInEmail] = useState('');
+    const [signInPassword, setSignInPassword] = useState('');
+    const [showSignInPassword, setShowSignInPassword] = useState(false);
+
+    // Sign Up fields
+    const [signUpName, setSignUpName] = useState('');
+    const [signUpEmail, setSignUpEmail] = useState('');
+    const [signUpPassword, setSignUpPassword] = useState('');
+    const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+    const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+
+    // OTP fields
+    const [otp, setOtp] = useState(['', '', '', '', '', '']);
+
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [otpSentTo, setOtpSentTo] = useState('');
+
+    // Redirect if already logged in
     useEffect(() => {
         if (isDonorLoggedIn) {
             navigate('/account', { replace: true });
         }
     }, [isDonorLoggedIn, navigate]);
 
-    const handleSendOTP = (e) => {
+    // ── Sign In ────────────────────────────────────────────
+    const handleSignIn = async (e) => {
         e.preventDefault();
-        if (phone.length >= 10) {
-            setLoading(true);
-            setTimeout(() => {
-                setLoading(false);
-                setStep('otp');
-            }, 1000);
+        setError('');
+        setLoading(true);
+        const result = await donorLogin(signInEmail, signInPassword);
+        setLoading(false);
+        if (result.success) {
+            navigate('/account');
+        } else {
+            setError(result.error);
         }
     };
 
-    const handleVerifyOTP = (e) => {
+    // ── Sign Up ────────────────────────────────────────────
+    const handleSignUp = async (e) => {
         e.preventDefault();
+        setError('');
+
+        if (signUpPassword !== signUpConfirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+        if (signUpPassword.length < 6) {
+            setError('Password must be at least 6 characters');
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            // Simulate: new user goes to registration, existing user logs in directly
-            setStep('register');
-        }, 800);
+        const result = await registerDonor({
+            email: signUpEmail,
+            password: signUpPassword,
+            name: signUpName,
+        });
+        setLoading(false);
+
+        if (result.success) {
+            setOtpSentTo(signUpEmail);
+            setStep('verify');
+            setOtp(['', '', '', '', '', '']);
+        } else {
+            setError(result.error);
+        }
     };
 
-    const handleRegister = (e) => {
+    // ── OTP Verification ───────────────────────────────────
+    const handleVerifyOtp = async (e) => {
         e.preventDefault();
+        setError('');
+        const otpString = otp.join('');
+        if (otpString.length !== 6) {
+            setError('Please enter the full 6-digit code');
+            return;
+        }
+
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
-            donorLogin(phone, {
-                name: regName,
-                nameEn: regName,
-                email: regEmail || undefined,
-            });
+        const result = await verifyDonorEmail(otpString);
+        setLoading(false);
+
+        if (result.success) {
             navigate('/account');
-        }, 600);
+        } else {
+            setError(result.error);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        setError('');
+        setLoading(true);
+        const result = await resendDonorVerification();
+        setLoading(false);
+        if (!result.success) {
+            setError(result.error);
+        }
     };
 
     const handleOtpChange = (index, value) => {
@@ -160,24 +214,16 @@ function Login() {
         const newOtp = [...otp];
         newOtp[index] = value;
         setOtp(newOtp);
-        // Auto-focus next input
-        if (value && index < 3) {
-            const nextInput = document.getElementById(`otp-${index + 1}`);
-            nextInput?.focus();
+        if (value && index < 5) {
+            document.getElementById(`otp-${index + 1}`)?.focus();
         }
     };
 
-    // Particles config
-    const particles = [
-        { top: '10%', left: '15%', delay: '0s' },
-        { top: '30%', left: '80%', size: 10, delay: '0.7s' },
-        { top: '50%', left: '25%', size: 6, delay: '1.4s' },
-        { top: '70%', left: '65%', delay: '2.1s' },
-        { top: '20%', left: '50%', size: 12, delay: '2.8s' },
-        { top: '85%', left: '35%', size: 5, delay: '3.5s' },
-        { top: '45%', left: '90%', delay: '4.2s' },
-        { top: '60%', left: '10%', size: 7, delay: '4.9s' }
-    ];
+    const handleOtpKeyDown = (index, e) => {
+        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+            document.getElementById(`otp-${index - 1}`)?.focus();
+        }
+    };
 
     return (
         <Grid container sx={{ minHeight: '100vh' }}>
@@ -234,62 +280,175 @@ function Login() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                p: { xs: 4, md: 8 },
+                p: { xs: 3, md: 8 },
                 bgcolor: 'background.default'
             }}>
                 <Box sx={{ width: '100%', maxWidth: 420 }}>
-                    {/* Step: Phone */}
-                    {step === 'phone' && (
-                        <Box key="phone" sx={{ animation: `${slideIn} 0.4s ease` }}>
-                            <Box sx={{ textAlign: 'center', mb: 4 }}>
-                                <Typography variant="h4" gutterBottom fontWeight="bold">
-                                    {t('auth.loginTitle')}
-                                </Typography>
-                                <Typography color="text.secondary">
-                                    {t('auth.welcome')}
-                                </Typography>
-                            </Box>
+                    {step === 'form' && (
+                        <Box key="form" sx={{ animation: `${slideIn} 0.4s ease` }}>
+                            {/* Tabs */}
+                            <Tabs
+                                value={tab}
+                                onChange={(_, v) => { setTab(v); setError(''); }}
+                                variant="fullWidth"
+                                sx={{ mb: 4 }}
+                            >
+                                <Tab label={'تسجيل الدخول'} />
+                                <Tab label={'إنشاء حساب'} />
+                            </Tabs>
 
-                            <form onSubmit={handleSendOTP}>
-                                <Stack spacing={3}>
-                                    <TextField
-                                        fullWidth
-                                        label={t('auth.phoneNumber')}
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                                        placeholder={t('auth.enterPhone')}
-                                        inputProps={{ maxLength: 11 }}
-                                        autoFocus
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <Box sx={{
-                                                        px: 1,
-                                                        fontWeight: 'bold',
-                                                        color: 'text.secondary',
-                                                        borderRight: theme.direction === 'ltr' ? `1px solid ${theme.palette.divider}` : 'none',
-                                                        borderLeft: theme.direction === 'rtl' ? `1px solid ${theme.palette.divider}` : 'none',
-                                                    }}>
-                                                        +20
-                                                    </Box>
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                    />
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        size="large"
-                                        fullWidth
-                                        disabled={phone.length < 10 || loading}
-                                        sx={{ py: 1.5 }}
-                                    >
-                                        {loading ? t('common.loading') : t('auth.sendOTP')}
-                                    </Button>
-                                </Stack>
-                            </form>
+                            {error && (
+                                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+                            )}
 
-                            <Box sx={{ position: 'relative', my: 4, textAlign: 'center' }}>
+                            {/* ── Sign In Tab ── */}
+                            {tab === 0 && (
+                                <Box component="form" onSubmit={handleSignIn} sx={{ animation: `${slideIn} 0.3s ease` }}>
+                                    <Stack spacing={3}>
+                                        <TextField
+                                            fullWidth
+                                            label={'البريد الإلكتروني'}
+                                            type="email"
+                                            value={signInEmail}
+                                            onChange={(e) => setSignInEmail(e.target.value)}
+                                            placeholder={'example@email.com'}
+                                            autoFocus
+                                            required
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-envelope" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label={'كلمة المرور'}
+                                            type={showSignInPassword ? 'text' : 'password'}
+                                            value={signInPassword}
+                                            onChange={(e) => setSignInPassword(e.target.value)}
+                                            required
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-lock" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton onClick={() => setShowSignInPassword(!showSignInPassword)} edge="end" size="small">
+                                                            <i className={`fa-solid ${showSignInPassword ? 'fa-eye-slash' : 'fa-eye'}`} style={{ fontSize: '0.9rem' }}></i>
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            fullWidth
+                                            disabled={loading || !signInEmail || !signInPassword}
+                                            sx={{ py: 1.5, fontWeight: 'bold' }}
+                                        >
+                                            {loading ? <CircularProgress size={24} /> : 'تسجيل الدخول'}
+                                        </Button>
+                                    </Stack>
+                                </Box>
+                            )}
+
+                            {/* ── Sign Up Tab ── */}
+                            {tab === 1 && (
+                                <Box component="form" onSubmit={handleSignUp} sx={{ animation: `${slideIn} 0.3s ease` }}>
+                                    <Stack spacing={2.5}>
+                                        <TextField
+                                            fullWidth
+                                            label={'الاسم الكامل'}
+                                            value={signUpName}
+                                            onChange={(e) => setSignUpName(e.target.value)}
+                                            placeholder={'مثال: أحمد محمد'}
+                                            autoFocus
+                                            required
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-user" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label={'البريد الإلكتروني'}
+                                            type="email"
+                                            value={signUpEmail}
+                                            onChange={(e) => setSignUpEmail(e.target.value)}
+                                            placeholder={'example@email.com'}
+                                            required
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-envelope" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label={'كلمة المرور'}
+                                            type={showSignUpPassword ? 'text' : 'password'}
+                                            value={signUpPassword}
+                                            onChange={(e) => setSignUpPassword(e.target.value)}
+                                            placeholder={'٦ أحرف على الأقل'}
+                                            required
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-lock" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton onClick={() => setShowSignUpPassword(!showSignUpPassword)} edge="end" size="small">
+                                                            <i className={`fa-solid ${showSignUpPassword ? 'fa-eye-slash' : 'fa-eye'}`} style={{ fontSize: '0.9rem' }}></i>
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <TextField
+                                            fullWidth
+                                            label={'تأكيد كلمة المرور'}
+                                            type={showSignUpPassword ? 'text' : 'password'}
+                                            value={signUpConfirmPassword}
+                                            onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                                            required
+                                            error={signUpConfirmPassword.length > 0 && signUpPassword !== signUpConfirmPassword}
+                                            helperText={signUpConfirmPassword.length > 0 && signUpPassword !== signUpConfirmPassword ? 'كلمتا المرور غير متطابقتين' : ''}
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <i className="fa-solid fa-lock" style={{ color: theme.palette.text.secondary }}></i>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                        />
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            size="large"
+                                            fullWidth
+                                            disabled={loading || !signUpName || !signUpEmail || !signUpPassword || !signUpConfirmPassword}
+                                            sx={{ py: 1.5, fontWeight: 'bold' }}
+                                        >
+                                            {loading ? <CircularProgress size={24} /> : 'إنشاء حساب'}
+                                        </Button>
+                                    </Stack>
+                                </Box>
+                            )}
+
+                            <Box sx={{ position: 'relative', my: 3, textAlign: 'center' }}>
                                 <Typography
                                     sx={{
                                         position: 'relative',
@@ -297,7 +456,8 @@ function Login() {
                                         bgcolor: 'background.default',
                                         px: 2,
                                         display: 'inline-block',
-                                        color: 'text.secondary'
+                                        color: 'text.secondary',
+                                        fontSize: '0.875rem',
                                     }}
                                 >
                                     {'أو'}
@@ -319,26 +479,41 @@ function Login() {
                                 onClick={() => navigate('/')}
                                 sx={{ py: 1.5, color: 'text.secondary', borderColor: 'divider' }}
                             >
-                                {t('auth.continueAsGuest')} {'←'}
+                                {'الاستمرار كضيف'} {'←'}
                             </Button>
                         </Box>
                     )}
 
-                    {/* Step: OTP */}
-                    {step === 'otp' && (
-                        <Box key="otp" sx={{ animation: `${slideIn} 0.4s ease` }}>
+                    {/* ── Email Verification Step ── */}
+                    {step === 'verify' && (
+                        <Box key="verify" sx={{ animation: `${slideIn} 0.4s ease` }}>
                             <Box sx={{ textAlign: 'center', mb: 4 }}>
-                                <Typography variant="h4" gutterBottom fontWeight="bold">
-                                    {t('auth.enterOTP')}
+                                <Box sx={{
+                                    fontSize: 48,
+                                    color: 'primary.main',
+                                    mb: 2,
+                                    animation: `${bounceIn} 0.5s ease`
+                                }}>
+                                    <i className="fa-solid fa-envelope-circle-check"></i>
+                                </Box>
+                                <Typography variant="h5" gutterBottom fontWeight="bold">
+                                    {'تأكيد البريد الإلكتروني'}
                                 </Typography>
-                                <Typography color="text.secondary">
-                                    {t('auth.otpSent')} <strong dir="ltr">+20 {phone}</strong>
+                                <Typography color="text.secondary" sx={{ mb: 1 }}>
+                                    {'أرسلنا كود تحقق مكون من 6 أرقام إلى'}
+                                </Typography>
+                                <Typography fontWeight="bold" color="primary.main" dir="ltr" sx={{ display: 'inline-block' }}>
+                                    {otpSentTo}
                                 </Typography>
                             </Box>
 
-                            <form onSubmit={handleVerifyOTP}>
-                                <Stack spacing={4}>
-                                    <Stack direction="row" spacing={2} justifyContent="center" dir="ltr">
+                            {error && (
+                                <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>
+                            )}
+
+                            <Box component="form" onSubmit={handleVerifyOtp}>
+                                <Stack spacing={3}>
+                                    <Stack direction="row" spacing={1.5} justifyContent="center" dir="ltr">
                                         {otp.map((digit, i) => (
                                             <StyledOtpInput
                                                 key={i}
@@ -347,7 +522,8 @@ function Login() {
                                                 inputMode="numeric"
                                                 maxLength={1}
                                                 value={digit}
-                                                onChange={(e) => handleOtpChange(i, e.target.value)}
+                                                onChange={(e) => handleOtpChange(i, e.target.value.replace(/\D/g, ''))}
+                                                onKeyDown={(e) => handleOtpKeyDown(i, e)}
                                                 autoFocus={i === 0}
                                             />
                                         ))}
@@ -358,82 +534,32 @@ function Login() {
                                         variant="contained"
                                         size="large"
                                         fullWidth
-                                        disabled={otp.some(d => !d) || loading}
-                                        sx={{ py: 1.5 }}
+                                        disabled={loading || otp.some(d => !d)}
+                                        sx={{ py: 1.5, fontWeight: 'bold' }}
                                     >
-                                        {loading ? t('common.loading') : t('auth.verifyOTP')}
+                                        {loading ? <CircularProgress size={24} /> : 'تأكيد'}
                                     </Button>
                                 </Stack>
-                            </form>
-
-                            <Button
-                                onClick={() => setStep('phone')}
-                                sx={{ mt: 2, width: '100%', color: 'primary.main' }}
-                            >
-                                {t('auth.resendOTP')}
-                            </Button>
-                        </Box>
-                    )}
-
-                    {/* Step: Register */}
-                    {step === 'register' && (
-                        <Box key="register" sx={{ animation: `${slideIn} 0.4s ease` }}>
-                            <Box sx={{ textAlign: 'center', mb: 4 }}>
-                                <Box sx={{
-                                    fontSize: 48,
-                                    color: 'success.main',
-                                    mb: 2,
-                                    animation: `${bounceIn} 0.5s ease`
-                                }}>
-                                    <i className="fa-solid fa-circle-check"></i>
-                                </Box>
-                                <Typography variant="h4" gutterBottom fontWeight="bold">
-                                    {t('auth.welcomeNew')}
-                                </Typography>
-                                <Typography color="text.secondary">
-                                    {t('auth.completeProfile')}
-                                </Typography>
                             </Box>
 
-                            <form onSubmit={handleRegister}>
-                                <Stack spacing={3}>
-                                    <TextField
-                                        label={t('auth.registerName')}
-                                        value={regName}
-                                        onChange={(e) => setRegName(e.target.value)}
-                                        placeholder={'مثال: أحمد محمد'}
-                                        fullWidth
-                                        autoFocus
-                                    />
-                                    <TextField
-                                        label={t('auth.registerEmail')}
-                                        type="email"
-                                        value={regEmail}
-                                        onChange={(e) => setRegEmail(e.target.value)}
-                                        placeholder={'مثال: ahmed@email.com'}
-                                        fullWidth
-                                    />
-                                    <Button
-                                        type="submit"
-                                        variant="contained"
-                                        size="large"
-                                        fullWidth
-                                        disabled={!regName.trim() || loading}
-                                        sx={{ py: 1.5 }}
-                                    >
-                                        {loading ? t('common.loading') : t('auth.startJourney')} {'←'}
-                                    </Button>
-                                </Stack>
-                            </form>
+                            <Stack direction="row" justifyContent="center" spacing={1} sx={{ mt: 3 }}>
+                                <Typography color="text.secondary" variant="body2">
+                                    {'لم تتلقى الكود؟'}
+                                </Typography>
+                                <Button
+                                    onClick={handleResendOtp}
+                                    disabled={loading}
+                                    sx={{ p: 0, minWidth: 'auto', textTransform: 'none', fontWeight: 'bold' }}
+                                >
+                                    {'إعادة الإرسال'}
+                                </Button>
+                            </Stack>
 
                             <Button
-                                onClick={() => {
-                                    donorLogin(phone);
-                                    navigate('/account');
-                                }}
+                                onClick={() => { setStep('form'); setError(''); setOtp(['', '', '', '', '', '']); }}
                                 sx={{ mt: 2, width: '100%', color: 'text.secondary' }}
                             >
-                                {'تخطي الآن'} {'←'}
+                                {'العودة لتسجيل الدخول'}
                             </Button>
                         </Box>
                     )}

@@ -1,7 +1,7 @@
 import { lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { DonorLayout, AdminLayout } from '../components/layouts';
-import AdminGuard from './AdminGuard';
+import AdminGuard from '../components/layouts/AdminGuard';
 
 // ─── Lazy: Donor Pages ──────────────────────────────────────
 const Home = lazy(() => import('../pages/donor/Home'));

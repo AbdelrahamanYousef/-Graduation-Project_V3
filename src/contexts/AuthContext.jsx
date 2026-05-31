@@ -1,20 +1,16 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import {
+    loginAdmin as apiLoginAdmin,
+    loginDonor as apiLoginDonor,
+    register as apiRegister,
+    verifyEmail as apiVerifyEmail,
+    resendVerification as apiResendVerification,
+    getCurrentUser,
+} from '../api/auth.api';
+import { uploadProfilePhoto } from '../api/upload.api';
 
 const AuthContext = createContext(null);
 
-// Demo admin credentials (will be replaced by auth.api.js calls)
-const ADMIN_CREDENTIALS = {
-    email: 'admin@nour.org',
-    password: 'admin123',
-    name: 'محمد أحمد',
-    nameEn: 'Mohamed Ahmed',
-    role: 'مدير المشاريع',
-    roleEn: 'Project Manager',
-};
-
-/**
- * Reads a stored user + token pair from localStorage
- */
 function readStoredAuth(key) {
     try {
         const stored = localStorage.getItem(key);
@@ -25,68 +21,123 @@ function readStoredAuth(key) {
 }
 
 export function AuthProvider({ children }) {
-    // ─── Admin auth state ───────────────────────────────────
     const [adminUser, setAdminUser] = useState(() => readStoredAuth('nour-admin'));
     const [adminToken, setAdminToken] = useState(() => localStorage.getItem('nour-admin-token'));
-
-    // ─── Donor auth state ───────────────────────────────────
     const [donorUser, setDonorUser] = useState(() => readStoredAuth('nour-donor'));
     const [donorToken, setDonorToken] = useState(() => localStorage.getItem('nour-donor-token'));
+    const [loading, setLoading] = useState(true);
 
     const isAdmin = !!adminUser;
     const isDonorLoggedIn = !!donorUser;
 
-    // ─── Admin login ────────────────────────────────────────
-    const login = useCallback((email, password) => {
-        if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-            const user = {
-                email: ADMIN_CREDENTIALS.email,
-                name: ADMIN_CREDENTIALS.name,
-                nameEn: ADMIN_CREDENTIALS.nameEn,
-                role: ADMIN_CREDENTIALS.role,
-                roleEn: ADMIN_CREDENTIALS.roleEn,
-                loggedInAt: new Date().toISOString(),
-            };
-            const token = 'mock-admin-jwt-' + Date.now();
-            setAdminUser(user);
-            setAdminToken(token);
-            localStorage.setItem('nour-admin', JSON.stringify(user));
-            localStorage.setItem('nour-admin-token', token);
-            return { success: true };
+    // Restore session on mount
+    useEffect(() => {
+        async function restoreSession() {
+            const token = adminToken || donorToken;
+            if (!token) { setLoading(false); return; }
+            try {
+                const result = await getCurrentUser();
+                if (result.user) {
+                    // Don't restore session for unverified donors
+                    if (result.user.role !== 'ADMIN' && result.user.emailVerified === false) {
+                        clearAllAuth();
+                    } else if (result.user.role === 'ADMIN') {
+                        setAdminUser(result.user);
+                        localStorage.setItem('nour-admin', JSON.stringify(result.user));
+                    } else {
+                        setDonorUser(result.user);
+                        localStorage.setItem('nour-donor', JSON.stringify(result.user));
+                    }
+                } else {
+                    clearAllAuth();
+                }
+            } catch {
+                clearAllAuth();
+            } finally {
+                setLoading(false);
+            }
         }
-        return { success: false, error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' };
-    }, []);
+        restoreSession();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ─── Donor login via OTP (simulated) ────────────────────
-    const donorLogin = useCallback((phone, opts = {}) => {
-        const user = {
-            phone,
-            name: opts.name || 'أحمد محمد',
-            nameEn: opts.nameEn || 'Ahmed Mohamed',
-            email: opts.email || 'ahmed@example.com',
-            joinDate: new Date().toISOString().split('T')[0],
-            totalDonations: 0,
-            donationCount: 0,
-            isNew: !!opts.name,
-            loggedInAt: new Date().toISOString(),
-        };
-        const token = 'mock-donor-jwt-' + Date.now();
-        setDonorUser(user);
-        setDonorToken(token);
-        localStorage.setItem('nour-donor', JSON.stringify(user));
-        localStorage.setItem('nour-donor-token', token);
-        return { success: true };
-    }, []);
-
-    // ─── Donor logout ───────────────────────────────────────
-    const donorLogout = useCallback(() => {
+    function clearAllAuth() {
+        setAdminUser(null);
+        setAdminToken(null);
         setDonorUser(null);
         setDonorToken(null);
+        localStorage.removeItem('nour-admin');
+        localStorage.removeItem('nour-admin-token');
         localStorage.removeItem('nour-donor');
         localStorage.removeItem('nour-donor-token');
+    }
+
+    // ── Admin login ────────────────────────────────────────
+    const login = useCallback(async (email, password) => {
+        try {
+            const result = await apiLoginAdmin({ email, password });
+            setAdminUser(result.user);
+            setAdminToken(result.token);
+            localStorage.setItem('nour-admin', JSON.stringify(result.user));
+            localStorage.setItem('nour-admin-token', result.token);
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: err.message || 'Login failed' };
+        }
     }, []);
 
-    // ─── Admin logout ───────────────────────────────────────
+    // ── Donor register (email + password) ──────────────────
+    const registerDonor = useCallback(async ({ email, password, name }) => {
+        try {
+            const result = await apiRegister({ email, password, name });
+            // Store token for verify-email call, but DON'T set donorUser yet
+            // User is not "logged in" until email is verified
+            setDonorToken(result.token);
+            localStorage.setItem('nour-donor-token', result.token);
+            return { success: true, user: result.user };
+        } catch (err) {
+            return { success: false, error: err.message || 'Registration failed' };
+        }
+    }, []);
+
+    // ── Verify email with OTP ──────────────────────────────
+    const verifyDonorEmail = useCallback(async (otp) => {
+        try {
+            const result = await apiVerifyEmail(otp);
+            // NOW the user is verified — store them as logged in
+            const verifiedUser = result.user;
+            setDonorUser(verifiedUser);
+            localStorage.setItem('nour-donor', JSON.stringify(verifiedUser));
+            return { success: true, user: verifiedUser };
+        } catch (err) {
+            return { success: false, error: err.message || 'Verification failed' };
+        }
+    }, []);
+
+    // ── Resend verification OTP ────────────────────────────
+    const resendDonorVerification = useCallback(async () => {
+        try {
+            await apiResendVerification();
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: err.message || 'Failed to resend' };
+        }
+    }, []);
+
+    // ── Donor login (email + password) ─────────────────────
+    const donorLogin = useCallback(async (email, password) => {
+        try {
+            const result = await apiLoginDonor({ email, password });
+            setDonorUser(result.user);
+            setDonorToken(result.token);
+            localStorage.setItem('nour-donor', JSON.stringify(result.user));
+            localStorage.setItem('nour-donor-token', result.token);
+            return { success: true, user: result.user };
+        } catch (err) {
+            return { success: false, error: err.message || 'Login failed' };
+        }
+    }, []);
+
+    // ── Logout ─────────────────────────────────────────────
     const logout = useCallback(() => {
         setAdminUser(null);
         setAdminToken(null);
@@ -94,32 +145,50 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('nour-admin-token');
     }, []);
 
-    // ─── Update profile photo (admin) ───────────────────────
-    const updateAdminPhoto = useCallback((photoBase64) => {
-        setAdminUser(prev => {
-            const updated = { ...prev, photo: photoBase64 };
-            localStorage.setItem('nour-admin', JSON.stringify(updated));
-            return updated;
-        });
+    const donorLogout = useCallback(() => {
+        setDonorUser(null);
+        setDonorToken(null);
+        localStorage.removeItem('nour-donor');
+        localStorage.removeItem('nour-donor-token');
     }, []);
 
-    // ─── Update profile photo (donor) ───────────────────────
-    const updateDonorPhoto = useCallback((photoBase64) => {
-        setDonorUser(prev => {
-            const updated = { ...prev, photo: photoBase64 };
-            localStorage.setItem('nour-donor', JSON.stringify(updated));
-            return updated;
-        });
+    // ── Photo updates (upload to server) ───────────────────
+    const updateAdminPhoto = useCallback(async (file) => {
+        try {
+            const result = await uploadProfilePhoto(file);
+            setAdminUser(prev => {
+                const updated = { ...prev, photo: result.url };
+                localStorage.setItem('nour-admin', JSON.stringify(updated));
+                return updated;
+            });
+            return { success: true, url: result.url };
+        } catch (err) {
+            return { success: false, error: err.message || 'Upload failed' };
+        }
     }, []);
 
-    // ─── Token getter for Axios interceptor ─────────────────
+    const updateDonorPhoto = useCallback(async (file) => {
+        try {
+            const result = await uploadProfilePhoto(file);
+            setDonorUser(prev => {
+                const updated = { ...prev, photo: result.url };
+                localStorage.setItem('nour-donor', JSON.stringify(updated));
+                return updated;
+            });
+            return { success: true, url: result.url };
+        } catch (err) {
+            return { success: false, error: err.message || 'Upload failed' };
+        }
+    }, []);
+
     const getToken = useCallback(() => adminToken || donorToken, [adminToken, donorToken]);
 
     return (
         <AuthContext.Provider value={{
             isAdmin, adminUser, login, logout, updateAdminPhoto,
             isDonorLoggedIn, donorUser, donorLogin, donorLogout, updateDonorPhoto,
-            getToken, adminToken, donorToken,
+            registerDonor, verifyDonorEmail, resendDonorVerification,
+            getToken, adminToken, donorToken, loading,
         }}>
             {children}
         </AuthContext.Provider>
@@ -128,7 +197,7 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
     const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+    if (!ctx) throw new Error('useAuth must be used within AuthContext');
     return ctx;
 }
 

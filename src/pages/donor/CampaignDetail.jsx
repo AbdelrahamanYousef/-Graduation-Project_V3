@@ -129,7 +129,7 @@ export default function CampaignDetail() {
     const navigate = useNavigate();
     const theme = useTheme();
     const dk = theme.palette.mode === 'dark';
-    const lang = isEn();
+    const lang = getLanguage() === 'en';
 
     const [donateProject, setDonateProject] = useState(null);
     const [donationAmount, setDonationAmount] = useState(200);

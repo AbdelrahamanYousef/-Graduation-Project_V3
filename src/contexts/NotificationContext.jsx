@@ -1,46 +1,70 @@
-import { createContext, useContext, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { getNotifications, markNotificationRead as apiMarkRead, markAllNotificationsRead as apiMarkAllRead, clearNotifications as apiClearAll } from '../api/notifications.api';
+import { useAuth } from './AuthContext';
 
 const NotificationContext = createContext(null);
 
-// Mock notifications for admin
-const ADMIN_NOTIFICATIONS = [];
-
-// Mock notifications for donor
-const DONOR_NOTIFICATIONS = [];
-
 export function NotificationProvider({ children }) {
     const [notifications, setNotifications] = useState([]);
-    const initializedRef = useRef({ admin: false, donor: false });
+    const { isAdmin, isDonorLoggedIn, adminToken, donorToken } = useAuth();
+    const [loaded, setLoaded] = useState(false);
 
-    // Initialize notifications for a user type
-    const initNotifications = useCallback((userType) => {
-        if (initializedRef.current[userType]) return;
-        initializedRef.current[userType] = true;
-        const mockData = userType === 'admin' ? ADMIN_NOTIFICATIONS : DONOR_NOTIFICATIONS;
-        setNotifications(prev => {
-            // Avoid duplicates
-            const existingIds = new Set(prev.map(n => n.id));
-            const newNotifs = mockData.filter(n => !existingIds.has(n.id));
-            return [...prev, ...newNotifs];
-        });
+    useEffect(() => {
+        const isAuthed = (isAdmin || isDonorLoggedIn) && (adminToken || donorToken);
+        if (!isAuthed) return;
+
+        let cancelled = false;
+        async function fetchNotifications() {
+            try {
+                const data = await getNotifications();
+                if (!cancelled) {
+                    setNotifications(Array.isArray(data) ? data : []);
+                    setLoaded(true);
+                }
+            } catch {
+                if (!cancelled) {
+                    setNotifications([]);
+                    setLoaded(true);
+                }
+            }
+        }
+        fetchNotifications();
+        return () => { cancelled = true; };
+    }, [isAdmin, isDonorLoggedIn, adminToken, donorToken]);
+
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
+    const markAsRead = useCallback(async (id) => {
+        try {
+            await apiMarkRead(id);
+            setNotifications(prev =>
+                prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+            );
+        } catch {
+            // silent
+        }
     }, []);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
-
-    const markAsRead = useCallback((id) => {
-        setNotifications(prev =>
-            prev.map(n => n.id === id ? { ...n, read: true } : n)
-        );
+    const markAllAsRead = useCallback(async () => {
+        try {
+            await apiMarkAllRead();
+            setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        } catch {
+            // silent
+        }
     }, []);
 
-    const markAllAsRead = useCallback(() => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    const clearAll = useCallback(async () => {
+        try {
+            await apiClearAll();
+            setNotifications([]);
+        } catch {
+            // silent
+        }
     }, []);
 
-    const clearNotifications = useCallback(() => {
-        setNotifications([]);
-        initializedRef.current = { admin: false, donor: false };
-    }, []);
+    // No-op: notifications auto-fetch on auth state change
+    const initNotifications = useCallback(() => {}, []);
 
     return (
         <NotificationContext.Provider value={{
@@ -48,8 +72,9 @@ export function NotificationProvider({ children }) {
             unreadCount,
             markAsRead,
             markAllAsRead,
+            clearNotifications: clearAll,
             initNotifications,
-            clearNotifications,
+            loaded,
         }}>
             {children}
         </NotificationContext.Provider>
