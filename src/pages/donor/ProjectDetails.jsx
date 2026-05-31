@@ -64,6 +64,7 @@ function ProjectDetails() {
     const theme = useTheme();
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
+    const isEn = getLanguage() === 'en';
     
 
     // Read live data from shared context

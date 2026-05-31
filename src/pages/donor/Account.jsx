@@ -94,14 +94,10 @@ function Account() {
     
     const photoInputRef = useRef(null);
 
-    const handlePhotoUpload = useCallback((e) => {
+    const handlePhotoUpload = useCallback(async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            updateDonorPhoto(ev.target.result);
-        };
-        reader.readAsDataURL(file);
+        await updateDonorPhoto(file);
     }, [updateDonorPhoto]);
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState(() => {
@@ -232,13 +228,13 @@ function Account() {
                 {/* Content */}
                 <Box>
                     {activeTab === 'overview' && (
-                        <OverviewTab user={user} donations={donations} isEn={isEn} theme={theme} />
+                        <OverviewTab user={user} donations={donations} theme={theme} />
                     )}
                     {activeTab === 'donations' && (
-                        <DonationsTab donations={donations} isEn={isEn} />
+                        <DonationsTab donations={donations} />
                     )}
                     {activeTab === 'profile' && (
-                        <ProfileTab user={user} isEn={isEn} donorUser={donorUser} updateDonorPhoto={updateDonorPhoto} />
+                        <ProfileTab user={user} donorUser={donorUser} updateDonorPhoto={updateDonorPhoto} />
                     )}
                 </Box>
             </Container>
@@ -246,7 +242,7 @@ function Account() {
     );
 }
 
-function OverviewTab({ user, donations, isEn, theme }) {
+function OverviewTab({ user, donations, theme }) {
     return (
         <Stack spacing={4}>
             {/* Stats */}
@@ -354,7 +350,7 @@ function OverviewTab({ user, donations, isEn, theme }) {
     );
 }
 
-function DonationsTab({ donations, isEn }) {
+function DonationsTab({ donations }) {
     return (
         <TableContainer component={Paper}>
             <Table>
@@ -389,17 +385,13 @@ function DonationsTab({ donations, isEn }) {
     );
 }
 
-function ProfileTab({ user, isEn, donorUser, updateDonorPhoto }) {
+function ProfileTab({ user, donorUser, updateDonorPhoto }) {
     const profilePhotoRef = useRef(null);
 
-    const handleProfilePhoto = (e) => {
+    const handleProfilePhoto = async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            updateDonorPhoto(ev.target.result);
-        };
-        reader.readAsDataURL(file);
+        await updateDonorPhoto(file);
     };
 
     return (

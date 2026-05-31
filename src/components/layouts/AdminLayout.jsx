@@ -78,14 +78,10 @@ function AdminLayout() {
         navigate('/');
     };
 
-    const handlePhotoUpload = useCallback((e) => {
+    const handlePhotoUpload = useCallback(async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            updateAdminPhoto(ev.target.result);
-        };
-        reader.readAsDataURL(file);
+        await updateAdminPhoto(file);
     }, [updateAdminPhoto]);
 
     const getTimeAgo = useCallback((isoTime) => {

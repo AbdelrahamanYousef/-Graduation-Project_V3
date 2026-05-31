@@ -5,21 +5,49 @@ export const authKeys = {
     currentUser: ['auth', 'currentUser'],
 };
 
-// ─── Mock Credentials (will be removed when backend is ready) ───
-const ADMIN_CREDENTIALS = {
-    email: 'admin@nour.org',
-    password: 'admin123',
-};
+// ─── Email + Password Auth (new flow) ───────────────────────
 
-const MOCK_ADMIN_USER = {
-    email: ADMIN_CREDENTIALS.email,
-    name: 'محمد أحمد',
-    nameEn: 'Mohamed Ahmed',
-    role: 'مدير المشاريع',
-    roleEn: 'Project Manager',
-};
+/**
+ * Register a new user with email + password
+ * Sends OTP to email for verification
+ * @param {{ email: string, password: string, name: string }} data
+ * @returns {Promise<{ user: object, token: string, message: string }>}
+ */
+export async function register({ email, password, name }) {
+    const { data } = await apiClient.post('/auth/register', { email, password, name });
+    return data;
+}
 
-// ─── API Functions ──────────────────────────────────────────
+/**
+ * Verify email with OTP code
+ * @param {string} otp - 6-digit verification code
+ * @returns {Promise<{ user: object, message: string }>}
+ */
+export async function verifyEmail(otp) {
+    const { data } = await apiClient.post('/auth/verify-email', { otp });
+    return data;
+}
+
+/**
+ * Resend verification OTP
+ * @returns {Promise<{ message: string }>}
+ */
+export async function resendVerification() {
+    const { data } = await apiClient.post('/auth/resend-verification');
+    return data;
+}
+
+/**
+ * Login with email + password
+ * @param {{ email: string, password: string }} credentials
+ * @returns {Promise<{ user: object, token: string }>}
+ */
+export async function loginDonor({ email, password }) {
+    const { data } = await apiClient.post('/auth/login', { email, password });
+    return data;
+}
+
+// ─── Admin Auth ─────────────────────────────────────────────
 
 /**
  * Admin login
@@ -27,79 +55,50 @@ const MOCK_ADMIN_USER = {
  * @returns {Promise<{ user: object, token: string }>}
  */
 export async function loginAdmin({ email, password }) {
-    // TODO: Replace with real API call when backend is ready
-    // return apiClient.post('/auth/admin/login', { email, password }).then(r => r.data);
-
-    // Mock implementation
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-                const token = 'mock-admin-jwt-' + Date.now();
-                resolve({
-                    user: { ...MOCK_ADMIN_USER, loggedInAt: new Date().toISOString() },
-                    token,
-                });
-            } else {
-                reject({ status: 401, message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
-            }
-        }, 300);
-    });
+    const { data } = await apiClient.post('/auth/admin/login', { email, password });
+    return data;
 }
 
-/**
- * Donor login (OTP simulation)
- * @param {{ phone: string, name?: string, nameEn?: string, email?: string }} data
- * @returns {Promise<{ user: object, token: string }>}
- */
-export async function loginDonor({ phone, name, nameEn, email }) {
-    // TODO: Replace with real API call
-    // return apiClient.post('/auth/donor/login', { phone }).then(r => r.data);
+// ─── Legacy Phone OTP (kept for backward compat) ────────────
 
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const token = 'mock-donor-jwt-' + Date.now();
-            resolve({
-                user: {
-                    phone,
-                    name: name || 'أحمد محمد',
-                    nameEn: nameEn || 'Ahmed Mohamed',
-                    email: email || 'ahmed@example.com',
-                    joinDate: new Date().toISOString().split('T')[0],
-                    totalDonations: 0,
-                    donationCount: 0,
-                    isNew: !!name,
-                    loggedInAt: new Date().toISOString(),
-                },
-                token,
-            });
-        }, 300);
-    });
+export async function sendDonorOtp({ phone }) {
+    const { data } = await apiClient.post('/auth/donor/login', { phone });
+    return data;
 }
+
+export async function verifyDonorOtp({ phone, otp }) {
+    const { data } = await apiClient.post('/auth/donor/verify-otp', { phone, otp });
+    return data;
+}
+
+// ─── Common ─────────────────────────────────────────────────
 
 /**
  * Get the currently authenticated user profile
  * @returns {Promise<{ user: object }>}
  */
 export async function getCurrentUser() {
-    // TODO: Replace with real API call
-    // return apiClient.get('/auth/me').then(r => r.data);
-
-    return new Promise((resolve) => {
-        const admin = localStorage.getItem('nour-admin');
-        const donor = localStorage.getItem('nour-donor');
-        resolve({ user: admin ? JSON.parse(admin) : donor ? JSON.parse(donor) : null });
-    });
+    const { data } = await apiClient.get('/auth/me');
+    return data;
 }
 
 /**
- * Logout (clears tokens)
+ * Refresh JWT token
+ * @param {string} refreshToken
+ * @returns {Promise<{ token: string, refreshToken: string }>}
+ */
+export async function refreshToken(refreshToken) {
+    const { data } = await apiClient.post('/auth/refresh', { refreshToken });
+    return data;
+}
+
+/**
+ * Logout (clears tokens on client)
  * @returns {Promise<void>}
  */
 export async function logoutUser() {
-    // TODO: Replace with real API call
-    // return apiClient.post('/auth/logout').then(r => r.data);
-
     localStorage.removeItem('nour-admin-token');
     localStorage.removeItem('nour-donor-token');
-    return Promise.resolve();
+    localStorage.removeItem('nour-admin');
+    localStorage.removeItem('nour-donor');
 }

@@ -1,13 +1,12 @@
 import apiClient from './client';
-import { impactStats, projects as mockProjects, programs, updates } from '../data/mockData';
 
 // ─── Query Keys ─────────────────────────────────────────────
 export const dashboardKeys = {
     stats: ['dashboard', 'stats'],
     recentDonations: ['dashboard', 'recentDonations'],
     projectsSummary: ['dashboard', 'projectsSummary'],
-    programs: ['dashboard', 'programs'],
-    updates: ['dashboard', 'updates'],
+    activity: ['dashboard', 'activity'],
+    pendingTasks: ['dashboard', 'pendingTasks'],
 };
 
 // ─── API Functions ──────────────────────────────────────────
@@ -17,18 +16,8 @@ export const dashboardKeys = {
  * @returns {Promise<object>}
  */
 export async function getDashboardStats() {
-    // TODO: return apiClient.get('/dashboard/stats').then(r => r.data);
-
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                ...impactStats,
-                monthlyGrowth: 12.5,
-                activeProjects: mockProjects.filter(p => p.status === 'active').length,
-                completedProjects: mockProjects.filter(p => p.status === 'completed').length,
-            });
-        }, 200);
-    });
+    const { data } = await apiClient.get('/dashboard/stats');
+    return data;
 }
 
 /**
@@ -37,19 +26,8 @@ export async function getDashboardStats() {
  * @returns {Promise<object[]>}
  */
 export async function getRecentDonations(limit = 5) {
-    // TODO: return apiClient.get('/dashboard/recent-donations', { params: { limit } }).then(r => r.data);
-
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve([
-                { id: 1, donorName: 'أحمد محمد', amount: 5000, type: 'صدقة جارية', date: '2024-02-10', projectTitle: 'كفالة 500 يتيم في الصعيد' },
-                { id: 2, donorName: 'فاطمة علي', amount: 10000, type: 'زكاة المال', date: '2024-02-09', projectTitle: 'إغاثة طبية عاجلة لمستشفيات غزة' },
-                { id: 3, donorName: 'محمود حسن', amount: 2500, type: 'كفالة يتيم', date: '2024-02-08', projectTitle: 'كفالة 500 يتيم في الصعيد' },
-                { id: 4, donorName: 'سارة أحمد', amount: 1000, type: 'صدقة', date: '2024-02-07', projectTitle: 'دعم مراكز غسيل الكلى' },
-                { id: 5, donorName: 'خالد إبراهيم', amount: 7500, type: 'وقف', date: '2024-02-06', projectTitle: 'حفر 10 آبار ارتوازية' },
-            ].slice(0, limit));
-        }, 200);
-    });
+    const { data } = await apiClient.get('/dashboard/recent-donations', { params: { limit } });
+    return data;
 }
 
 /**
@@ -57,49 +35,37 @@ export async function getRecentDonations(limit = 5) {
  * @returns {Promise<object[]>}
  */
 export async function getProjectsSummary() {
-    // TODO: return apiClient.get('/dashboard/projects-summary').then(r => r.data);
-
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve(
-                mockProjects.map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    titleEn: p.titleEn,
-                    progress: Math.round((p.raised / p.goal) * 100),
-                    raised: p.raised,
-                    goal: p.goal,
-                    donors: p.donors,
-                    status: p.status,
-                })),
-            );
-        }, 200);
-    });
+    const { data } = await apiClient.get('/dashboard/projects-summary');
+    return data;
 }
 
 /**
- * Get all programs
+ * Get recent activity log
+ * @param {number} [limit=10]
  * @returns {Promise<object[]>}
  */
-export async function getPrograms() {
-    // TODO: return apiClient.get('/programs').then(r => r.data);
-    return Promise.resolve(programs);
+export async function getRecentActivity(limit = 10) {
+    const { data } = await apiClient.get('/dashboard/activity', { params: { limit } });
+    return data;
 }
 
 /**
- * Get featured projects (admin-selected urgent cases)
+ * Get pending tasks
  * @returns {Promise<object[]>}
  */
-export async function getFeaturedProjects() {
-    // TODO: return apiClient.get('/projects/featured').then(r => r.data);
-    return Promise.resolve(mockProjects.filter(p => p.featured));
+export async function getPendingTasks() {
+    const { data } = await apiClient.get('/dashboard/pending-tasks');
+    return data;
 }
 
 /**
- * Get latest updates / news feed
- * @returns {Promise<object[]>}
+ * Mark a task as complete
+ * @param {string} id
+ * @returns {Promise<object>}
  */
-export async function getUpdates() {
-    // TODO: return apiClient.get('/updates').then(r => r.data);
-    return Promise.resolve(updates);
+export async function completeTask(id) {
+    const { data } = await apiClient.put(`/dashboard/tasks/${id}/complete`);
+    return data;
 }
+
+
