@@ -47,6 +47,25 @@ export async function loginDonor({ email, password }) {
     return data;
 }
 
+/**
+ * Request password reset
+ * @param {string} email
+ */
+export async function forgotPassword(email) {
+    const { data } = await apiClient.post('/auth/forgot-password', { email });
+    return data;
+}
+
+/**
+ * Complete password reset
+ * @param {string} token
+ * @param {string} newPassword
+ */
+export async function resetPassword(token, newPassword) {
+    const { data } = await apiClient.post('/auth/reset-password', { token, newPassword });
+    return data;
+}
+
 // ─── Admin Auth ─────────────────────────────────────────────
 
 /**

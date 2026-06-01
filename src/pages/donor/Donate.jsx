@@ -149,6 +149,7 @@ function Donate() {
             method: paymentMethods.find(m => m.id === formData.paymentMethod)?.label || formData.paymentMethod,
             status: 'completed',
         };
+
         dispatch(adminActions.addDonation(newDonation));
         navigate('/confirmation?receipt=' + Date.now());
     };
@@ -162,6 +163,12 @@ function Donate() {
         t('donate.yourInfo') || 'البيانات',
         t('donate.paymentMethod') || 'الدفع'
     ];
+
+    // Helper function to safely get the donation type display name
+    const getDonationTypeLabel = (type) => {
+        if (!type) return '';
+        return type.title || type.label || type.name || t(`donate.${type.id}`) || type.id;
+    };
 
     return (
         <Box sx={{ py: 8 }}>
@@ -190,7 +197,10 @@ function Donate() {
                                                     <AmountButton
                                                         fullWidth
                                                         selected={formData.amount === amount && !formData.customAmount}
-                                                        onClick={() => { updateForm('amount', amount); updateForm('customAmount', ''); }}
+                                                        onClick={() => { 
+                                                            updateForm('amount', amount);
+                                                            updateForm('customAmount', ''); 
+                                                        }}
                                                     >
                                                         {formatCurrency(amount, 'USD').replace('$', '')}
                                                     </AmountButton>
@@ -222,7 +232,8 @@ function Donate() {
                                                     selected={formData.donationType === type.id}
                                                     onClick={() => updateForm('donationType', type.id)}
                                                 >
-                                                    {type.label}
+                                                    {/* تم التعديل هنا لضمان ظهور النص */}
+                                                    {getDonationTypeLabel(type)}
                                                 </OptionButton>
                                             ))}
                                         </Stack>
@@ -340,7 +351,7 @@ function Donate() {
                                                     sx={{ flexDirection: 'column', alignItems: 'center', py: 3, gap: 1 }}
                                                 >
                                                     <i className={method.icon} style={{ fontSize: '1.5rem', marginBottom: 8 }}></i>
-                                                    {method.label}
+                                                    {method.title || method.label || method.name}
                                                 </OptionButton>
                                             </Grid>
                                         ))}
@@ -407,7 +418,10 @@ function Donate() {
                                     </Box>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <Typography color="text.secondary">نوع التبرع</Typography>
-                                        <Typography fontWeight="medium">{donationTypes.find(d => d.id === formData.donationType)?.label}</Typography>
+                                        {/* تم التعديل هنا أيضاً */}
+                                        <Typography fontWeight="medium">
+                                            {getDonationTypeLabel(donationTypes.find(d => d.id === formData.donationType))}
+                                        </Typography>
                                     </Box>
                                     {formData.isRecurring && (
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
