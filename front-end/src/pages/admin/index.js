@@ -1,0 +1,9 @@
+export { default as Dashboard } from './Dashboard';
+export { default as AdminPrograms } from './AdminPrograms';
+export { default as AdminProjects } from './AdminProjects';
+export { default as AdminDonations } from './AdminDonations';
+export { default as AdminBeneficiaries } from './AdminBeneficiaries';
+export { default as AdminFinance } from './AdminFinance';
+export { default as AdminReports } from './AdminReports';
+export { default as AdminSettings } from './AdminSettings';
+export { default as AdminLogin } from './AdminLogin';

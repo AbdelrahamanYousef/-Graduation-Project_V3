@@ -1,0 +1,575 @@
+# Nour Charity System (نظام نور الخيري)
+
+Nour Charity is a comprehensive, modern, and bilingual (Arabic/English) web-based charity management system tailored for the Egyptian market. It bridges the gap between donors and charitable causes through a user-friendly public portal and empowers organization staff with a robust admin dashboard for managing operations, finances, and beneficiaries.
+
+## � Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#-key-features)
+- [Technology Stack](#-technology-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Available Scripts](#available-scripts)
+- [Architecture & Design](#architecture--design)
+- [Development Guidelines](#development-guidelines)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Overview
+
+Nour Charity is a full-featured charity management platform designed to streamline charitable operations with two distinct user experiences:
+
+1. **Donor Portal**: A public-facing interface for donors to browse campaigns, make donations, calculate Zakat, and track their contribution impact.
+2. **Admin Dashboard**: A comprehensive management system for organization staff to oversee projects, manage beneficiaries, track finances, and generate reports.
+
+The system is built with accessibility and localization in mind, supporting both Arabic and English with automatic RTL/LTR layout adjustments.
+
+## 🚀 Key Features
+
+### 🌍 Localization & Experience
+
+- **Fully Bilingual**: Seamless switching between Arabic (Default) and English
+- **RTL/LTR Support**: Automatic layout direction adjustment based on selected language
+- **Dark/Light Mode**: Complete theme support with persisted user preferences
+- **Responsive Design**: Mobile-first architecture ensuring accessibility across all devices
+- **Persistent Preferences**: User theme and language choices persist across sessions
+
+### 🤝 Donor Portal (Public)
+
+- **Homepage**: Dynamic landing page featuring quick donation options, featured campaigns, and real-time impact statistics
+- **Project Browsing**:
+  - Browse available charity campaigns and programs
+  - Filter and search by category
+  - View detailed project information and progress tracking
+  - Real-time donation progress visualization
+- **Donation System**:
+  - Multiple donation options (quick donate, custom amount)
+  - Secure donation flow with payment simulation
+  - Donation confirmation and receipt generation
+  - Donation history tracking for authenticated users
+- **Zakat Calculator**:
+  - Comprehensive calculator for calculating Zakat on various assets
+  - Support for different asset types (cash, gold, silver, investments, business)
+  - Automatic calculation and breakdown
+- **Volunteer Hub**:
+  - Volunteer opportunity listings
+  - Volunteer registration system
+  - Impact information
+- **Transparency Portal**:
+  - Financial reports and data visualization
+  - Fund utilization breakdown
+  - Impact metrics and statistics
+- **User Account**:
+  - Secure login with phone number and OTP verification
+  - Donation history and statistics
+  - Profile management and preferences
+  - Account settings and notifications
+
+### 🛡️ Admin Dashboard (Protected)
+
+- **Secure Authentication**: Role-based access control (RBAC) with admin-only protection
+- **Analytics Dashboard**:
+  - Visual overview of key metrics
+  - Donation statistics and trends
+  - Active projects and recent activities
+  - Financial summaries
+- **Program Management**:
+  - Create, edit, and manage charity programs (Education, Health, etc.)
+  - Program categorization and organization
+  - Program-level statistics
+- **Project Management**:
+  - Manage specific campaigns under programs
+  - Set project goals and track progress
+  - Manage project timelines and milestones
+  - Project status management
+- **Donation Management**:
+  - Comprehensive donation record tracking
+  - Advanced filtering and search
+  - Donation analytics and reporting
+  - Donor information management
+- **Beneficiaries**:
+  - Manage beneficiary database
+  - Track aid history and impact
+  - Beneficiary category management
+  - Report generation
+- **Finance & Reports**:
+  - Financial overview and analytics
+  - Expense tracking and management
+  - Exportable financial reports
+  - Budget management
+- **Settings**:
+  - System-wide configuration
+  - User management
+  - Organization settings
+  - System preferences
+
+## 🛠️ Technology Stack
+
+This project is built with a modern, performance-focused React stack:
+
+### Core Technologies
+
+- **Framework**: [React 19](https://react.dev/) - Latest React version with optimization improvements
+- **Build Tool**: [Vite](https://vitejs.dev/) - Lightning-fast build tool and development server
+- **Routing**: [React Router DOM v7](https://reactrouter.com/) - Modern client-side routing
+- **Language**: JavaScript (ES6+) with module support
+
+### State Management
+
+- **React Context API** - Lightweight, built-in state management
+  - `AuthContext`: User and admin authentication state management
+  - `ThemeContext`: Theme (Dark/Light) and Language (AR/EN) persistence
+  - `NotificationContext`: Global notification system for user feedback
+  - `ToastProvider`: Non-blocking alert system for notifications
+
+### Data Fetching & API
+
+- **Axios**: Simple HTTP client for API requests
+- **React Query (@tanstack/react-query)**: Powerful data fetching and caching library for server state management
+
+### Styling
+
+- **Custom CSS Architecture**:
+  - **Design Tokens** (`tokens.css`): Comprehensive color palette, typography, spacing, and semantic variables
+  - **Component-scoped CSS**: Each component has its own CSS file for maintainability
+  - No external UI libraries (Tailwind/Bootstrap) - custom, lightweight, and fully controllable CSS
+- **Material UI Icons** (@mui/icons-material): Comprehensive icon library for UI elements
+- **Emotion** (@emotion/react, @emotion/styled): CSS-in-JS library for dynamic styling if needed
+- **RTL Support**: Automatic RTL/LTR layout support with Stylis RTL plugin
+
+### Development Tools
+
+- **ESLint**: Code quality and style enforcement
+- **Vite Plugins**: React fast refresh for HMR during development
+
+## Project Structure
+
+```
+nour-charity/
+├── src/
+│   ├── api/                    # API client configuration
+│   │   ├── auth.api.js        # Authentication endpoints
+│   │   ├── beneficiaries.api.js
+│   │   ├── dashboard.api.js
+│   │   ├── donations.api.js
+│   │   ├── client.js          # Axios instance setup
+│   │   ├── queryClient.js     # React Query client
+│   │   └── index.js
+│   ├── app/
+│   │   └── providers.jsx      # Global providers wrapper
+│   ├── components/            # Reusable components
+│   │   ├── common/            # Shared UI components
+│   │   │   ├── ErrorBoundary.jsx
+│   │   │   ├── Loading.jsx
+│   │   │   ├── Card/
+│   │   │   ├── EmptyState/
+│   │   │   ├── Input/
+│   │   │   ├── Modal/
+│   │   │   ├── ProgressBar/
+│   │   │   ├── Skeleton/
+│   │   │   ├── StatusChip/
+│   │   │   ├── Tabs/
+│   │   │   └── Toast/
+│   │   └── layouts/           # Page layouts
+│   │       ├── AdminGuard.jsx
+│   │       ├── AdminLayout.jsx
+│   │       └── DonorLayout.jsx
+│   ├── contexts/              # React Context providers
+│   │   ├── AuthContext.jsx
+│   │   ├── NotificationContext.jsx
+│   │   └── ThemeContext.jsx
+│   ├── data/
+│   │   └── mockData.js        # Mock data for development
+│   ├── hooks/                 # Custom React hooks
+│   │   └── useScrollAnimation.js
+│   ├── i18n/                  # Internationalization
+│   │   ├── ar.json           # Arabic translations
+│   │   ├── en.json           # English translations
+│   │   └── index.js
+│   ├── pages/                 # Page components
+│   │   ├── admin/            # Admin dashboard pages
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── AdminBeneficiaries.jsx
+│   │   │   ├── AdminDonations.jsx
+│   │   │   ├── AdminFinance.jsx
+│   │   │   ├── AdminLogin.jsx
+│   │   │   ├── AdminPrograms.jsx
+│   │   │   ├── AdminProjects.jsx
+│   │   │   ├── AdminReports.jsx
+│   │   │   └── AdminSettings.jsx
+│   │   └── donor/            # Public portal pages
+│   │       ├── Home.jsx
+│   │       ├── Login.jsx
+│   │       ├── Account.jsx
+│   │       ├── Projects.jsx
+│   │       ├── ProjectDetails.jsx
+│   │       ├── Campaigns.jsx
+│   │       ├── Donate.jsx
+│   │       ├── Confirmation.jsx
+│   │       ├── About.jsx
+│   │       ├── Contact.jsx
+│   │       ├── Transparency.jsx
+│   │       ├── Volunteer.jsx
+│   │       └── ZakatCalculator.jsx
+│   ├── routes/                # Route configuration
+│   │   ├── AppRoutes.jsx      # Main route setup
+│   │   └── AdminGuard.jsx     # Admin protection
+│   ├── styles/
+│   │   └── tokens.css         # Design tokens and variables
+│   ├── theme/
+│   │   └── theme.js           # Theme configuration
+│   ├── App.jsx                # Root component
+│   ├── App.css
+│   ├── main.jsx              # Application entry point
+│   └── index.css
+├── public/                    # Static assets
+├── package.json              # Project dependencies
+├── vite.config.js           # Vite configuration
+├── eslint.config.js         # ESLint configuration
+├── index.html               # HTML template
+└── README.md               # This file
+```
+
+## Getting Started
+
+### Prerequisites
+
+- **Node.js** (v18 or higher recommended)
+- **npm** or **yarn** package manager
+- **Git** for version control
+
+### Installation
+
+1. **Clone the repository** (if working from a repo):
+
+   ```bash
+   git clone <repository-url>
+   cd nour-charity
+   ```
+
+2. **Install dependencies**:
+
+   ```bash
+   npm install
+   ```
+
+   or
+
+   ```bash
+   yarn install
+   ```
+
+3. **Start the development server**:
+
+   ```bash
+   npm run dev
+   ```
+
+   The application will be available at `http://localhost:5173` (Vite's default port)
+
+4. **Build for production**:
+
+   ```bash
+   npm run build
+   ```
+
+5. **Run linting**:
+   ```bash
+   npm run lint
+   ```
+
+## Available Scripts
+
+### Development
+
+- `npm run dev` - Start the development server with hot module replacement (HMR)
+  - Navigate to `http://localhost:5173`
+  - Changes automatically refresh in the browser
+
+### Production Build
+
+- `npm run build` - Build the project for production
+  - Optimized bundle in the `dist/` folder
+  - MiniFied and optimized for performance
+
+### Preview
+
+- `npm run preview` - Preview the production build locally
+  - Useful for testing the built application before deployment
+
+### Code Quality
+
+- `npm run lint` - Run ESLint to check code quality
+  - Checks for code style violations and potential issues
+  - Use `npm run lint -- --fix` to auto-fix issues
+
+## Architecture & Design
+
+### Authentication Flow
+
+- **Admin Login**: Secure login with credentials validation
+- **User/Donor Login**: Phone number-based authentication with OTP simulation
+- **Session Management**: Persisted in `AuthContext`
+- **Protected Routes**: Admin routes protected by `AdminGuard` component
+
+### State Management Pattern
+
+The application uses React Context API for global state:
+
+- **AuthContext**: Manages user login state, admin access
+- **ThemeContext**: Manages theme (dark/light) and language (Arabic/English)
+- **NotificationContext**: Manages toast/notification messages
+
+### Styling Architecture
+
+- **Design Tokens**: Centralized in `tokens.css` for consistent design
+- **Component Modules**: Each component folder contains CSS alongside JSX
+- **RTL/LTR Support**: Automatic layout adjustment based on language
+- **Responsive Design**: Mobile-first approach with media queries
+
+### API Structure
+
+- Centralized API client in `src/api/client.js`
+- Individual API modules for different features (auth, donations, etc.)
+- React Query integration for efficient server state management
+- Error handling and request/response interceptors
+
+### Internationalization (i18n)
+
+- Translation files in `src/i18n/` (Arabic: `ar.json`, English: `en.json`)
+- Theme-based language switching in `ThemeContext`
+- Automatic RTL/LTR layout adjustment
+- Persistent language preference
+
+## Development Guidelines
+
+### Component Naming
+
+- Functional components using `.jsx` extension
+- PascalCase for component names
+- Descriptive, clear naming
+
+### File Organization
+
+- Group related components in folders
+- Include `index.js` for cleaner imports
+- Co-locate CSS files with components
+
+### CSS Best Practices
+
+- Use design tokens for colors, spacing, and typography
+- Follow BEM naming convention for CSS classes
+- Mobile-first responsive design
+- Support for both light and dark themes
+
+### API Calls
+
+- Use the centralized API client
+- Implement error handling
+- Use React Query for data fetching
+- Handle loading and error states
+
+### Git Workflow
+
+- Create feature branches from `main`
+- Write clear, descriptive commit messages
+- Submit pull requests for code review before merging
+
+## Testing (Future Enhancement)
+
+While not currently implemented, consider adding:
+
+- Unit tests with Jest and React Testing Library
+- Integration tests for API interactions
+- E2E tests with Cypress or Playwright
+
+## Deployment
+
+### Build Process
+
+```bash
+npm run build
+```
+
+This creates an optimized production build in the `dist/` folder.
+
+### Hosting Options
+
+- **Vercel**: Optimal for Vite projects
+- **Netlify**: Great static hosting with CI/CD
+- **Traditional Servers**: Deploy the `dist/` folder contents
+
+### Environment Variables
+
+Create a `.env` file for environment-specific configuration:
+
+```
+VITE_API_BASE_URL=your_api_url
+VITE_APP_NAME=Nour Charity
+```
+
+## Browser Support
+
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+- Mobile browsers (iOS Safari, Chrome Mobile)
+
+## Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. **Fork the repository** and create a feature branch
+2. **Make your changes** following the development guidelines
+3. **Test your changes** thoroughly
+4. **Commit with clear messages** describing your changes
+5. **Submit a pull request** with a detailed description
+
+### Code Style
+
+- Follow ESLint rules configured in the project
+- Run `npm run lint -- --fix` to auto-format code
+- Ensure all components are properly documented
+
+## Troubleshooting
+
+### Port Already in Use
+
+If `localhost:5173` is already in use:
+
+```bash
+npm run dev -- --port 3000
+```
+
+### Clear Cache
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Module Not Found
+
+Clear Vite cache:
+
+```bash
+rm -rf src/.vite
+npm run dev
+```
+
+## Performance Optimization Tips
+
+- Lazy load page components with React.lazy()
+- Use React.memo() for expensive components
+- Implement virtualization for large lists
+- Monitor bundle size with Vite's analyzer
+
+## Security Considerations
+
+- Sanitize user inputs to prevent XSS
+- Use HTTPS for production
+- Implement CSRF protection on the backend
+- Secure sensitive data in localStorage carefully
+- Validate on both client and server
+
+## FAQ
+
+**Q: How do I change the default language?**
+A: The default is Arabic. Change in `ThemeContext` initialization or user preferences in the theme switcher.
+
+**Q: How can I add a new page?**
+A: Create a new component in `src/pages/`, add a route in `AppRoutes.jsx`, and implement the layout/styling.
+
+**Q: How do I integrate a real payment gateway?**
+A: Update the donation API in `src/api/donations.api.js` to use your payment provider's SDK.
+
+**Q: Where are user settings stored?**
+A: Currently using localStorage. Consider migrating to backend storage for production.
+
+## Future Enhancements
+
+- Real payment gateway integration (Stripe, Fawry, etc.)
+- Backend API implementation
+- Database schema and ORM setup
+- Automated testing suite
+- Push notifications
+- Email notifications and reports
+- Mobile app (React Native)
+- Advanced analytics and reporting
+
+## License
+
+This project is proprietary and developed for Nour Charity Organization. All rights reserved.
+
+## Support
+
+For issues, questions, or suggestions:
+
+- Create an issue on the project repository
+- Contact the development team
+- Check project documentation
+
+---
+
+**Last Updated**: February 2026
+**Version**: 0.0.0
+**Status**: Active Development
+
+- **Internationalization (i18n)**: Custom lightweight i18n solution with JSON translation files.
+
+## 📂 Project Structure
+
+```
+src/
+├── components/
+│   ├── common/       # Reusable UI components (Buttons, Inputs, Cards, Modals)
+│   └── layouts/      # Layout wrappers (DonorLayout, AdminLayout)
+├── contexts/         # Global State (Auth, Theme, Notifications)
+├── i18n/             # Translation files (ar.json, en.json)
+├── pages/
+│   ├── admin/        # Admin Dashboard pages
+│   └── donor/        # Public/Donor portal pages
+├── styles/
+│   └── tokens.css    # Design System & CSS Variables
+└── App.jsx           # Main Routing & Application Setup
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (Version 18 or higher recommended)
+- npm (comes with Node.js)
+
+### Installation
+
+1.  **Clone the repository** (if applicable) or navigate to the project folder.
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+
+### Running the Project
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open your browser and navigate to `http://localhost:5173` (or the port shown in your terminal).
+
+## 🔐 Credentials (Demo)
+
+The system includes simulated authentication for demonstration purposes.
+
+### Donor Access
+
+- **URL**: `/login`
+- **Phone**: Any valid phone number (e.g., `01012345678`)
+- **OTP**: Any 4-digit code (simulated)
+
+---
+
+> Built with ❤️ for the community.#

@@ -1,0 +1,14 @@
+export { default as Home } from './Home';
+export { default as Projects } from './Projects';
+export { default as ProjectDetails } from './ProjectDetails';
+export { default as Donate } from './Donate';
+export { default as Confirmation } from './Confirmation';
+export { default as Programs } from './Programs';
+export { default as About } from './About';
+export { default as Transparency } from './Transparency';
+export { default as Account } from './Account';
+export { default as Campaigns } from './Campaigns';
+export { default as ZakatCalculator } from './ZakatCalculator';
+export { default as Volunteer } from './Volunteer';
+export { default as Contact } from './Contact';
+export { default as Login } from './Login';
