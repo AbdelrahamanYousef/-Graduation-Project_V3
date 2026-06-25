@@ -3,6 +3,7 @@ import { t } from '../../i18n';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { useInjectStyles } from '../../utils/injectStyles';
+import { submitContactMessage } from '../../api/contact.api';
 import ContactHero from './ContactHero';
 import ContactInfoCard from './ContactInfoCard';
 import ContactSocialCard from './ContactSocialCard';
@@ -59,7 +60,7 @@ function Contact() {
         return ' ';
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setTouched({ name: true, email: true, phone: true, subject: true, message: true });
         const hasErr = [
@@ -71,13 +72,22 @@ function Contact() {
         ].some(Boolean);
         if (hasErr) return;
         setSubmitting(true);
-        setTimeout(() => {
-            setSubmitting(false);
-            dispatch({ type: 'ADD_CONTACT_MESSAGE', payload: { id: Date.now(), ...form, status: 'جديد', createdAt: new Date().toISOString() } });
+        try {
+            await submitContactMessage({
+                name: form.name.trim(),
+                email: form.email.trim(),
+                phone: form.phone.trim() || undefined,
+                subject: form.subject.trim(),
+                message: form.message.trim(),
+            });
             setForm({ name: '', email: '', phone: '', subject: '', message: '', preferredContact: '' });
             setTouched({});
             setSnackbar({ open: true, severity: 'success', message: t('contact.messageSent') });
-        }, 1200);
+        } catch (err) {
+            setSnackbar({ open: true, severity: 'error', message: err.response?.data?.error?.message || 'حدث خطأ أثناء الإرسال' });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const contactInfo = [

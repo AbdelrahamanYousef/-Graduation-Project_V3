@@ -3,6 +3,7 @@ import apiClient from './client';
 export const volunteerKeys = {
     all: ['volunteers'],
     list: (filters) => ['volunteers', 'list', filters],
+    detail: (id) => ['volunteers', 'detail', id],
 };
 
 /**
@@ -22,10 +23,18 @@ export async function getVolunteers(filters = {}) {
 }
 
 /**
+ * Get a single volunteer application (admin)
+ */
+export async function getVolunteerById(id) {
+    const { data } = await apiClient.get(`/volunteers/${id}`);
+    return data;
+}
+
+/**
  * Approve a volunteer application (admin)
  */
-export async function approveVolunteer(id) {
-    const { data } = await apiClient.patch(`/volunteers/${id}/approve`);
+export async function approveVolunteer(id, payload = {}) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/approve`, payload);
     return data;
 }
 

@@ -14,3 +14,16 @@ export async function uploadProfilePhoto(file) {
     });
     return data;
 }
+
+/**
+ * Upload a general image for admin assets (projects/programs)
+ * @param {File} file
+ */
+export async function uploadImage(file) {
+    const form = new FormData();
+    form.append('image', file);
+    const { data } = await apiClient.post('/upload/image', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+}

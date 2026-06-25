@@ -67,7 +67,7 @@ function HomeUrgentCases({ featuredProjectsList, isDark, setDonateProject, navig
                     ) : featuredProjectsList.map((project, i) => (
                         <div key={project.id} className="flex justify-center" style={{ width: 'clamp(280px, 100%, 100%)', maxWidth: '100%' }}>
                             <CampaignCardItem
-                                project={project}
+                                campaign={project}
                                 index={i}
                                 onClick={() => navigate(`/campaigns`)}
                                 onDonate={(p) => setDonateProject(p)}

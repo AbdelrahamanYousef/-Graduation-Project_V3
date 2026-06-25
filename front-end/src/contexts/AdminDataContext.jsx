@@ -1,5 +1,7 @@
-import { createContext, useContext, useReducer, useEffect, useMemo } from 'react';
+import { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { projects as initialProjects, programs as initialPrograms, impactStats as initialStats, testimonials as initialTestimonials } from '../data/mockData';
+import { getPrograms, createProgram as apiCreateProgram, updateProgram as apiUpdateProgram, deleteProgram as apiDeleteProgram } from '../api/programs.api';
+import { getProjects, createProject as apiCreateProject, updateProject as apiUpdateProject, deleteProject as apiDeleteProject } from '../api/projects.api';
 import { donationsList as initialDonations, beneficiariesList as initialBeneficiaries, financeDisbursements as initialDisbursements, dashboardActivities as initialActivities } from '../data/adminMockData';
 
 // ─── Storage Keys ────────────────────────────────────────────
@@ -16,6 +18,7 @@ const STORAGE_KEYS = {
     stats: 'nour_admin_stats',
     settings: 'nour_admin_settings',
     content: 'nour_admin_content',
+    campaigns: 'nour_admin_campaigns',
 };
 
 // ─── Load / Save helpers ─────────────────────────────────────
@@ -39,13 +42,65 @@ function buildInitialState() {
     return {
         projects: loadFromStorage(STORAGE_KEYS.projects, initialProjects),
         programs: loadFromStorage(STORAGE_KEYS.programs, initialPrograms),
-        blogPosts: loadFromStorage(STORAGE_KEYS.blogPosts, []),
+        blogPosts: loadFromStorage(STORAGE_KEYS.blogPosts, [
+            {
+                id: 101,
+                title: 'إطلاق القافلة الطبية الكبرى بمحافظة أسوان',
+                summary: 'أطلقت جمعية نور الخيرية قافلة طبية متكاملة لتقديم الخدمات الطبية المجانية لأهالي قرى أسوان.',
+                content: 'في إطار سعيها المستمر لدعم الرعاية الصحية في المناطق الأكثر احتياجاً، أطلقت مؤسسة نور الخيرية قافلة طبية شاملة بالتعاون مع نخبة من الأطباء في مختلف التخصصات. تمكنت القافلة من توقيع الكشف الطبي على أكثر من 1200 مستفيد وتوزيع الأدوية بالمجان، بالإضافة إلى تحويل الحالات الحرجة للمستشفيات لإجراء العمليات اللازمة.\n\nتأتي هذه القوافل امتداداً لجهود الجمعية في توفير الرعاية الصحية والطبية وتسهيل وصولها للأسر الأولى بالرعاية.',
+                image: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=450&fit=crop',
+                images: [
+                    { id: 1011, url: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=500&h=350&fit=crop', caption: 'الكشف الطبي على الأطفال', order: 1 },
+                    { id: 1012, url: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500&h=350&fit=crop', caption: 'صيدلية القافلة وتوزيع العلاج مجاناً', order: 2 }
+                ],
+                category: 'فعاليات',
+                author: 'د. أحمد سمير',
+                featured: true,
+                status: 'published',
+                publishedAt: '2026-06-20T10:00:00.000Z'
+            },
+            {
+                id: 102,
+                title: 'بدء توزيع المساعدات الغذائية للأسر المتعففة',
+                summary: 'بدء الحملة السنوية لتوزيع الطرود الغذائية على الأسر الأولى بالرعاية في مختلف محافظات الصعيد.',
+                content: 'انطلقت اليوم فرق متطوعي جمعية نور الخيرية لتوزيع أكثر من 5000 طرد غذائي متكامل يحتوي على المواد التموينية الأساسية للأسر المتعففة.\n\nتهدف الحملة إلى تخفيف الأعباء المعيشية عن كاهل هذه الأسر ومشاركتهم الفرحة والوقوف بجانبهم في مواجهة الظروف الاقتصادية الصعبة.',
+                image: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=450&fit=crop',
+                images: [
+                    { id: 1021, url: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=500&h=350&fit=crop', caption: 'تجهيز طرود المواد الغذائية', order: 1 },
+                    { id: 1022, url: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=500&h=350&fit=crop', caption: 'الفرحة على وجوه متطوعي الجمعية', order: 2 }
+                ],
+                category: 'أخبار',
+                author: 'رنا محمود',
+                featured: false,
+                status: 'published',
+                publishedAt: '2026-06-15T08:30:00.000Z'
+            },
+            {
+                id: 103,
+                title: 'مشروع إفطار صائم وتوزيع وجبات الإفطار الساخنة',
+                summary: 'مؤسسة نور الخيرية تسعد بتقديم وجبات إفطار صائم طازجة للمستحقين طوال شهر رمضان المبارك.',
+                content: 'تواصل الجمعية تنفيذ مشروع إفطار صائم اليومي، حيث يتم إعداد وتعبئة وتوزيع الوجبات الساخنة والصحية بمشاركة فريق من الطهاة والمتطوعين.\n\nنشكر كل الداعمين والمساهمين في استمرارية هذا الخير وإدخال البهجة والسرور على قلوب الصائمين.',
+                image: 'https://images.unsplash.com/photo-1593078166039-c9878df5c520?w=800&h=450&fit=crop',
+                images: [
+                    { id: 1031, url: 'https://images.unsplash.com/photo-1541802645635-11f2286a7482?w=500&h=350&fit=crop', caption: 'تعبئة الوجبات الطازجة', order: 1 }
+                ],
+                category: 'فعاليات',
+                author: 'كريم هاني',
+                featured: false,
+                status: 'published',
+                publishedAt: '2026-05-30T16:00:00.000Z'
+            }
+        ]),
         gallery: loadFromStorage(STORAGE_KEYS.gallery, [
-            { id: 1, title: 'توزيع المساعدات', description: 'فريق العمل أثناء توزيع المساعدات', image: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=400&h=300&fit=crop' },
-            { id: 2, title: 'القافلة الطبية', description: 'القافلة الطبية في المناطق النائية', image: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=400&h=300&fit=crop' },
-            { id: 3, title: 'إفطار صائم', description: 'مشروع إفطار صائم في رمضان', image: 'https://images.unsplash.com/photo-1593078166039-c9878df5c520?w=400&h=300&fit=crop' },
+            { id: 1, title: 'توزيع المساعدات', description: 'فريق العمل أثناء توزيع المساعدات الغذائية', image: 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&h=600&fit=crop', eventId: 102, order: 1 },
+            { id: 2, title: 'تجهيز طرود الغذاء', description: 'فرز وتعبئة المواد الغذائية بالكراتين', image: 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=800&h=600&fit=crop', eventId: 102, order: 2 },
+            { id: 3, title: 'القافلة الطبية بأسوان', description: 'توافد الأهالي لتلقي العلاج والكشف الطبي مجاناً', image: 'https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=800&h=600&fit=crop', eventId: 101, order: 1 },
+            { id: 4, title: 'كشف الأطفال بالقافلة', description: 'أطباء الأطفال يفحصون الحالات بقرية أسوان', image: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=800&h=600&fit=crop', eventId: 101, order: 2 },
+            { id: 5, title: 'إعداد وجبات الإفطار', description: 'متطوعو المطبخ الخيري يجهزون وجبات الإفطار الساخنة', image: 'https://images.unsplash.com/photo-1593078166039-c9878df5c520?w=800&h=600&fit=crop', eventId: 103, order: 1 },
+            { id: 6, title: 'تعبئة وتغليف الوجبات', description: 'اللمسات النهائية قبل توزيع وجبات الإفطار', image: 'https://images.unsplash.com/photo-1541802645635-11f2286a7482?w=800&h=600&fit=crop', eventId: 103, order: 2 }
         ]),
         contactMessages: loadFromStorage(STORAGE_KEYS.contactMessages, []),
+        campaigns: loadFromStorage(STORAGE_KEYS.campaigns, []),
         donations: loadFromStorage(STORAGE_KEYS.donations, initialDonations),
         beneficiaries: loadFromStorage(STORAGE_KEYS.beneficiaries, initialBeneficiaries || []),
         disbursements: loadFromStorage(STORAGE_KEYS.disbursements, initialDisbursements || []),
@@ -175,6 +230,23 @@ function adminDataReducer(state, action) {
         case 'UPDATE_CONTACT_MESSAGE':
             return { ...state, contactMessages: state.contactMessages.map(m => m.id === action.payload.id ? { ...m, ...action.payload } : m) };
 
+        // ── Campaigns ──
+        case 'ADD_CAMPAIGN':
+            return { ...state, campaigns: [...state.campaigns, action.payload] };
+        case 'UPDATE_CAMPAIGN':
+            return { ...state, campaigns: state.campaigns.map(c => c.id === action.payload.id ? { ...c, ...action.payload } : c) };
+        case 'DELETE_CAMPAIGN':
+            return { ...state, campaigns: state.campaigns.filter(c => c.id !== action.payload) };
+        case 'TOGGLE_CAMPAIGN_STATUS':
+            return {
+                ...state,
+                campaigns: state.campaigns.map(c =>
+                    c.id === action.payload
+                        ? { ...c, status: c.status === 'active' ? 'completed' : 'active' }
+                        : c
+                ),
+            };
+
         // ── Programs ──
         case 'ADD_PROGRAM':
             return { ...state, programs: [...state.programs, action.payload] };
@@ -274,6 +346,7 @@ function adminDataReducer(state, action) {
                 beneficiaries: initialBeneficiaries || [],
                 disbursements: initialDisbursements || [],
                 activities: initialActivities || [],
+                campaigns: [],
                 stats: initialStats,
                 content: buildInitialState().content,
                 settings: buildInitialState().settings,
@@ -310,6 +383,10 @@ export function AdminDataProvider({ children }) {
     useEffect(() => {
         saveToStorage(STORAGE_KEYS.contactMessages, state.contactMessages);
     }, [state.contactMessages]);
+
+    useEffect(() => {
+        saveToStorage(STORAGE_KEYS.campaigns, state.campaigns);
+    }, [state.campaigns]);
 
     useEffect(() => {
         saveToStorage(STORAGE_KEYS.donations, state.donations);
@@ -353,6 +430,22 @@ export function AdminDataProvider({ children }) {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
+    // ── Backend Sync Helpers ──
+    const refreshAdminData = useCallback(async () => {
+        try {
+            const programs = await getPrograms();
+            const projectsRes = await getProjects({ limit: 1000 });
+            const projects = projectsRes?.data || [];
+            dispatch({ type: 'SYNC_STATE', payload: { programs, projects } });
+        } catch (e) {
+            console.warn('Failed to refresh admin data', e);
+        }
+    }, []);
+
+    useEffect(() => {
+        refreshAdminData();
+    }, [refreshAdminData]);
+
     // ── Derived State (Computed in real-time from raw state) ──
     const derivedState = useMemo(() => {
         // 1. Projects with auto-calculated raised & donors (matched by projectId or title)
@@ -388,8 +481,18 @@ export function AdminDataProvider({ children }) {
         return { ...state, projects: derivedProjects, programs: derivedPrograms, dashboardStats };
     }, [state]);
 
+    const api = {
+        refreshAdminData,
+        createProgram: async (data) => { const res = await apiCreateProgram(data); await refreshAdminData(); return res; },
+        updateProgram: async (id, data) => { const res = await apiUpdateProgram(id, data); await refreshAdminData(); return res; },
+        deleteProgram: async (id) => { const res = await apiDeleteProgram(id); await refreshAdminData(); return res; },
+        createProject: async (data) => { const res = await apiCreateProject(data); await refreshAdminData(); return res; },
+        updateProject: async (id, data) => { const res = await apiUpdateProject(id, data); await refreshAdminData(); return res; },
+        deleteProject: async (id) => { const res = await apiDeleteProject(id); await refreshAdminData(); return res; },
+    };
+
     return (
-        <AdminDataContext.Provider value={{ state: derivedState, dispatch }}>
+        <AdminDataContext.Provider value={{ state: derivedState, dispatch, api }}>
             {children}
         </AdminDataContext.Provider>
     );
@@ -425,5 +528,9 @@ export const adminActions = {
     updateStats: (stats) => ({ type: 'UPDATE_STATS', payload: stats }),
     updateSettings: (settings) => ({ type: 'UPDATE_SETTINGS', payload: settings }),
     updateContent: (content) => ({ type: 'UPDATE_CONTENT', payload: content }),
+    addCampaign: (campaign) => ({ type: 'ADD_CAMPAIGN', payload: campaign }),
+    updateCampaign: (campaign) => ({ type: 'UPDATE_CAMPAIGN', payload: campaign }),
+    deleteCampaign: (id) => ({ type: 'DELETE_CAMPAIGN', payload: id }),
+    toggleCampaignStatus: (id) => ({ type: 'TOGGLE_CAMPAIGN_STATUS', payload: id }),
     resetAll: () => ({ type: 'RESET_ALL' }),
 };

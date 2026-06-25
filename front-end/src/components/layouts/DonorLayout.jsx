@@ -91,8 +91,6 @@ function DonorLayout({ children }) {
         { path: '/programs', label: t('nav.programs'), icon: 'fa-solid fa-folder-open' },
         { path: '/campaigns', label: t('nav.campaigns'), icon: 'fa-solid fa-bullhorn' },
         { path: '/blog', label: t('nav.updates'), icon: 'fa-solid fa-newspaper' },
-        { path: '/gallery', label: 'المعرض', icon: 'fa-solid fa-images' },
-        { path: '/testimonials', label: 'الآراء', icon: 'fa-solid fa-comment-dots' },
         { path: '/zakat', label: t('nav.zakatCalc'), icon: 'fa-solid fa-calculator' },
         { path: '/volunteer', label: t('nav.volunteer'), icon: 'fa-solid fa-handshake' },
         { path: '/about', label: t('nav.about'), icon: 'fa-solid fa-building-columns' },

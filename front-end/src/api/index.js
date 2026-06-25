@@ -57,9 +57,16 @@ export {
 
 // Volunteers
 export {
-    applyAsVolunteer, getVolunteers, approveVolunteer, rejectVolunteer,
+    applyAsVolunteer, getVolunteers, getVolunteerById, approveVolunteer, rejectVolunteer,
     volunteerKeys,
 } from './volunteers.api';
+
+// Special Requests
+export {
+    submitSpecialRequest, getSpecialRequests, getSpecialRequestById,
+    approveSpecialRequest, rejectSpecialRequest,
+    specialRequestKeys,
+} from './specialRequests.api';
 
 // Contact
 export {

@@ -1,53 +1,40 @@
 const { Router } = require('express');
-const prisma = require('../../lib/prisma');
-const service = require('./volunteers.service');
+const service = require('./specialRequests.service');
 const { authAdmin } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
 
 const router = Router();
 
-// Public: submit volunteer application
 router.post('/apply', validate({
     body: z.object({
         name: z.string().min(2),
         email: z.string().email(),
         phone: z.string().min(10),
-        area: z.enum(['MEDICAL', 'EDUCATION', 'COMMUNITY', 'TECH', 'ADMIN', 'FIELD']),
-        message: z.string().optional(),
+        requestType: z.string().min(2),
+        description: z.string().min(10),
     }),
 }), async (req, res, next) => {
     try { res.status(201).json(await service.create(req.body)); } catch (e) { next(e); }
 });
 
-// Admin: list volunteer applications
 router.get('/', authAdmin, async (req, res, next) => {
     try { res.json(await service.list(req.query)); } catch (e) { next(e); }
 });
 
-// Admin: get single volunteer application
 router.get('/:id', authAdmin, async (req, res, next) => {
-    try {
-        const app = await prisma.volunteerApplication.findUnique({
-            where: { id: req.params.id },
-            include: { reviewedBy: { select: { id: true, name: true } } },
-        });
-        if (!app) return res.status(404).json({ error: { message: 'Not found' } });
-        res.json(app);
-    } catch (e) { next(e); }
+    try { res.json(await service.getById(req.params.id)); } catch (e) { next(e); }
 });
 
-// Admin: approve volunteer application
 router.patch('/:id/approve', authAdmin, validate({
     body: z.object({
+        aidType: z.enum(['CASH', 'MONTHLY_ALLOWANCE', 'FINANCIAL_AID', 'FOOD', 'MEDICAL', 'EDUCATIONAL', 'OTHER']).optional(),
         adminNotes: z.string().optional(),
-        nextSteps: z.string().optional(),
     }),
 }), async (req, res, next) => {
     try { res.json(await service.approve(req.params.id, req.user, req.body)); } catch (e) { next(e); }
 });
 
-// Admin: reject volunteer application
 router.patch('/:id/reject', authAdmin, validate({
     body: z.object({
         reason: z.string().optional(),

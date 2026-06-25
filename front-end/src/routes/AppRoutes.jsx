@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { DonorLayout, AdminLayout } from '../components/layouts';
 import AdminGuard from '../components/layouts/AdminGuard';
 
@@ -12,8 +12,6 @@ const DonateItem = lazy(() => import('../pages/donor/DonateItem'));
 const Confirmation = lazy(() => import('../pages/donor/Confirmation'));
 const Blog = lazy(() => import('../pages/donor/Blog'));
 const BlogDetail = lazy(() => import('../pages/donor/BlogDetail'));
-const Gallery = lazy(() => import('../pages/donor/Gallery'));
-const Testimonials = lazy(() => import('../pages/donor/Testimonials'));
 const Programs = lazy(() => import('../pages/donor/Programs'));
 const ProgramDetail = lazy(() => import('../pages/donor/ProgramDetail'));
 const About = lazy(() => import('../pages/donor/About'));
@@ -23,6 +21,7 @@ const Campaigns = lazy(() => import('../pages/donor/Campaigns'));
 const CampaignDetail = lazy(() => import('../pages/donor/CampaignDetail'));
 const ZakatCalculator = lazy(() => import('../pages/donor/ZakatCalculator'));
 const Volunteer = lazy(() => import('../pages/donor/Volunteer'));
+const SpecialRequest = lazy(() => import('../pages/donor/SpecialRequest'));
 const Contact = lazy(() => import('../pages/donor/Contact'));
 const Login = lazy(() => import('../pages/donor/Login'));
 const FullPageChat = lazy(() => import('../pages/donor/FullPageChat'));
@@ -38,8 +37,10 @@ const AdminReports = lazy(() => import('../pages/admin/AdminReports'));
 const AdminSettings = lazy(() => import('../pages/admin/AdminSettings'));
 const AdminCMS = lazy(() => import('../pages/admin/AdminCMS'));
 const AdminBlog = lazy(() => import('../pages/admin/AdminBlog'));
-const AdminGallery = lazy(() => import('../pages/admin/AdminGallery'));
 const AdminContactMessages = lazy(() => import('../pages/admin/AdminContactMessages'));
+const AdminVolunteers = lazy(() => import('../pages/admin/AdminVolunteers'));
+const AdminSpecialRequests = lazy(() => import('../pages/admin/AdminSpecialRequests'));
+const AdminCampaigns = lazy(() => import('../pages/admin/AdminCampaigns'));
 const AdminLogin = lazy(() => import('../pages/admin/AdminLogin'));
 
 // ─── Placeholder for unimplemented pages ────────────────────
@@ -82,14 +83,14 @@ export default function AppRoutes() {
             <Route path="/programs/:id" element={<DonorLayout><ProgramDetail /></DonorLayout>} />
             <Route path="/zakat" element={<DonorLayout><ZakatCalculator /></DonorLayout>} />
             <Route path="/volunteer" element={<DonorLayout><Volunteer /></DonorLayout>} />
+            <Route path="/special-request" element={<DonorLayout><SpecialRequest /></DonorLayout>} />
             <Route path="/transparency" element={<DonorLayout><Transparency /></DonorLayout>} />
             <Route path="/about" element={<DonorLayout><About /></DonorLayout>} />
             <Route path="/contact" element={<DonorLayout><Contact /></DonorLayout>} />
             <Route path="/account" element={<DonorLayout><Account /></DonorLayout>} />
             <Route path="/blog" element={<DonorLayout><Blog /></DonorLayout>} />
             <Route path="/blog/:id" element={<DonorLayout><BlogDetail /></DonorLayout>} />
-            <Route path="/gallery" element={<DonorLayout><Gallery /></DonorLayout>} />
-            <Route path="/testimonials" element={<DonorLayout><Testimonials /></DonorLayout>} />
+            <Route path="/gallery" element={<Navigate to="/blog?tab=gallery" replace />} />
             <Route path="/login" element={<Login />} />
             <Route path="/chat" element={<FullPageChat />} />
             <Route path="/updates" element={<DonorLayout><DonorPlaceholder title="آخر التحديثات" icon="🔔" /></DonorLayout>} />
@@ -105,6 +106,7 @@ export default function AppRoutes() {
                 <Route index element={<Dashboard />} />
                 <Route path="programs" element={<AdminPrograms />} />
                 <Route path="projects" element={<AdminProjects />} />
+                <Route path="campaigns" element={<AdminCampaigns />} />
                 <Route path="donations" element={<AdminDonations />} />
                 <Route path="beneficiaries" element={<AdminBeneficiaries />} />
                 <Route path="finance" element={<AdminFinance />} />
@@ -112,8 +114,10 @@ export default function AppRoutes() {
                 <Route path="settings" element={<AdminSettings />} />
                 <Route path="cms" element={<AdminCMS />} />
                 <Route path="blog" element={<AdminBlog />} />
-                <Route path="gallery" element={<AdminGallery />} />
+                <Route path="gallery" element={<Navigate to="/admin/blog?tab=gallery" replace />} />
                 <Route path="messages" element={<AdminContactMessages />} />
+                <Route path="volunteers" element={<AdminVolunteers />} />
+                <Route path="special-requests" element={<AdminSpecialRequests />} />
             </Route>
         </Routes>
     );

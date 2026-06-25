@@ -14,6 +14,11 @@ async function create(data) {
 async function list(query = {}) {
     const where = {};
     if (query.status) where.status = query.status;
+    if (query.dateFrom || query.dateTo) {
+        where.createdAt = {};
+        if (query.dateFrom) where.createdAt.gte = new Date(query.dateFrom);
+        if (query.dateTo) where.createdAt.lte = new Date(query.dateTo);
+    }
 
     return prisma.volunteerApplication.findMany({
         where,
@@ -27,7 +32,7 @@ async function list(query = {}) {
 /**
  * Approve a volunteer application (admin)
  */
-async function approve(id, adminUser) {
+async function approve(id, adminUser, data = {}) {
     const app = await prisma.volunteerApplication.findUnique({ where: { id } });
     if (!app) throw new Error('Volunteer application not found');
     if (app.status !== 'PENDING') throw new Error('Only PENDING applications can be approved');
@@ -38,6 +43,8 @@ async function approve(id, adminUser) {
             status: 'APPROVED',
             reviewedById: adminUser.id,
             reviewedAt: new Date(),
+            adminNotes: data.adminNotes || null,
+            nextSteps: data.nextSteps || null,
         },
     });
 
@@ -58,7 +65,7 @@ async function approve(id, adminUser) {
         action: 'VOLUNTEER_APPROVED',
         entity: 'VolunteerApplication',
         entityId: id,
-        payload: { name: app.name, area: app.area },
+        payload: { name: app.name, area: app.area, adminNotes: data.adminNotes, nextSteps: data.nextSteps },
     });
 
     return updated;

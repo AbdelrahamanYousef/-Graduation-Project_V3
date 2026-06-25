@@ -26,6 +26,8 @@ const auditRoutes = require('./modules/audit/audit.routes');
 const reconciliationRoutes = require('./modules/reconciliation/reconciliation.routes');
 const uploadRoutes = require('./modules/upload/upload.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
+const specialRequestRoutes = require('./modules/special-requests/specialRequests.routes');
+const campaignRoutes = require('./modules/campaigns/campaigns.routes');
 
 const app = express();
 
@@ -61,6 +63,8 @@ api.use('/audit-logs', auditRoutes);
 api.use('/reconciliation', reconciliationRoutes);
 api.use('/upload', uploadRoutes);
 api.use('/ai', aiRoutes);
+api.use('/special-requests', specialRequestRoutes);
+api.use('/campaigns', campaignRoutes);
 
 app.use('/api', api);
 

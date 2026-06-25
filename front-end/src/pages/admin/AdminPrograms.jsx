@@ -1,16 +1,18 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminDataTable, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { t, formatCurrency } from '../../i18n';
 import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
+import { uploadImage } from '../../api/upload.api';
 
 function AdminPrograms() {
-    const { state, dispatch } = useAdminData();
+    const { state, dispatch, api } = useAdminData();
     const programsList = state.programs;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
-    const [formData, setFormData] = useState({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '' });
+    const [formData, setFormData] = useState({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '', imageUrl: '' });
+    const fileInputRef = useRef(null);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, program: null });
 
     useEffect(() => {
@@ -20,7 +22,19 @@ function AdminPrograms() {
         }
     }, [snackbar.open]);
 
-    const resetForm = () => setFormData({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '' });
+    const resetForm = () => setFormData({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '', imageUrl: '' });
+
+    const handleProgramFileSelect = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            const res = await uploadImage(file);
+            setFormData(prev => ({ ...prev, imageUrl: res.url }));
+            setSnackbar({ open: true, msg: 'تم رفع الصورة بنجاح', severity: 'success' });
+        } catch (err) {
+            setSnackbar({ open: true, msg: err.message || 'فشل رفع الصورة', severity: 'error' });
+        }
+    };
 
     const handleAdd = () => {
         setSelectedProgram(null);
@@ -36,6 +50,7 @@ function AdminPrograms() {
             icon: program.icon || '',
             color: program.color || '#0B6B6B',
             description: program.description || '',
+            imageUrl: program.imageUrl || program.image || '',
         });
         setIsModalOpen(true);
     }, []);
@@ -44,54 +59,68 @@ function AdminPrograms() {
         setDeleteConfirm({ open: true, program });
     }, []);
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         const { program } = deleteConfirm;
         if (!program) return;
-
-        dispatch(adminActions.deleteProgram(program.id));
-        setSnackbar({ open: true, msg: `تم حذف البرنامج "${program.name}" بنجاح`, severity: 'success' });
+        try {
+            await api.deleteProgram(program.id);
+            setSnackbar({ open: true, msg: `تم حذف البرنامج "${program.name}" بنجاح`, severity: 'success' });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الحذف', severity: 'error' });
+        }
         setDeleteConfirm({ open: false, program: null });
     };
 
-    const handleToggleStatus = useCallback((program) => {
-        dispatch(adminActions.toggleProgramStatus(program.id));
-        const nextStatus = program.status === 'active' ? 'inactive' : 'active';
-        setSnackbar({
-            open: true,
-            msg: nextStatus === 'active'
-                ? `تم تفعيل "${program.name}" — سيظهر في الصفحة الرئيسية`
-                : `تم إيقاف "${program.name}" — لن يظهر في الصفحة الرئيسية`,
-            severity: 'info'
-        });
-    }, [dispatch]);
+    const handleToggleStatus = useCallback(async (program) => {
+        try {
+            const nextStatus = program.status === 'active' ? 'INACTIVE' : 'ACTIVE';
+            await api.updateProgram(program.id, { status: nextStatus });
+            setSnackbar({
+                open: true,
+                msg: nextStatus === 'ACTIVE'
+                    ? `تم تفعيل "${program.name}" — سيظهر في الصفحة الرئيسية`
+                    : `تم إيقاف "${program.name}" — لن يظهر في الصفحة الرئيسية`,
+                severity: 'info'
+            });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
+        }
+    }, [api]);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.name.trim()) {
             setSnackbar({ open: true, msg: 'يرجى إدخال اسم البرنامج', severity: 'error' });
             return;
         }
-
         if (selectedProgram) {
-            dispatch(adminActions.updateProgram({
-                ...selectedProgram,
-                name: formData.name,
-                nameEn: formData.nameEn,
-                icon: formData.icon,
-                color: formData.color,
-                description: formData.description,
-            }));
-            setSnackbar({ open: true, msg: `تم تحديث "${formData.name}" — تم التعديل في الصفحة الرئيسية`, severity: 'success' });
+            try {
+                await api.updateProgram(selectedProgram.id, {
+                    name: formData.name,
+                    nameEn: formData.nameEn,
+                    icon: formData.icon,
+                    color: formData.color,
+                    description: formData.description,
+                    imageUrl: formData.imageUrl || undefined,
+                });
+                setSnackbar({ open: true, msg: `تم تحديث "${formData.name}" — تم التعديل في الصفحة الرئيسية`, severity: 'success' });
+            } catch (e) {
+                setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
+            }
         } else {
-            dispatch(adminActions.addProgram({
-                id: Math.max(...programsList.map(p => p.id), 0) + 1,
-                name: formData.name,
-                nameEn: formData.nameEn,
-                icon: formData.icon || 'fa-solid fa-folder',
-                color: formData.color,
-                description: formData.description,
-                status: 'active',
-            }));
-            setSnackbar({ open: true, msg: `تم إضافة "${formData.name}" — ظهر في الصفحة الرئيسية`, severity: 'success' });
+            try {
+                await api.createProgram({
+                    name: formData.name,
+                    nameEn: formData.nameEn,
+                    icon: formData.icon || 'fa-solid fa-folder',
+                    color: formData.color,
+                    description: formData.description,
+                    imageUrl: formData.imageUrl || undefined,
+                    status: 'ACTIVE',
+                });
+                setSnackbar({ open: true, msg: `تم إضافة "${formData.name}" — ظهر في الصفحة الرئيسية`, severity: 'success' });
+            } catch (e) {
+                setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الإنشاء', severity: 'error' });
+            }
         }
         setIsModalOpen(false);
         resetForm();
@@ -170,6 +199,18 @@ function AdminPrograms() {
                             <span>معاينة الأيقونة</span>
                         </div>
                     )}
+                </div>
+                <div className="flex gap-2 items-center mt-2">
+                    <input
+                        placeholder="Image URL"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none"
+                    />
+                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleProgramFileSelect} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm">
+                        <i className="fa-solid fa-camera ml-1" /> {t('admin.programsPage.imageUpload')}
+                    </button>
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.programsPage.colorLabel')}</label>

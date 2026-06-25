@@ -71,13 +71,15 @@ function AdminLayout() {
     const sidebarItems = [
         { path: '/admin/programs', label: t('admin.programs'), icon: 'fa-solid fa-folder-open' },
         { path: '/admin/projects', label: t('admin.projects'), icon: 'fa-solid fa-clipboard-list' },
+        { path: '/admin/campaigns', label: 'الحملات', icon: 'fa-solid fa-bullhorn' },
         { path: '/admin/donations', label: t('admin.donations'), icon: 'fa-solid fa-coins' },
         { path: '/admin/beneficiaries', label: t('admin.beneficiaries'), icon: 'fa-solid fa-users' },
         { path: '/admin/finance', label: t('admin.finance'), icon: 'fa-solid fa-credit-card' },
         { path: '/admin/cms', label: 'إدارة المحتوى', icon: 'fa-solid fa-pen-nib' },
-        { path: '/admin/blog', label: 'الأخبار', icon: 'fa-solid fa-newspaper' },
-        { path: '/admin/gallery', label: 'المعرض', icon: 'fa-solid fa-images' },
+        { path: '/admin/blog', label: 'المدونة', icon: 'fa-solid fa-blog' },
         { path: '/admin/messages', label: 'الرسائل', icon: 'fa-solid fa-message' },
+        { path: '/admin/volunteers', label: 'طلبات التطوع', icon: 'fa-solid fa-handshake-angle' },
+        { path: '/admin/special-requests', label: 'الطلبات الخاصة', icon: 'fa-solid fa-file-pen' },
     ];
 
     const isActive = (item) => {

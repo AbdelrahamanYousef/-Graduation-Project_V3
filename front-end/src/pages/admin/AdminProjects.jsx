@@ -1,10 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminFilterBar, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { formatCurrency, t } from '../../i18n';
 import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
+import { uploadImage } from '../../api/upload.api';
 
 function AdminProjects() {
-    const { state, dispatch } = useAdminData();
+    const { state, dispatch, api } = useAdminData();
     const projectsList = state.projects;
     const programsList = state.programs;
 
@@ -23,25 +24,33 @@ function AdminProjects() {
         }
     }, [snackbar.open]);
 
-    const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '' };
+    const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '', imageUrl: '' };
     const [formData, setFormData] = useState(emptyForm);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, project: null });
 
-    const handleStatusChange = (project, newStatus) => {
-        dispatch(adminActions.updateProject({ ...project, status: newStatus }));
-        setSnackbar({ open: true, msg: `تم تغيير حالة المشروع إلى ${newStatus}`, severity: 'success' });
+    const handleStatusChange = async (project, newStatus) => {
+        try {
+            await api.updateProject(project.id, { status: newStatus.toUpperCase() });
+            setSnackbar({ open: true, msg: `تم تغيير حالة المشروع إلى ${newStatus}`, severity: 'success' });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
+        }
     };
 
-    const toggleFeatured = useCallback((project) => {
-        dispatch(adminActions.toggleFeatured(project.id));
-        setSnackbar({
-            open: true,
-            severity: 'success',
-            msg: project.featured
-                ? `تم إزالة "${project.title}" من الحالات الأشد احتياجاً`
-                : `تم إضافة "${project.title}" للحالات الأشد احتياجاً ⭐`,
-        });
-    }, [dispatch]);
+    const toggleFeatured = useCallback(async (project) => {
+        try {
+            await api.updateProject(project.id, { featured: !project.featured });
+            setSnackbar({
+                open: true,
+                severity: 'success',
+                msg: project.featured
+                    ? `تم إزالة "${project.title}" من الحالات الأشد احتياجاً`
+                    : `تم إضافة "${project.title}" للحالات الأشد احتياجاً ⭐`,
+            });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
+        }
+    }, [api]);
 
     const handleAdd = () => {
         setEditProject(null);
@@ -58,47 +67,49 @@ function AdminProjects() {
             donationAmount: project.donationAmount || '',
             location: project.location || '',
             description: project.description || '',
+            imageUrl: project.image || project.imageUrl || '',
         });
         setIsModalOpen(true);
     }, []);
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.title.trim()) {
             setSnackbar({ open: true, msg: 'يرجى إدخال عنوان المشروع', severity: 'error' });
             return;
         }
 
         if (editProject) {
-            dispatch(adminActions.updateProject({
-                ...editProject,
-                title: formData.title,
-                programId: Number(formData.programId),
-                goal: Number(formData.goal),
-                donationAmount: Number(formData.donationAmount),
-                location: formData.location,
-                description: formData.description,
-            }));
-            setSnackbar({ open: true, msg: `تم تحديث المشروع "${formData.title}"`, severity: 'success' });
+            try {
+                await api.updateProject(editProject.id, {
+                    title: formData.title,
+                    programId: formData.programId,
+                    goal: Number(formData.goal),
+                    donationAmount: Number(formData.donationAmount),
+                    location: formData.location,
+                    description: formData.description,
+                    imageUrl: formData.imageUrl || undefined,
+                });
+                setSnackbar({ open: true, msg: `تم تحديث المشروع "${formData.title}"`, severity: 'success' });
+            } catch (e) {
+                setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
+            }
         } else {
-            const program = programsList.find(p => p.id === Number(formData.programId));
-            dispatch(adminActions.addProject({
-                id: Math.max(...projectsList.map(p => p.id), 0) + 1,
-                title: formData.title,
-                programId: Number(formData.programId),
-                program: program?.name || '',
-                programEn: program?.nameEn || '',
-                goal: Number(formData.goal) || 100000,
-                raised: 0,
-                donors: 0,
-                daysLeft: 30,
-                donationAmount: Number(formData.donationAmount) || 0,
-                location: formData.location,
-                description: formData.description,
-                status: 'active',
-                featured: false,
-                image: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
-            }));
-            setSnackbar({ open: true, msg: `تم إنشاء المشروع "${formData.title}"`, severity: 'success' });
+            try {
+                await api.createProject({
+                    title: formData.title,
+                    programId: formData.programId,
+                    goal: Number(formData.goal) || 100000,
+                    donationAmount: Number(formData.donationAmount) || 0,
+                    location: formData.location,
+                    description: formData.description,
+                    status: 'ACTIVE',
+                    featured: false,
+                    imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
+                });
+                setSnackbar({ open: true, msg: `تم إنشاء المشروع "${formData.title}"`, severity: 'success' });
+            } catch (e) {
+                setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الإنشاء', severity: 'error' });
+            }
         }
         setIsModalOpen(false);
         setFormData(emptyForm);
@@ -108,11 +119,15 @@ function AdminProjects() {
         setDeleteConfirm({ open: true, project });
     }, []);
 
-    const confirmDelete = () => {
+    const confirmDelete = async () => {
         const { project } = deleteConfirm;
         if (!project) return;
-        dispatch(adminActions.deleteProject(project.id));
-        setSnackbar({ open: true, msg: `تم حذف المشروع "${project.title}"`, severity: 'success' });
+        try {
+            await api.deleteProject(project.id);
+            setSnackbar({ open: true, msg: `تم حذف المشروع "${project.title}"`, severity: 'success' });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الحذف', severity: 'error' });
+        }
         setDeleteConfirm({ open: false, project: null });
     };
 
@@ -152,6 +167,19 @@ function AdminProjects() {
     const updateField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
 
     const inputClass = "w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none";
+    const fileInputRef = useRef(null);
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        try {
+            const res = await uploadImage(file);
+            setFormData(prev => ({ ...prev, imageUrl: res.url }));
+            setSnackbar({ open: true, msg: 'تم رفع الصورة بنجاح', severity: 'success' });
+        } catch (err) {
+            setSnackbar({ open: true, msg: err.message || 'فشل رفع الصورة', severity: 'error' });
+        }
+    };
 
     return (
         <div className="flex flex-col gap-3">
@@ -213,14 +241,13 @@ function AdminProjects() {
 
                                 <div className="p-4 border-t border-neutral-200 dark:border-neutral-700 flex gap-1 items-center">
                                     <select
-                                        value={project.status || 'draft'}
+                                        value={project.status || 'active'}
                                         onChange={(e) => handleStatusChange(project, e.target.value)}
                                         className="text-sm px-2 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none min-w-[100px]"
                                     >
-                                        <option value="draft">مسودة</option>
                                         <option value="active">نشط</option>
                                         <option value="completed">مكتمل</option>
-                                        <option value="archived">مؤرشف</option>
+                                        <option value="pending">قيد الانتظار</option>
                                     </select>
                                     <div className="flex-1" />
                                     <button
@@ -289,8 +316,12 @@ function AdminProjects() {
                 </div>
                 <input className={inputClass} placeholder={t('admin.projectsPage.locationLabel')} value={formData.location} onChange={updateField('location')} />
                 <textarea className={inputClass + " resize-none"} rows={4} placeholder={t('admin.projectsPage.descLabel')} value={formData.description} onChange={updateField('description')} />
-                <div className="border-2 border-dashed border-neutral-300 dark:border-neutral-600 rounded-lg p-3 text-center bg-neutral-50 dark:bg-neutral-800/50 cursor-pointer text-neutral-500 dark:text-neutral-400 text-sm">
-                    <i className="fa-solid fa-camera ml-1" />{t('admin.projectsPage.imageUpload')}
+                <div className="flex gap-2 items-center">
+                    <input className={inputClass} placeholder="Image URL" value={formData.imageUrl} onChange={updateField('imageUrl')} />
+                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm">
+                        <i className="fa-solid fa-camera ml-1" /> {t('admin.projectsPage.imageUpload')}
+                    </button>
                 </div>
             </AdminFormDialog>
 

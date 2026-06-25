@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useInjectStyles } from '../../utils/injectStyles';
+import { applyAsVolunteer } from '../../api/volunteers.api';
 import VolunteerHero from './VolunteerHero';
 import VolunteerStatsStrip from './VolunteerStatsStrip';
 import VolunteerReasons from './VolunteerReasons';
@@ -18,6 +19,7 @@ function Volunteer() {
     const [cvMode, setCvMode] = useState('file');
     const [cvError, setCvError] = useState('');
     const [submitted, setSubmitted] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [touched, setTouched] = useState({});
 
     const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
@@ -80,7 +82,7 @@ function Volunteer() {
         { id: 'field', icon: 'fa-solid fa-truck', label: 'ميداني', desc: 'التوزيع والإغاثة والعمل الميداني المباشر' },
     ];
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const allTouched = { name: true, email: true, phone: true, area: true, cvUrl: true };
         setTouched(allTouched);
@@ -92,11 +94,26 @@ function Volunteer() {
         });
         const cvInvalid = cvMode === 'url' && form.cvUrl && !isUrlValid(form.cvUrl);
         if (hasErrors || cvInvalid) return;
-        setSubmitted(true);
-        setTimeout(() => setSubmitted(false), 3000);
-        setForm({ name: '', email: '', phone: '', area: '', message: '', cvFile: null, cvUrl: '' });
-        setTouched({});
-        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        setSubmitting(true);
+        try {
+            await applyAsVolunteer({
+                name: form.name.trim(),
+                email: form.email.trim(),
+                phone: form.phone.trim(),
+                area: form.area.toUpperCase(),
+                message: form.message.trim() || undefined,
+            });
+            setSubmitted(true);
+            setTimeout(() => setSubmitted(false), 3000);
+            setForm({ name: '', email: '', phone: '', area: '', message: '', cvFile: null, cvUrl: '' });
+            setTouched({});
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch (err) {
+            console.error('Failed to submit volunteer application:', err);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (

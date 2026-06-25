@@ -15,18 +15,31 @@ const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
 
 const cfadeUpStyles = `@keyframes cfadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }`;
 
-function CampaignCardItem({ project, index, onClick, onDonate }) {
+const STATUS_LABELS = {
+    active: 'نشطة',
+    completed: 'مكتملة',
+    cancelled: 'ملغاة',
+    upcoming: 'قادمة'
+};
+
+function CampaignCardItem({ campaign, project, index, onClick, onDonate }) {
     const { isDark } = useTheme();
     useInjectStyles(cfadeUpStyles, 'cfade-up');
 
-    const pct = Math.min(100, Math.round((project.raised / project.goal) * 100));
-    const title = loc(project.title, project.titleEn);
-    const desc = loc(project.description, project.descriptionEn);
-    const prog = loc(project.program, project.programEn);
+    const campaignData = campaign || project || {};
+    const pct = campaignData.goal > 0 ? Math.min(100, Math.round((campaignData.raised / campaignData.goal) * 100)) : 0;
+    const title = campaignData.title || '';
+    const desc = campaignData.description || '';
+    const category = campaignData.category || 'عام';
+    const statusLabel = STATUS_LABELS[campaignData.status] || 'نشطة';
+
+    const daysLeft = campaignData.endDate 
+        ? Math.max(0, Math.ceil((new Date(campaignData.endDate) - new Date()) / 86400000))
+        : null;
 
     return (
         <div
-            onClick={() => onClick(project)}
+            onClick={() => onClick(campaignData)}
             style={{
                 width: '100%', maxWidth: 320, margin: '0 auto', display: 'flex', flexDirection: 'column',
                 borderRadius: '24px', overflow: 'hidden', cursor: 'pointer', position: 'relative',
@@ -42,7 +55,7 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
             className="hover:-translate-y-1.5 group"
         >
             <div className="relative h-40 overflow-hidden shrink-0">
-                <SafeImage src={project.image} alt={title} className="card-image group-hover:scale-[1.08]" style={{ filter: `brightness(${isDark ? 0.85 : 0.93})` }} />
+                <SafeImage src={campaignData.imageUrl || campaignData.image} alt={title} className="card-image group-hover:scale-[1.08]" style={{ filter: `brightness(${isDark ? 0.85 : 0.93})` }} />
                 <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(180deg, transparent 25%, rgba(0,0,0,0.4) 100%)', pointerEvents: 'none' }} />
 
                 <span style={{
@@ -54,8 +67,9 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                     border: `1px solid ${isDark ? 'rgba(16,185,129,0.30)' : 'rgba(255,255,255,0.25)'}`,
                 }}>
                     <i className="fa-solid fa-tag" style={{ fontSize: '0.75rem' }} />
-                    {prog}
+                    {category}
                 </span>
+
                 <span style={{
                     position: 'absolute', zIndex: 4, top: 10, left: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
                     padding: '3px 10px', borderRadius: 999, fontSize: '0.65rem', fontWeight: 700,
@@ -64,8 +78,8 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                     backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
                     border: `1px solid ${isDark ? 'rgba(16,185,129,0.30)' : 'rgba(255,255,255,0.25)'}`,
                 }}>
-                    <i className="fa-solid fa-hourglass-half" style={{ fontSize: '0.75rem' }} />
-                    {project.daysLeft} {loc('يوم', 'days')}
+                    <i className="fa-solid fa-info-circle" style={{ fontSize: '0.75rem' }} />
+                    {statusLabel}
                 </span>
 
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-3 flex items-center justify-center" style={{ background: 'rgba(10,31,28,0.62)', backdropFilter: 'blur(3px)' }}>
@@ -101,27 +115,9 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                 </p>
 
                 <div style={{ marginTop: 'auto' }}>
-                    {project.donationAmount && (
-                        <div style={{
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            gap: 8, marginBottom: 12, padding: '6px 12px',
-                            borderRadius: '12px',
-                            backgroundColor: isDark ? 'rgba(0,177,106,0.10)' : '#f0faf5',
-                            border: `1px solid ${isDark ? 'rgba(0,177,106,0.20)' : '#d1f2e4'}`,
-                        }}>
-                            <i className="fa-solid fa-hand-holding-heart" style={{ fontSize: '0.85rem', color: G_GREEN }} />
-                            <span style={{ fontFamily: ARABIC_FONT, fontWeight: 800, fontSize: '0.95rem', color: G_GREEN }}>
-                                {formatNumber(project.donationAmount)}
-                            </span>
-                            <span style={{ fontFamily: ARABIC_FONT, fontWeight: 500, fontSize: '0.7rem', color: isDark ? 'rgba(226,232,240,0.5)' : '#636e72' }}>
-                                {loc('جنية مصري', 'EGP')}
-                            </span>
-                        </div>
-                    )}
-
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
                         <span style={{ fontWeight: 800, color: G_GREEN, fontSize: '0.95rem', fontFamily: ARABIC_FONT }}>
-                            {formatCurrency(project.raised)}
+                            {formatCurrency(campaignData.raised)}
                         </span>
                         <span style={{
                             backgroundColor: isDark ? 'rgba(0,177,106,0.15)' : '#e6f7ef',
@@ -131,7 +127,7 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                             {pct}%
                         </span>
                         <span style={{ color: isDark ? 'rgba(226,232,240,0.5)' : '#636e72', fontSize: '0.75rem', fontFamily: ARABIC_FONT }}>
-                            {loc('الهدف:', 'Goal:')} {formatCurrency(project.goal)}
+                            {loc('الهدف:', 'Goal:')} {formatCurrency(campaignData.goal)}
                         </span>
                     </div>
 
@@ -143,35 +139,39 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <i className="fa-solid fa-users" style={{ fontSize: '0.78rem', color: G_GREEN }} />
                             <span style={{ fontFamily: ARABIC_FONT, color: isDark ? '#94a3b8' : '#636e72', fontSize: '0.8rem' }}>
-                                {formatNumber(project.donors)} {loc('متبرع', 'donors')}
+                                {formatNumber(campaignData.donorsCount || 0)} {loc('متبرع', 'donors')}
                             </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <i className="fa-solid fa-clock" style={{ fontSize: '0.78rem', color: G_GREEN }} />
-                            <span style={{ fontFamily: ARABIC_FONT, color: isDark ? '#94a3b8' : '#636e72', fontSize: '0.8rem' }}>
-                                {project.daysLeft} {loc('يوم', 'days left')}
-                            </span>
-                        </div>
+                        {daysLeft !== null && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <i className="fa-solid fa-clock" style={{ fontSize: '0.78rem', color: G_GREEN }} />
+                                <span style={{ fontFamily: ARABIC_FONT, color: isDark ? '#94a3b8' : '#636e72', fontSize: '0.8rem' }}>
+                                    {daysLeft} {loc('يوم', 'days left')}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
-                    <button
-                        className="donate-btn"
-                        onClick={(e) => { e.stopPropagation(); onDonate(project); }}
-                        style={{
-                            width: '100%', borderRadius: '12px', paddingTop: 8, paddingBottom: 8,
-                            fontFamily: ARABIC_FONT, fontWeight: 700, fontSize: '0.9rem',
-                            textTransform: 'none', backgroundColor: G_GREEN, color: '#fff',
-                            position: 'relative', overflow: 'hidden',
-                            boxShadow: `0 4px 14px rgba(0,177,106,0.30)`,
-                            transition: 'all 0.3s ease-out', border: 'none', cursor: 'pointer',
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = G_GREEN_DK; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = `0 8px 22px rgba(0,177,106,0.42)`; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = G_GREEN; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 4px 14px rgba(0,177,106,0.30)`; }}
-                        onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.97)'; }}
-                        onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
-                    >
-                        <span>{loc('تبرع الآن', 'Donate Now')}</span>
-                    </button>
+                    {campaignData.status !== 'completed' && campaignData.status !== 'cancelled' && (
+                        <button
+                            className="donate-btn"
+                            onClick={(e) => { e.stopPropagation(); onDonate(campaignData); }}
+                            style={{
+                                width: '100%', borderRadius: '12px', paddingTop: 8, paddingBottom: 8,
+                                fontFamily: ARABIC_FONT, fontWeight: 700, fontSize: '0.9rem',
+                                textTransform: 'none', backgroundColor: G_GREEN, color: '#fff',
+                                position: 'relative', overflow: 'hidden',
+                                boxShadow: `0 4px 14px rgba(0,177,106,0.30)`,
+                                transition: 'all 0.3s ease-out', border: 'none', cursor: 'pointer',
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = G_GREEN_DK; e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = `0 8px 22px rgba(0,177,106,0.42)`; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = G_GREEN; e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = `0 4px 14px rgba(0,177,106,0.30)`; }}
+                            onMouseDown={(e) => { e.currentTarget.style.transform = 'scale(0.97)'; }}
+                            onMouseUp={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+                        >
+                            <span>{loc('تبرع الآن', 'Donate Now')}</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -179,4 +179,3 @@ function CampaignCardItem({ project, index, onClick, onDonate }) {
 }
 
 export default CampaignCardItem;
-export { CampaignCardItem };
