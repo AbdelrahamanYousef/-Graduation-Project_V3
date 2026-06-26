@@ -1,45 +1,27 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AdminPageHeader, AdminFilterBar, AdminDataTable } from '../../components/admin';
 import { formatDate } from '../../i18n';
-import { getSpecialRequests, approveSpecialRequest, rejectSpecialRequest, contactSpecialRequest, respondSpecialRequest } from '../../api/specialRequests.api';
+import { getSpecialRequests, updateSpecialRequestStatus, allocateSpecialRequestAid } from '../../api/specialRequests.api';
 
 const STATUS_MAP = {
   PENDING: { label: 'قيد الانتظار', color: 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' },
-  APPROVED: { label: 'تمت الموافقة', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
+  UNDER_REVIEW: { label: 'تحت الدراسة', color: 'bg-info-100 text-info-700 dark:bg-info-500/10 dark:text-info-400' },
+  APPROVED: { label: 'مقبول', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
   REJECTED: { label: 'مرفوض', color: 'bg-error-100 text-error-700 dark:bg-error-500/10 dark:text-error-400' },
-  CONTACTED: { label: 'تم الاتصال', color: 'bg-info-100 text-info-700 dark:bg-info-500/10 dark:text-info-400' },
-  CONFIRMED: { label: 'مؤكد', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
-  COMPLETED: { label: 'مكتمل', color: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-600/10 dark:text-neutral-400' },
 };
 
-const AID_TYPE_MAP = {
-  CASH: 'نقدي', MONTHLY_ALLOWANCE: 'إعانة شهرية', FINANCIAL_AID: 'مساعدات مالية',
-  FOOD: 'غذائي', MEDICAL: 'طبي', EDUCATIONAL: 'تعليمي', OTHER: 'أخرى',
+const DISTRIBUTION_MAP = {
+  Assigned: { label: 'تم التخصيص', color: 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' },
+  Disbursed: { label: 'تم الصرف', color: 'bg-info-100 text-info-700 dark:bg-info-500/10 dark:text-info-400' },
+  Delivered: { label: 'تم التسليم', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
 };
-
-const AID_TYPE_OPTIONS = [
-  { value: 'CASH', label: 'نقدي' },
-  { value: 'MONTHLY_ALLOWANCE', label: 'إعانة شهرية' },
-  { value: 'FINANCIAL_AID', label: 'مساعدات مالية' },
-  { value: 'FOOD', label: 'غذائي' },
-  { value: 'MEDICAL', label: 'طبي' },
-  { value: 'EDUCATIONAL', label: 'تعليمي' },
-  { value: 'OTHER', label: 'أخرى' },
-];
-
-const CONTACT_METHOD_MAP = { EMAIL: 'بريد إلكتروني', PHONE: 'اتصال هاتفي', WHATSAPP: 'واتساب' };
 
 const PROCESS_ACTION_MAP = {
   SUBMITTED: { label: 'تقديم الطلب', icon: 'fa-solid fa-paper-plane' },
+  UNDER_REVIEW: { label: 'بدء الدراسة والبحث', icon: 'fa-solid fa-magnifying-glass' },
   APPROVED: { label: 'الموافقة على الطلب', icon: 'fa-solid fa-check' },
   REJECTED: { label: 'رفض الطلب', icon: 'fa-solid fa-xmark' },
-  CONTACTED: { label: 'تم الاتصال', icon: 'fa-solid fa-phone' },
-  RESPONDED: { label: 'استجابة المتقدم', icon: 'fa-solid fa-reply' },
-};
-
-const REQUEST_TYPE_LABELS = {
-  financial: 'مساعدة مالية', medical: 'مساعدة طبية', food: 'مساعدات غذائية',
-  educational: 'دعم تعليمي', housing: 'دعم سكني', other: 'أخرى',
+  AID_ALLOCATED: { label: 'تخصيص/تحديث المساعدة', icon: 'fa-solid fa-hand-holding-dollar' },
 };
 
 function AdminSpecialRequests() {
@@ -50,14 +32,16 @@ function AdminSpecialRequests() {
   const [aidTypeFilter, setAidTypeFilter] = useState('');
   const [dateRange, setDateRange] = useState('all');
   const [viewItem, setViewItem] = useState(null);
-  const [approveDialog, setApproveDialog] = useState({ open: false, item: null });
-  const [rejectDialog, setRejectDialog] = useState({ open: false, item: null, reason: '' });
-  const [approveForm, setApproveForm] = useState({ aidType: 'CASH', adminNotes: '' });
-  const [contactDialog, setContactDialog] = useState({ open: false, item: null, method: 'EMAIL', notes: '' });
-  const [respondDialog, setRespondDialog] = useState({ open: false, item: null, response: 'ACCEPTED', notes: '' });
+
+  const [statusDialog, setStatusDialog] = useState({ open: false, item: null, status: 'UNDER_REVIEW', notes: '' });
+  const [allocateDialog, setAllocateDialog] = useState({ open: false, item: null, aidType: 'مساعدة مالية', aidAmount: '', aidQuantity: '', distributionStatus: 'Assigned' });
+
   const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
-  useEffect(() => { loadRequests(); }, []);
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
   useEffect(() => {
     if (snackbar.open) {
       const timer = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 4000);
@@ -71,7 +55,7 @@ function AdminSpecialRequests() {
       const data = await getSpecialRequests();
       setRequests(data);
     } catch (err) {
-      setSnackbar({ open: true, msg: 'فشل تحميل البيانات', severity: 'error' });
+      setSnackbar({ open: true, msg: 'فشل تحميل طلبات المساعدة', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -79,9 +63,10 @@ function AdminSpecialRequests() {
 
   const filteredData = useMemo(() => {
     return requests.filter(r => {
-      if (search && !r.name.includes(search) && !r.email.includes(search) && !r.phone.includes(search)) return false;
+      if (search && !r.name.includes(search) && !r.phone.includes(search) && !(r.email && r.email.includes(search))) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (aidTypeFilter && r.aidType !== aidTypeFilter) return false;
+      
       if (dateRange !== 'all') {
         const d = new Date(r.createdAt);
         const now = new Date();
@@ -93,136 +78,160 @@ function AdminSpecialRequests() {
     });
   }, [requests, search, statusFilter, aidTypeFilter, dateRange]);
 
-  const handleApprove = async () => {
+  // Unique aid types for filtering
+  const uniqueAidTypes = useMemo(() => {
+    const set = new Set();
+    requests.forEach(r => {
+      if (r.aidType) set.add(r.aidType);
+    });
+    return Array.from(set);
+  }, [requests]);
+
+  const handleUpdateStatus = async () => {
+    if (!statusDialog.notes.trim()) {
+      setSnackbar({ open: true, msg: 'ملاحظات تغيير الحالة مطلوبة إجبارياً', severity: 'error' });
+      return;
+    }
     try {
-      await approveSpecialRequest(approveDialog.item.id, approveForm);
-      setSnackbar({ open: true, msg: 'تمت الموافقة على الطلب', severity: 'success' });
-      setApproveDialog({ open: false, item: null });
-      setApproveForm({ aidType: 'CASH', adminNotes: '' });
+      await updateSpecialRequestStatus(statusDialog.item.id, statusDialog.status, statusDialog.notes);
+      setSnackbar({ open: true, msg: 'تم تحديث حالة طلب المساعدة بنجاح', severity: 'success' });
+      setStatusDialog({ open: false, item: null, status: 'UNDER_REVIEW', notes: '' });
       loadRequests();
     } catch (err) {
-      setSnackbar({ open: true, msg: 'فشل الموافقة على الطلب', severity: 'error' });
+      setSnackbar({ open: true, msg: err.response?.data?.message || 'فشل تحديث الحالة', severity: 'error' });
     }
   };
 
-  const handleReject = async () => {
-    try {
-      await rejectSpecialRequest(rejectDialog.item.id, rejectDialog.reason);
-      setSnackbar({ open: true, msg: 'تم رفض الطلب', severity: 'success' });
-      setRejectDialog({ open: false, item: null, reason: '' });
-      loadRequests();
-    } catch (err) {
-      setSnackbar({ open: true, msg: 'فشل رفض الطلب', severity: 'error' });
+  const handleAllocate = async () => {
+    if (!allocateDialog.aidType.trim()) {
+      setSnackbar({ open: true, msg: 'نوع المساعدة المخصصة مطلوب', severity: 'error' });
+      return;
     }
-  };
-
-  const handleContact = async () => {
     try {
-      await contactSpecialRequest(contactDialog.item.id, {
-        contactMethod: contactDialog.method,
-        notes: contactDialog.notes,
-      });
-      setSnackbar({ open: true, msg: 'تم تسجيل الاتصال', severity: 'success' });
-      setContactDialog({ open: false, item: null, method: 'EMAIL', notes: '' });
+      const payload = {
+        aidType: allocateDialog.aidType,
+        aidAmount: allocateDialog.aidAmount ? parseFloat(allocateDialog.aidAmount) : null,
+        aidQuantity: allocateDialog.aidQuantity || null,
+        distributionStatus: allocateDialog.distributionStatus,
+      };
+      await allocateSpecialRequestAid(allocateDialog.item.id, payload);
+      setSnackbar({ open: true, msg: 'تم تخصيص المساعدات بنجاح', severity: 'success' });
+      setAllocateDialog({ open: false, item: null, aidType: 'مساعدة مالية', aidAmount: '', aidQuantity: '', distributionStatus: 'Assigned' });
       loadRequests();
     } catch (err) {
-      setSnackbar({ open: true, msg: 'فشل تسجيل الاتصال', severity: 'error' });
-    }
-  };
-
-  const handleRespond = async () => {
-    try {
-      await respondSpecialRequest(respondDialog.item.id, {
-        response: respondDialog.response,
-        notes: respondDialog.notes,
-      });
-      setSnackbar({ open: true, msg: 'تم تسجيل استجابة المتقدم', severity: 'success' });
-      setRespondDialog({ open: false, item: null, response: 'ACCEPTED', notes: '' });
-      loadRequests();
-    } catch (err) {
-      setSnackbar({ open: true, msg: 'فشل تسجيل الاستجابة', severity: 'error' });
+      setSnackbar({ open: true, msg: err.response?.data?.message || 'فشل تخصيص المساعدات', severity: 'error' });
     }
   };
 
   const columns = [
-    { key: 'name', label: 'الاسم', render: (val, row) => (
-      <div>
-        <p className="text-sm font-medium">{val}</p>
-        <span className="text-xs text-neutral-500">{row.email} — {row.phone}</span>
-      </div>
-    )},
-    { key: 'requestType', label: 'نوع الطلب', render: (val) => REQUEST_TYPE_LABELS[val] || val },
-    { key: 'createdAt', label: 'تاريخ التقديم', render: (val) => val ? formatDate(val) : '-' },
     {
-      key: 'status', label: 'الحالة',
+      key: 'name',
+      label: 'المستفيد',
+      render: (val, row) => (
+        <div>
+          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{val}</p>
+          <span className="text-xs text-neutral-500">{row.phone} {row.email ? `— ${row.email}` : ''}</span>
+        </div>
+      ),
+    },
+    { key: 'requestType', label: 'نوع الطلب' },
+    { key: 'createdAt', label: 'تاريخ التقديم', render: (val) => (val ? formatDate(val) : '-') },
+    {
+      key: 'status',
+      label: 'حالة الطلب',
       render: (val) => {
         const s = STATUS_MAP[val] || STATUS_MAP.PENDING;
-        return <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${s.color}`}>{s.label}</span>;
+        return <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${s.color}`}>{s.label}</span>;
       },
     },
     {
-      key: 'aidType', label: 'نوع المساعدة',
-      render: (val) => val ? <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">{AID_TYPE_MAP[val] || val}</span> : '-',
+      key: 'aidType',
+      label: 'المساعدة المخصصة',
+      render: (val, row) => {
+        if (!val) return <span className="text-neutral-400 text-xs">—</span>;
+        const dist = DISTRIBUTION_MAP[row.distributionStatus] || DISTRIBUTION_MAP.Assigned;
+        return (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">
+              {val} {row.aidAmount ? `(${row.aidAmount} ج.م)` : ''} {row.aidQuantity ? `(${row.aidQuantity})` : ''}
+            </span>
+            <span className={`inline-flex w-fit px-1.5 py-0.1 rounded text-xxs font-medium ${dist.color}`}>
+              {dist.label}
+            </span>
+          </div>
+        );
+      },
     },
   ];
 
   const actions = [
-    { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل', onClick: (row) => setViewItem(row) },
+    { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل والخط الزمني', onClick: (row) => setViewItem(row) },
     {
-      icon: 'fa-solid fa-check', tooltip: 'موافقة',
-      show: (row) => row.status === 'PENDING',
-      onClick: (row) => { setApproveDialog({ open: true, item: row }); setApproveForm({ aidType: 'CASH', adminNotes: '' }); },
+      icon: 'fa-solid fa-rotate',
+      tooltip: 'تغيير الحالة',
+      show: (row) => row.status !== 'APPROVED' && row.status !== 'REJECTED',
+      onClick: (row) => setStatusDialog({ open: true, item: row, status: row.status === 'PENDING' ? 'UNDER_REVIEW' : 'APPROVED', notes: '' }),
     },
     {
-      icon: 'fa-solid fa-xmark', tooltip: 'رفض',
-      show: (row) => row.status === 'PENDING',
-      onClick: (row) => setRejectDialog({ open: true, item: row, reason: '' }),
-    },
-    {
-      icon: 'fa-solid fa-phone', tooltip: 'تسجيل اتصال',
+      icon: 'fa-solid fa-hand-holding-dollar',
+      tooltip: 'تخصيص المساعدات',
       show: (row) => row.status === 'APPROVED',
-      onClick: (row) => setContactDialog({ open: true, item: row, method: 'EMAIL', notes: '' }),
-    },
-    {
-      icon: 'fa-solid fa-reply', tooltip: 'تسجيل استجابة',
-      show: (row) => row.status === 'CONTACTED',
-      onClick: (row) => setRespondDialog({ open: true, item: row, response: 'ACCEPTED', notes: '' }),
+      onClick: (row) => setAllocateDialog({
+        open: true,
+        item: row,
+        aidType: row.aidType || 'مساعدة مالية',
+        aidAmount: row.aidAmount || '',
+        aidQuantity: row.aidQuantity || '',
+        distributionStatus: row.distributionStatus || 'Assigned'
+      }),
     },
   ];
 
-  const selectClass = "px-2.5 py-1.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none text-sm min-w-[150px]";
-  const inputClass = "w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none text-sm";
-  const labelClass = "block text-xs font-medium text-neutral-500 mb-1";
+  const selectClass = "px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-primary-500 outline-none text-sm min-w-[150px]";
+  const inputClass = "w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-white dark:bg-neutral-800 focus:ring-2 focus:ring-primary-500 outline-none text-sm";
+  const labelClass = "block text-xs font-bold text-neutral-600 dark:text-neutral-400 mb-1";
 
   function renderProcessLog(logs) {
     if (!logs || logs.length === 0) return <p className="text-sm text-neutral-400">لا توجد أحداث بعد</p>;
     return (
-      <div className="space-y-0">
+      <div className="space-y-4 mt-2">
         {logs.map((log, i) => {
           const actionInfo = PROCESS_ACTION_MAP[log.action] || { label: log.action, icon: 'fa-solid fa-circle' };
           const actorName = log.performedBy?.name || 'النظام';
           return (
-            <div key={log.id || i} className="flex gap-2">
+            <div key={log.id || i} className="flex gap-3">
               <div className="flex flex-col items-center">
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs" style={{
-                  background: log.action === 'SUBMITTED' ? 'rgba(0,177,106,0.15)' : 'rgba(26,74,68,0.1)',
-                  color: log.action === 'SUBMITTED' ? '#00b16a' : '#1a4a44',
-                }}>
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs"
+                  style={{
+                    background: log.action === 'SUBMITTED' ? 'rgba(0,177,106,0.15)' : 'rgba(26,74,68,0.1)',
+                    color: log.action === 'SUBMITTED' ? '#00b16a' : '#1a4a44',
+                  }}
+                >
                   <i className={actionInfo.icon}></i>
                 </div>
-                {i < logs.length - 1 && <div className="w-px flex-1 min-h-[16px]" style={{ backgroundColor: 'rgba(0,0,0,0.08)' }} />}
+                {i < logs.length - 1 && <div className="w-px flex-1 min-h-[20px] bg-neutral-200 dark:bg-neutral-700" />}
               </div>
               <div className="pb-2 flex-1">
-                <p className="text-sm font-medium">{actionInfo.label}</p>
-                <p className="text-xs text-neutral-500">{actorName} — {log.createdAt ? formatDate(log.createdAt) : ''}</p>
+                <div className="flex justify-between items-start">
+                  <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{actionInfo.label}</p>
+                  <span className="text-xxs text-neutral-400">{log.createdAt ? formatDate(log.createdAt) : ''}</span>
+                </div>
+                <p className="text-xs text-neutral-500">منفذ الإجراء: {actorName}</p>
                 {log.details && (
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    {log.action === 'CONTACTED' && `طريقة الاتصال: ${CONTACT_METHOD_MAP[log.details.contactMethod] || log.details.contactMethod}`}
-                    {log.action === 'RESPONDED' && `الاستجابة: ${log.details.response === 'ACCEPTED' ? 'قبول' : log.details.response === 'DECLINED' ? 'رفض' : log.details.response === 'WITHDRAWN' ? 'انسحاب' : log.details.response === 'COMPLETED' ? 'مكتمل' : log.details.response}`}
-                    {log.details.notes && ` — ${log.details.notes}`}
-                    {log.action === 'REJECTED' && log.details.reason ? `السبب: ${log.details.reason}` : ''}
-                    {log.action === 'APPROVED' && log.details.aidType ? `نوع المساعدة: ${AID_TYPE_MAP[log.details.aidType] || log.details.aidType}` : ''}
-                  </p>
+                  <div className="text-xs bg-neutral-50 dark:bg-neutral-900/50 p-2 rounded mt-1 border border-neutral-100 dark:border-neutral-800 text-neutral-600 dark:text-neutral-400">
+                    {log.action === 'AID_ALLOCATED' && (
+                      <div className="space-y-0.5">
+                        <p><strong>نوع المساعدة المخصصة: </strong>{log.details.aidType}</p>
+                        {log.details.aidAmount && <p><strong>القيمة المالية: </strong>{log.details.aidAmount} ج.م</p>}
+                        {log.details.aidQuantity && <p><strong>الكمية/الأصناف: </strong>{log.details.aidQuantity}</p>}
+                        <p><strong>حالة التوزيع: </strong>{DISTRIBUTION_MAP[log.details.distributionStatus]?.label || log.details.distributionStatus}</p>
+                      </div>
+                    )}
+                    {log.action !== 'AID_ALLOCATED' && log.details.notes && (
+                      <p><strong>ملاحظات: </strong>{log.details.notes}</p>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -235,7 +244,7 @@ function AdminSpecialRequests() {
   if (loading) {
     return (
       <div className="flex flex-col gap-3">
-        <AdminPageHeader title="إدارة الطلبات الخاصة" subtitle="مراجعة وإدارة طلبات المساعدة الخاصة" />
+        <AdminPageHeader title="إدارة الطلبات الخاصة" subtitle="مراجعة وتخصيص المساعدات العينية والمالية العاجلة" />
         <div className="text-center py-16 text-neutral-500">جاري التحميل...</div>
       </div>
     );
@@ -243,26 +252,28 @@ function AdminSpecialRequests() {
 
   return (
     <div className="flex flex-col gap-3">
-      <AdminPageHeader title="إدارة الطلبات الخاصة" subtitle="مراجعة وإدارة طلبات المساعدة الخاصة" />
+      <AdminPageHeader title="إدارة الطلبات الخاصة" subtitle="مراجعة وتخصيص المساعدات العينية والمالية العاجلة" />
 
       <AdminFilterBar
         searchValue={search}
         onSearchChange={setSearch}
-        searchPlaceholder="بحث بالاسم أو البريد أو الهاتف..."
+        searchPlaceholder="بحث باسم المستفيد أو الهاتف..."
       >
         <select className={selectClass} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="">جميع الحالات</option>
+          <option value="">جميع حالات الطلب</option>
           <option value="PENDING">قيد الانتظار</option>
-          <option value="APPROVED">تمت الموافقة</option>
+          <option value="UNDER_REVIEW">تحت الدراسة</option>
+          <option value="APPROVED">مقبول</option>
           <option value="REJECTED">مرفوض</option>
-          <option value="CONTACTED">تم الاتصال</option>
-          <option value="CONFIRMED">مؤكد</option>
-          <option value="COMPLETED">مكتمل</option>
         </select>
+        
         <select className={selectClass} value={aidTypeFilter} onChange={(e) => setAidTypeFilter(e.target.value)}>
-          <option value="">جميع أنواع المساعدة</option>
-          {AID_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <option value="">جميع أنواع المساعدات</option>
+          {uniqueAidTypes.map(t => (
+            <option key={t} value={t}>{t}</option>
+          ))}
         </select>
+
         <select className={selectClass} value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
           <option value="all">كل الفترات</option>
           <option value="today">اليوم</option>
@@ -271,170 +282,265 @@ function AdminSpecialRequests() {
         </select>
       </AdminFilterBar>
 
-      <AdminDataTable columns={columns} data={filteredData} actions={actions} emptyMessage="لا توجد طلبات خاصة مطابقة" />
+      <AdminDataTable
+        columns={columns}
+        data={filteredData}
+        actions={actions}
+        emptyMessage="لا توجد طلبات مساعدة مطابقة"
+      />
 
       {/* View Details Modal */}
       {viewItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setViewItem(null)} />
-          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700">
-              <h2 className="text-lg font-bold">تفاصيل الطلب الخاص</h2>
-              <button onClick={() => setViewItem(null)} className="text-neutral-400 hover:text-neutral-600"><i className="fa-solid fa-xmark text-xl" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setViewItem(null)} />
+          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-neutral-100 dark:border-neutral-700">
+            <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
+              <h2 className="text-lg font-bold text-neutral-800 dark:text-neutral-100">تفاصيل طلب المساعدة الخاصة</h2>
+              <button onClick={() => setViewItem(null)} className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200">
+                <i className="fa-solid fa-xmark text-xl" />
+              </button>
             </div>
-            <div className="p-4 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div><p className="text-xs text-neutral-500">الاسم</p><p className="font-semibold">{viewItem.name}</p></div>
-                <div><p className="text-xs text-neutral-500">نوع الطلب</p><p className="font-semibold">{REQUEST_TYPE_LABELS[viewItem.requestType] || viewItem.requestType}</p></div>
-                <div><p className="text-xs text-neutral-500">البريد</p><p className="font-semibold">{viewItem.email}</p></div>
-                <div><p className="text-xs text-neutral-500">الهاتف</p><p className="font-semibold" dir="ltr">{viewItem.phone}</p></div>
-                <div><p className="text-xs text-neutral-500">تاريخ التقديم</p><p className="font-semibold">{formatDate(viewItem.createdAt)}</p></div>
+            <div className="p-6 space-y-6">
+              {/* Main Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-neutral-500">اسم المستفيد</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.name}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">نوع الطلب المقدم</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.requestType}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">رقم الهاتف</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200" dir="ltr">{viewItem.phone}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">البريد الإلكتروني</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.email || 'غير متوفر'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-neutral-500">تاريخ التقديم</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{formatDate(viewItem.createdAt)}</p>
+                </div>
                 <div>
                   <p className="text-xs text-neutral-500">الحالة</p>
-                  <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${(STATUS_MAP[viewItem.status] || STATUS_MAP.PENDING).color}`}>
+                  <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${(STATUS_MAP[viewItem.status] || STATUS_MAP.PENDING).color}`}>
                     {(STATUS_MAP[viewItem.status] || STATUS_MAP.PENDING).label}
                   </span>
                 </div>
-                {viewItem.aidType && (
-                  <div>
-                    <p className="text-xs text-neutral-500">نوع المساعدة</p>
-                    <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-400">
-                      {AID_TYPE_MAP[viewItem.aidType] || viewItem.aidType}
-                    </span>
-                  </div>
-                )}
               </div>
-              <div><p className="text-xs text-neutral-500">شرح الطلب</p><p className="text-sm mt-0.5">{viewItem.description}</p></div>
-              {viewItem.adminNotes && <div><p className="text-xs text-neutral-500">ملاحظات الإدارة</p><p className="text-sm mt-0.5">{viewItem.adminNotes}</p></div>}
-              {viewItem.rejectionReason && <div><p className="text-xs text-neutral-500">سبب الرفض</p><p className="text-sm mt-0.5 text-error-500">{viewItem.rejectionReason}</p></div>}
-              {viewItem.reviewedBy && <div><p className="text-xs text-neutral-500">تمت المراجعة بواسطة</p><p className="text-sm mt-0.5">{viewItem.reviewedBy.name}</p></div>}
-              {viewItem.contactMethod && <div><p className="text-xs text-neutral-500">طريقة الاتصال</p><p className="text-sm mt-0.5">{CONTACT_METHOD_MAP[viewItem.contactMethod] || viewItem.contactMethod}</p></div>}
-              {viewItem.applicantResponse && (
+
+              <div>
+                <p className="text-xs text-neutral-500">تفاصيل الاحتياج والطلب</p>
+                <p className="text-sm mt-1 bg-neutral-50 dark:bg-neutral-900/40 p-3 rounded border border-neutral-100 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  {viewItem.description}
+                </p>
+              </div>
+
+              {/* Allocation Info (if APPROVED) */}
+              {viewItem.status === 'APPROVED' && (
+                <div className="bg-success-50/20 dark:bg-success-950/10 p-4 rounded-lg border border-success-100/30 space-y-3">
+                  <p className="text-sm font-bold text-success-800 dark:text-success-400">تخصيص المساعدات الحالي</p>
+                  {viewItem.aidType ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <p className="text-xs text-neutral-500">نوع المساعدة المخصصة</p>
+                        <p className="font-semibold text-neutral-850 dark:text-neutral-200">{viewItem.aidType}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-500">القيمة المادية للمساعدة</p>
+                        <p className="font-semibold text-neutral-850 dark:text-neutral-200">{viewItem.aidAmount ? `${viewItem.aidAmount} ج.م` : 'غير محدد'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-neutral-500">حالة التوزيع والاستلام</p>
+                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-semibold ${(DISTRIBUTION_MAP[viewItem.distributionStatus] || DISTRIBUTION_MAP.Assigned).color}`}>
+                          {(DISTRIBUTION_MAP[viewItem.distributionStatus] || DISTRIBUTION_MAP.Assigned).label}
+                        </span>
+                      </div>
+                      {viewItem.aidQuantity && (
+                        <div className="col-span-full">
+                          <p className="text-xs text-neutral-500">الكمية أو الأصناف</p>
+                          <p className="font-semibold text-neutral-850 dark:text-neutral-200">{viewItem.aidQuantity}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-neutral-500">لم يتم تخصيص أي مساعدة حتى الآن. انقر فوق زر "تخصيص المساعدات" لتسجيلها.</p>
+                  )}
+                </div>
+              )}
+
+              {/* Admin Fields */}
+              {viewItem.adminNotes && (
                 <div>
-                  <p className="text-xs text-neutral-500">استجابة المتقدم</p>
-                  <p className="text-sm mt-0.5">
-                    {viewItem.applicantResponse === 'ACCEPTED' ? 'قبول' : viewItem.applicantResponse === 'DECLINED' ? 'رفض' : viewItem.applicantResponse === 'WITHDRAWN' ? 'انسحاب' : viewItem.applicantResponse === 'COMPLETED' ? 'مكتمل' : viewItem.applicantResponse}
-                    {viewItem.respondedAt ? ` (${formatDate(viewItem.respondedAt)})` : ''}
+                  <p className="text-xs text-neutral-500">ملاحظات قبول الإدارة</p>
+                  <p className="text-sm mt-1 text-neutral-800 dark:text-neutral-200 bg-neutral-50 dark:bg-neutral-900/40 p-3 rounded border border-neutral-100 dark:border-neutral-800">
+                    {viewItem.adminNotes}
                   </p>
                 </div>
               )}
-              {viewItem.responseNotes && <div><p className="text-xs text-neutral-500">ملاحظات الاستجابة</p><p className="text-sm mt-0.5">{viewItem.responseNotes}</p></div>}
+              {viewItem.rejectionReason && (
+                <div>
+                  <p className="text-xs text-neutral-500">سبب رفض الإدارة</p>
+                  <p className="text-sm mt-1 text-error-600 dark:text-error-400 bg-error-50/20 dark:bg-error-950/10 p-3 rounded border border-error-100/30">
+                    {viewItem.rejectionReason}
+                  </p>
+                </div>
+              )}
 
               {/* Process Log Timeline */}
-              <div>
-                <p className="text-xs font-bold text-neutral-500 mb-2">سجل الإجراءات</p>
+              <div className="border-t border-neutral-100 dark:border-neutral-700 pt-4">
+                <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mb-2">الخط الزمني وسجل الإجراءات (Lineage Tracking)</p>
                 {renderProcessLog(viewItem.processLogs)}
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700">
-              <button onClick={() => setViewItem(null)} className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">إغلاق</button>
+            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/50">
+              <button
+                onClick={() => setViewItem(null)}
+                className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors text-sm"
+              >
+                إغلاق
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Approve Dialog */}
-      {approveDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setApproveDialog({ open: false, item: null })} />
-          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4">
-            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">الموافقة على الطلب</h2>
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">الموافقة على طلب <strong>{approveDialog.item?.name}</strong></p>
+      {/* Status Update Dialog */}
+      {statusDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setStatusDialog({ open: false, item: null, status: 'UNDER_REVIEW', notes: '' })} />
+          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl max-w-lg w-full border border-neutral-100 dark:border-neutral-700">
+            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">تحديث حالة طلب المساعدة</h2>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                تحديث حالة طلب المساعدة للمستفيد <strong>{statusDialog.item?.name}</strong>.
+              </p>
+              
               <div>
-                <label className={labelClass}>نوع المساعدة المقدمة</label>
-                <select value={approveForm.aidType} onChange={e => setApproveForm(p => ({ ...p, aidType: e.target.value }))} className={inputClass}>
-                  {AID_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                <label className={labelClass}>الحالة الجديدة</label>
+                <select
+                  value={statusDialog.status}
+                  onChange={e => setStatusDialog(p => ({ ...p, status: e.target.value }))}
+                  className={inputClass}
+                >
+                  <option value="UNDER_REVIEW">تحت الدراسة والبحث (UNDER_REVIEW)</option>
+                  <option value="APPROVED">مقبول وموافق عليه (APPROVED)</option>
+                  <option value="REJECTED">مرفوض (REJECTED)</option>
                 </select>
               </div>
+
               <div>
-                <label className={labelClass}>ملاحظات الإدارة (اختياري)</label>
-                <textarea value={approveForm.adminNotes} onChange={e => setApproveForm(p => ({ ...p, adminNotes: e.target.value }))} rows={3} placeholder="أي ملاحظات إضافية..." className={inputClass + " resize-none"} />
+                <label className={labelClass}>ملاحظات تغيير الحالة / مبرر الإجراء <span className="text-error-500">*</span></label>
+                <textarea
+                  value={statusDialog.notes}
+                  onChange={e => setStatusDialog(p => ({ ...p, notes: e.target.value }))}
+                  rows={3}
+                  placeholder="يرجى كتابة المبرر أو الملاحظات إجبارياً..."
+                  className={inputClass + " resize-none"}
+                />
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700">
-              <button onClick={() => setApproveDialog({ open: false, item: null })} className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">إلغاء</button>
-              <button onClick={handleApprove} className="px-5 py-2 rounded-md font-semibold bg-success-500 text-white hover:bg-success-600 transition-colors">موافقة</button>
+            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-850">
+              <button
+                onClick={() => setStatusDialog({ open: false, item: null, status: 'UNDER_REVIEW', notes: '' })}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-255 dark:hover:bg-neutral-750 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleUpdateStatus}
+                disabled={!statusDialog.notes.trim()}
+                className={`px-4 py-2 rounded-md text-sm font-semibold text-white transition-colors ${
+                  statusDialog.notes.trim() ? 'bg-primary-500 hover:bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-700 cursor-not-allowed'
+                }`}
+              >
+                حفظ الحالة الجديدة
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Reject Dialog */}
-      {rejectDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRejectDialog({ open: false, item: null, reason: '' })} />
-          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4">
-            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">رفض الطلب</h2>
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">رفض طلب <strong>{rejectDialog.item?.name}</strong></p>
-              <div>
-                <label className={labelClass}>سبب الرفض (اختياري)</label>
-                <textarea value={rejectDialog.reason} onChange={e => setRejectDialog(p => ({ ...p, reason: e.target.value }))} rows={3} placeholder="اكتب سبب الرفض..." className={inputClass + " resize-none"} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700">
-              <button onClick={() => setRejectDialog({ open: false, item: null, reason: '' })} className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">إلغاء</button>
-              <button onClick={handleReject} className="px-5 py-2 rounded-md font-semibold bg-error-500 text-white hover:bg-error-600 transition-colors">رفض</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Allocate Dialog */}
+      {allocateDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setAllocateDialog({ open: false, item: null, aidType: 'مساعدة مالية', aidAmount: '', aidQuantity: '', distributionStatus: 'Assigned' })} />
+          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl max-w-lg w-full border border-neutral-100 dark:border-neutral-700">
+            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">تخصيص المساعدات للطلب المقبول</h2>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                تسجيل أو تحديث تفاصيل الدعم المخصص للمستفيد <strong>{allocateDialog.item?.name}</strong> وحالة التوزيع.
+              </p>
 
-      {/* Contact Dialog */}
-      {contactDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setContactDialog({ open: false, item: null, method: 'EMAIL', notes: '' })} />
-          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4">
-            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">تسجيل الاتصال بمقدم الطلب</h2>
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">الاتصال بـ <strong>{contactDialog.item?.name}</strong></p>
               <div>
-                <label className={labelClass}>طريقة الاتصال</label>
-                <select value={contactDialog.method} onChange={e => setContactDialog(p => ({ ...p, method: e.target.value }))} className={inputClass}>
-                  <option value="EMAIL">بريد إلكتروني</option>
-                  <option value="PHONE">اتصال هاتفي</option>
-                  <option value="WHATSAPP">واتساب</option>
+                <label className={labelClass}>نوع المساعدة المخصصة <span className="text-error-500">*</span></label>
+                <select
+                  value={allocateDialog.aidType}
+                  onChange={e => setAllocateDialog(p => ({ ...p, aidType: e.target.value }))}
+                  className={inputClass}
+                >
+                  <option value="مساعدة مالية">مساعدة مالية (Cash Money)</option>
+                  <option value="سلة غذائية">سلة غذائية (Food Basket)</option>
+                  <option value="أثاث وأجهزة منزلية">أثاث وأجهزة منزلية (Appliances)</option>
+                  <option value="مستلزمات طبية">مستلزمات طبية (Medical Supplies)</option>
+                  <option value="أخرى">أخرى (Other)</option>
                 </select>
               </div>
-              <div>
-                <label className={labelClass}>ملاحظات (اختياري)</label>
-                <textarea value={contactDialog.notes} onChange={e => setContactDialog(p => ({ ...p, notes: e.target.value }))} rows={3} placeholder="أي ملاحظات حول الاتصال..." className={inputClass + " resize-none"} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700">
-              <button onClick={() => setContactDialog({ open: false, item: null, method: 'EMAIL', notes: '' })} className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">إلغاء</button>
-              <button onClick={handleContact} className="px-5 py-2 rounded-md font-semibold bg-info-500 text-white hover:bg-info-600 transition-colors">تسجيل الاتصال</button>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Respond Dialog */}
-      {respondDialog.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black/50" onClick={() => setRespondDialog({ open: false, item: null, response: 'ACCEPTED', notes: '' })} />
-          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4">
-            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">تسجيل استجابة مقدم الطلب</h2>
-            <div className="p-4 space-y-3">
-              <p className="text-sm text-neutral-600 dark:text-neutral-400">تسجيل استجابة <strong>{respondDialog.item?.name}</strong></p>
               <div>
-                <label className={labelClass}>الاستجابة</label>
-                <select value={respondDialog.response} onChange={e => setRespondDialog(p => ({ ...p, response: e.target.value }))} className={inputClass}>
-                  <option value="ACCEPTED">قبول — تأكيد الاستلام</option>
-                  <option value="DECLINED">رفض — اعتذار عن المساعدة</option>
-                  <option value="WITHDRAWN">انسحاب — انسحاب بعد الموافقة</option>
-                  <option value="COMPLETED">مكتمل — تمت المساعدة بنجاح</option>
+                <label className={labelClass}>القيمة المالية المخصصة (بالجنيه المصري) - اختياري</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={allocateDialog.aidAmount}
+                  onChange={e => setAllocateDialog(p => ({ ...p, aidAmount: e.target.value }))}
+                  placeholder="مثال: 1500"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>الكمية أو تفاصيل الأصناف المخصصة - اختياري</label>
+                <input
+                  type="text"
+                  value={allocateDialog.aidQuantity}
+                  onChange={e => setAllocateDialog(p => ({ ...p, aidQuantity: e.target.value }))}
+                  placeholder="مثال: كرتونة طعام عدد 2، كرسي متحرك..."
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className={labelClass}>حالة التوزيع والاستلام</label>
+                <select
+                  value={allocateDialog.distributionStatus}
+                  onChange={e => setAllocateDialog(p => ({ ...p, distributionStatus: e.target.value }))}
+                  className={inputClass}
+                >
+                  <option value="Assigned">مخصصة ومسجلة (Assigned)</option>
+                  <option value="Disbursed">تم الصرف من الخزينة/المخزن (Disbursed)</option>
+                  <option value="Delivered">تم تسليم المساعدة للمستفيد (Delivered)</option>
                 </select>
               </div>
-              <div>
-                <label className={labelClass}>ملاحظات (اختياري)</label>
-                <textarea value={respondDialog.notes} onChange={e => setRespondDialog(p => ({ ...p, notes: e.target.value }))} rows={3} placeholder="أي ملاحظات حول استجابة مقدم الطلب..." className={inputClass + " resize-none"} />
-              </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700">
-              <button onClick={() => setRespondDialog({ open: false, item: null, response: 'ACCEPTED', notes: '' })} className="px-5 py-2 rounded-md font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors">إلغاء</button>
-              <button onClick={handleRespond} className="px-5 py-2 rounded-md font-semibold bg-primary-500 text-white hover:bg-primary-600 transition-colors">تسجيل الاستجابة</button>
+            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-850">
+              <button
+                onClick={() => setAllocateDialog({ open: false, item: null, aidType: 'مساعدة مالية', aidAmount: '', aidQuantity: '', distributionStatus: 'Assigned' })}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-255 dark:hover:bg-neutral-750 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleAllocate}
+                disabled={!allocateDialog.aidType.trim()}
+                className={`px-4 py-2 rounded-md text-sm font-semibold text-white transition-colors ${
+                  allocateDialog.aidType.trim() ? 'bg-success-500 hover:bg-success-600' : 'bg-neutral-300 dark:bg-neutral-700 cursor-not-allowed'
+                }`}
+              >
+                حفظ التخصيص
+              </button>
             </div>
           </div>
         </div>
@@ -442,7 +548,7 @@ function AdminSpecialRequests() {
 
       {snackbar.open && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-          <div className={`px-4 py-3 rounded-lg text-sm shadow-lg ${snackbar.severity === 'success' ? 'bg-success-500 text-white' : 'bg-error-500 text-white'}`}>
+          <div className={`px-4 py-3 rounded-lg text-sm shadow-lg ${snackbar.severity === 'success' ? 'bg-success-500 text-white animate-bounce' : 'bg-error-500 text-white animate-pulse'}`}>
             {snackbar.msg}
           </div>
         </div>

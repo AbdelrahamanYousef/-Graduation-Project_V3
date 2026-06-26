@@ -33,9 +33,9 @@ const cvUpload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = /\.(pdf|doc|docx)$/i;
+    const allowed = /\.pdf$/i;
     if (allowed.test(path.extname(file.originalname))) cb(null, true);
-    else cb(ApiError.badRequest('Only PDF, DOC, DOCX files are allowed'));
+    else cb(ApiError.badRequest('Only PDF files are allowed (.pdf)'));
   },
 });
 

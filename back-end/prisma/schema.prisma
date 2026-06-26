@@ -207,7 +207,7 @@ model VolunteerApplication {
   phone             String
   area              VolunteerArea
   message           String?
-  status            VolunteerStatus    @default(PENDING)
+  status            String             @default("PENDING")
   reviewedById      String?
   reviewedAt        DateTime?
   rejectionReason   String?
@@ -276,12 +276,15 @@ model ContactMessage {
 model SpecialRequest {
   id                String                     @id @default(cuid())
   name              String
-  email             String
+  email             String?
   phone             String
   requestType       String
   description       String
-  status            SpecialRequestStatus       @default(PENDING)
-  aidType           AidType?
+  status            String                     @default("PENDING")
+  aidType           String?
+  aidAmount         Decimal?                   @db.Decimal(12, 2)
+  aidQuantity       String?
+  distributionStatus String?
   adminNotes        String?
   rejectionReason   String?
   reviewedById      String?

@@ -21,7 +21,7 @@ const Campaigns = lazy(() => import('../pages/donor/Campaigns'));
 const CampaignDetail = lazy(() => import('../pages/donor/CampaignDetail'));
 const ZakatCalculator = lazy(() => import('../pages/donor/ZakatCalculator'));
 const Volunteer = lazy(() => import('../pages/donor/Volunteer'));
-const SpecialRequest = lazy(() => import('../pages/donor/SpecialRequest'));
+const SpecialRequests = lazy(() => import('../pages/donor/SpecialRequests'));
 const Contact = lazy(() => import('../pages/donor/Contact'));
 const Login = lazy(() => import('../pages/donor/Login'));
 const FullPageChat = lazy(() => import('../pages/donor/FullPageChat'));
@@ -83,7 +83,7 @@ export default function AppRoutes() {
             <Route path="/programs/:id" element={<DonorLayout><ProgramDetail /></DonorLayout>} />
             <Route path="/zakat" element={<DonorLayout><ZakatCalculator /></DonorLayout>} />
             <Route path="/volunteer" element={<DonorLayout><Volunteer /></DonorLayout>} />
-            <Route path="/special-request" element={<DonorLayout><SpecialRequest /></DonorLayout>} />
+            <Route path="/special-requests" element={<DonorLayout><SpecialRequests /></DonorLayout>} />
             <Route path="/transparency" element={<DonorLayout><Transparency /></DonorLayout>} />
             <Route path="/about" element={<DonorLayout><About /></DonorLayout>} />
             <Route path="/contact" element={<DonorLayout><Contact /></DonorLayout>} />

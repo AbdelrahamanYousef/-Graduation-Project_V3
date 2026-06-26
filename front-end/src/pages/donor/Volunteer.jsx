@@ -1,19 +1,18 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useInjectStyles } from '../../utils/injectStyles';
-import { applyAsVolunteer } from '../../api/volunteers.api';
 import VolunteerHero from './VolunteerHero';
 import VolunteerStatsStrip from './VolunteerStatsStrip';
 import VolunteerReasons from './VolunteerReasons';
 import VolunteerOpportunities from './VolunteerOpportunities';
 import VolunteerSignupForm from './VolunteerSignupForm';
-
-const EGYPTIAN_PHONE = /^(?:\+20|20|0)?1[0-2]\d{8}$/;
-const NAME_REGEX = /^[\u0600-\u06FF\s]{3,}$/;
+import { applyAsVolunteer, uploadCv } from '../../api';
 
 function Volunteer() {
     const containerRef = useRef(null);
     const { isDark } = useTheme();
+    const { isDonorLoggedIn, donorUser } = useAuth();
     const fileInputRef = useRef(null);
 
     const [form, setForm] = useState({
@@ -21,19 +20,44 @@ function Volunteer() {
     });
     const [cvMode, setCvMode] = useState('file');
     const [cvError, setCvError] = useState('');
-    const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [touched, setTouched] = useState({});
-    const [snackbar, setSnackbar] = useState({ open: false, severity: 'success', message: '' });
+
+    // Autofill logged in user details
+    useEffect(() => {
+        if (isDonorLoggedIn && donorUser) {
+            setForm(prev => ({
+                ...prev,
+                name: donorUser.name || '',
+                email: donorUser.email || '',
+                phone: donorUser.phone || '',
+            }));
+        }
+    }, [isDonorLoggedIn, donorUser]);
 
     const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
     const isEmailValid = (email) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isPhoneValid = (phone) => !phone || EGYPTIAN_PHONE.test(phone.replace(/\s/g, ''));
-    const isNameValid = (name) => NAME_REGEX.test(name.trim());
+    
+    // Name validation: letters and spaces only, min 3 chars
+    const isNameValid = (name) => {
+        if (!name) return false;
+        return /^[a-zA-Z\u0600-\u06FF\s]+$/.test(name.trim()) && name.trim().length >= 3;
+    };
+
+    // Phone validation: Egyptian number formats (starts with 010, 011, 012, 015 and is 11 digits long)
+    const isPhoneValid = (phone) => {
+        if (!phone) return false;
+        const cleanPhone = phone.trim();
+        return /^01[0125]\d{8}$/.test(cleanPhone);
+    };
+
     const isUrlValid = (url) => {
         if (!url) return false;
         try { new URL(url); return /^https?:\/\//i.test(url); } catch { return false; }
     };
+
     const getError = (field) => {
         if (!touched[field]) return false;
         if (field === 'name') return !form.name || !isNameValid(form.name);
@@ -43,23 +67,30 @@ function Volunteer() {
         if (field === 'cvUrl') return cvMode === 'url' && form.cvUrl && !isUrlValid(form.cvUrl);
         return false;
     };
+
     const getHelper = (field) => {
         if (!getError(field)) return ' ';
-        if (field === 'name' && form.name && !isNameValid(form.name)) return 'يرجى إدخال الاسم بالعربية (3 أحرف على الأقل)';
-        if (field === 'email' && form.email) return 'أدخل بريدًا صالحًا';
-        if (field === 'phone' && form.phone) return 'أدخل رقم مصري صالح (مثال: 010xxxxxxx)';
-        if (field === 'cvUrl') return 'أدخل رابطًا صالحًا يبدأ بـ http(s)';
+        if (field === 'name') {
+            if (!form.name) return 'الاسم مطلوب';
+            return 'الاسم يجب أن يحتوي على أحرف ومسافات فقط ولا يقل عن 3 أحرف';
+        }
+        if (field === 'email') return 'أدخل بريداً إلكترونياً صالحاً';
+        if (field === 'phone') {
+            if (!form.phone) return 'رقم الهاتف مطلوب';
+            return 'يجب أن يكون رقم هاتف مصري صالح مكون من 11 رقماً (مثال: 01012345678)';
+        }
+        if (field === 'cvUrl') return 'أدخل رابطاً صالحاً يبدأ بـ http(s)';
         return 'هذا الحقل مطلوب';
     };
 
     const handleCvFile = (file) => {
         setCvError('');
         if (!file) return;
-        const ALLOWED_CV_EXT = ['pdf', 'doc', 'docx'];
+        const ALLOWED_CV_EXT = ['pdf'];
         const MAX_CV_MB = 5;
         const ext = (file.name.split('.').pop() || '').toLowerCase();
         if (!ALLOWED_CV_EXT.includes(ext)) {
-            setCvError(`صيغة غير مدعومة. المسموح: ${ALLOWED_CV_EXT.join(', ').toUpperCase()}`);
+            setCvError(`صيغة غير مدعومة. المسموح: PDF فقط`);
             return;
         }
         if (file.size > MAX_CV_MB * 1024 * 1024) {
@@ -68,6 +99,7 @@ function Volunteer() {
         }
         setForm(p => ({ ...p, cvFile: file, cvUrl: '' }));
     };
+
     const clearCv = () => {
         setForm(p => ({ ...p, cvFile: null, cvUrl: '' }));
         setCvError('');
@@ -87,6 +119,7 @@ function Volunteer() {
         e.preventDefault();
         const allTouched = { name: true, email: true, phone: true, area: true, cvUrl: true };
         setTouched(allTouched);
+
         const hasErrors = ['name', 'email', 'phone', 'area'].some(f => {
             if (f === 'name') return !form.name || !isNameValid(form.name);
             if (f === 'email') return !form.email || !isEmailValid(form.email);
@@ -97,35 +130,43 @@ function Volunteer() {
         if (hasErrors || cvInvalid) return;
 
         setSubmitting(true);
+        setSubmitError('');
+
         try {
-            let cvFileUrl = null;
-            if (form.cvFile) {
-                const formData = new FormData();
-                formData.append('cv', form.cvFile);
-                const uploadRes = await fetch('/api/upload/cv-public', { method: 'POST', body: formData });
-                if (uploadRes.ok) {
-                    const uploadData = await uploadRes.json();
-                    cvFileUrl = uploadData.url;
-                }
+            let uploadedCvPath = null;
+            if (cvMode === 'file' && form.cvFile) {
+                const uploadRes = await uploadCv(form.cvFile);
+                uploadedCvPath = uploadRes.url;
             }
 
-            await applyAsVolunteer({
+            const payload = {
                 name: form.name.trim(),
                 email: form.email.trim(),
                 phone: form.phone.trim(),
-                area: form.area.toUpperCase(),
-                message: form.message.trim() || undefined,
-                cvFile: cvFileUrl || undefined,
-                cvUrl: form.cvUrl?.trim() || undefined,
+                area: form.area.toUpperCase(), // Match Zod backend Enum: MEDICAL, TECH, etc.
+                message: form.message?.trim() || '',
+                cvFile: uploadedCvPath,
+                cvUrl: cvMode === 'url' ? form.cvUrl.trim() : null,
+                userId: donorUser?.id || null
+            };
+
+            await applyAsVolunteer(payload);
+            
+            setShowSuccessModal(true);
+            setForm({
+                name: isDonorLoggedIn ? donorUser.name : '',
+                email: isDonorLoggedIn ? donorUser.email : '',
+                phone: isDonorLoggedIn ? donorUser.phone : '',
+                area: '',
+                message: '',
+                cvFile: null,
+                cvUrl: ''
             });
-            setSubmitted(true);
-            setSnackbar({ open: true, severity: 'success', message: 'تم إرسال طلب التطوع بنجاح! سنتواصل معك قريبًا.' });
-            setForm({ name: '', email: '', phone: '', area: '', message: '', cvFile: null, cvUrl: '' });
             setTouched({});
             if (fileInputRef.current) fileInputRef.current.value = '';
-            setTimeout(() => setSubmitted(false), 4000);
         } catch (err) {
-            setSnackbar({ open: true, severity: 'error', message: err.response?.data?.error?.message || 'حدث خطأ أثناء الإرسال' });
+            console.error(err);
+            setSubmitError(err.response?.data?.error || err.message || 'حدث خطأ أثناء تقديم الطلب');
         } finally {
             setSubmitting(false);
         }
@@ -145,7 +186,7 @@ function Volunteer() {
                         setForm={setForm}
                         touched={touched}
                         setTouched={setTouched}
-                        submitted={submitted}
+                        submitted={false} // Disable old button success layout
                         submitting={submitting}
                         handleSubmit={handleSubmit}
                         handleBlur={handleBlur}
@@ -162,17 +203,35 @@ function Volunteer() {
                 </div>
             </div>
 
-            {snackbar.open && (
-                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
-                    <div className="flex items-center gap-2 px-4 py-3 rounded-[14px] text-white font-semibold text-[0.95rem] min-w-[320px]" style={{
-                        backgroundColor: snackbar.severity === 'success' ? '#00b16a' : '#e57373',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                    }}>
-                        <span className="flex-1">{snackbar.message}</span>
-                        <button onClick={() => setSnackbar(s => ({ ...s, open: false }))} className="text-white/80 hover:text-white">
-                            <i className="fa-solid fa-xmark"></i>
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center animate-fadeInScale" style={{ border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}` }}>
+                        <div className="w-20 h-20 rounded-full mx-auto bg-success-50 dark:bg-success-900/20 text-success-500 flex items-center justify-center text-4xl mb-4 shadow-inner">
+                            <i className="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h3 className="text-xl font-bold mb-3 dark:text-white">تم تقديم طلبك بنجاح!</h3>
+                        <p className="text-neutral-600 dark:text-neutral-300 text-sm mb-6 leading-relaxed">
+                            شكراً لاهتمامك بالتطوع مع جمعية نور الخيرية. لقد تم تسجيل طلبك في نظامنا بنجاح، وسوف يقوم منسق التطوع بالتواصل معك عبر الهاتف أو البريد الإلكتروني لمناقشة فرص التطوع المتاحة.
+                        </p>
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="w-full py-3 bg-success-500 text-white font-bold rounded-xl hover:bg-success-600 transition-colors shadow-lg shadow-success-500/20"
+                        >
+                            حسناً، فهمت
                         </button>
                     </div>
+                </div>
+            )}
+
+            {/* Error Message Alert */}
+            {submitError && (
+                <div className="fixed bottom-4 left-4 z-50 p-4 bg-error-500 text-white rounded-xl shadow-lg max-w-sm flex items-center gap-3 animate-slideUp">
+                    <i className="fa-solid fa-triangle-exclamation text-xl"></i>
+                    <div className="flex-1 text-sm font-medium">{submitError}</div>
+                    <button onClick={() => setSubmitError('')} className="opacity-80 hover:opacity-100">
+                        <i className="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             )}
         </>

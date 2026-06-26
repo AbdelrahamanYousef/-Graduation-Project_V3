@@ -152,4 +152,43 @@ async function sendPasswordResetEmail(email, resetToken) {
     }
 }
 
-module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail };
+/**
+ * Send volunteer approval email
+ */
+async function sendVolunteerApprovalEmail(email, name) {
+    const subject = 'نور - قبول طلب التطوع';
+    const html = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 20px; direction: rtl;">
+            <h2 style="color: #00b16a;">تهانينا، تم قبول طلب التطوع الخاص بك!</h2>
+            <p>عزيزنا المتطوع <strong>${name}</strong>،</p>
+            <p>يسعدنا إبلاغك بقبول طلبك للانضمام إلى فريق متطوعي جمعية نور الخيرية.</p>
+            <p>سيقوم مسؤول التوظيف والتطوع بالتواصل معك قريباً لتنسيق الخطوات التالية ومواعيد المقابلات الشخصية أو التعيين.</p>
+            <br>
+            <p>مع تحيات،</p>
+            <p><strong>فريق جمعية نور الخيرية</strong></p>
+        </body>
+        </html>
+    `;
+
+    try {
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: config.emailFrom,
+            to: email,
+            subject,
+            html,
+        });
+        console.log(`✅ Volunteer approval email sent to ${email}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Failed to send volunteer approval email to ${email}:`, error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail, sendVolunteerApprovalEmail };

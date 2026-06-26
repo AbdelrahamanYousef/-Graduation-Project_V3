@@ -1,41 +1,46 @@
 import apiClient from './client';
 
 export const specialRequestKeys = {
-    all: ['specialRequests'],
-    list: (filters) => ['specialRequests', 'list', filters],
+    all: ['special-requests'],
+    list: (filters) => ['special-requests', 'list', filters],
 };
 
+/**
+ * Submit a special aid request (public / auth-optional)
+ */
 export async function submitSpecialRequest(requestData) {
-    const { data } = await apiClient.post('/special-requests/apply', requestData);
+    const { data } = await apiClient.post('/special-requests', requestData);
     return data;
 }
 
+/**
+ * Get all special aid requests (admin)
+ */
 export async function getSpecialRequests(filters = {}) {
     const { data } = await apiClient.get('/special-requests', { params: filters });
     return data;
 }
 
-export async function getSpecialRequestById(id) {
-    const { data } = await apiClient.get(`/special-requests/${id}`);
+/**
+ * Fetch special requests of the logged-in user
+ */
+export async function getMyRequests() {
+    const { data } = await apiClient.get('/special-requests/my-requests');
     return data;
 }
 
-export async function approveSpecialRequest(id, payload = {}) {
-    const { data } = await apiClient.patch(`/special-requests/${id}/approve`, payload);
+/**
+ * Update request status (admin)
+ */
+export async function updateSpecialRequestStatus(id, status, notes) {
+    const { data } = await apiClient.patch(`/special-requests/${id}/status`, { status, notes });
     return data;
 }
 
-export async function rejectSpecialRequest(id, reason) {
-    const { data } = await apiClient.patch(`/special-requests/${id}/reject`, { reason });
-    return data;
-}
-
-export async function contactSpecialRequest(id, payload) {
-    const { data } = await apiClient.patch(`/special-requests/${id}/contact`, payload);
-    return data;
-}
-
-export async function respondSpecialRequest(id, payload) {
-    const { data } = await apiClient.patch(`/special-requests/${id}/respond`, payload);
+/**
+ * Allocate aid for approved requests (admin)
+ */
+export async function allocateSpecialRequestAid(id, allocationData) {
+    const { data } = await apiClient.patch(`/special-requests/${id}/allocate`, allocationData);
     return data;
 }

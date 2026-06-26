@@ -215,7 +215,17 @@ function ChatBot() {
         addMessage([{ type: 'user', text: faq.question }, { type: 'bot', text: faq.answer }]);
     };
 
-    const handleQuickReply = (faqId) => handleFaqClick(faqId);
+    const handleQuickReply = (faqId) => {
+        if (faqId === 'cases-1') {
+            navigate('/special-requests');
+            setOpen(false);
+        } else if (faqId === 'general-2') {
+            navigate('/volunteer');
+            setOpen(false);
+        } else {
+            handleFaqClick(faqId);
+        }
+    };
 
     const getFilteredFaqs = () => {
         if (!selectedCat) return [];

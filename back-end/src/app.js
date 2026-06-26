@@ -26,7 +26,7 @@ const auditRoutes = require('./modules/audit/audit.routes');
 const reconciliationRoutes = require('./modules/reconciliation/reconciliation.routes');
 const uploadRoutes = require('./modules/upload/upload.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
-const specialRequestRoutes = require('./modules/special-requests/specialRequests.routes');
+const specialRequestRoutes = require('./modules/special-requests/special-requests.routes');
 const campaignRoutes = require('./modules/campaigns/campaigns.routes');
 
 const app = express();

@@ -75,11 +75,12 @@ function AdminLayout() {
         { path: '/admin/donations', label: t('admin.donations'), icon: 'fa-solid fa-coins' },
         { path: '/admin/beneficiaries', label: t('admin.beneficiaries'), icon: 'fa-solid fa-users' },
         { path: '/admin/finance', label: t('admin.finance'), icon: 'fa-solid fa-credit-card' },
+        { path: '/admin/volunteers', label: 'طلبات التطوع', icon: 'fa-solid fa-handshake' },
+        { path: '/admin/special-requests', label: 'الطلبات الخاصة', icon: 'fa-solid fa-hand-holding-heart' },
         { path: '/admin/cms', label: 'إدارة المحتوى', icon: 'fa-solid fa-pen-nib' },
-        { path: '/admin/blog', label: 'المدونة', icon: 'fa-solid fa-blog' },
-        { path: '/admin/messages', label: 'الرسائل', icon: 'fa-solid fa-message' },
-        { path: '/admin/volunteers', label: 'طلبات التطوع', icon: 'fa-solid fa-handshake-angle' },
-        { path: '/admin/special-requests', label: 'الطلبات الخاصة', icon: 'fa-solid fa-file-pen' },
+        { path: '/admin/blog', label: 'الأخبار', icon: 'fa-solid fa-newspaper' },
+        { path: '/admin/gallery', label: 'المعرض', icon: 'fa-solid fa-images' },
+        { path: '/admin/messages', label: 'الرسائل', icon: 'fa-solid fa-message' }
     ];
 
     const isActive = (item) => {

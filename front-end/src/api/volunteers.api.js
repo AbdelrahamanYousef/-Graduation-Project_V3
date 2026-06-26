@@ -47,17 +47,17 @@ export async function rejectVolunteer(id, reason) {
 }
 
 /**
- * Mark volunteer as contacted (admin)
+ * Get volunteer applications of the logged in user
  */
-export async function contactVolunteer(id, payload) {
-    const { data } = await apiClient.patch(`/volunteers/${id}/contact`, payload);
+export async function getMyVolunteerApplications() {
+    const { data } = await apiClient.get('/volunteers/my-applications');
     return data;
 }
 
 /**
- * Record volunteer's response (admin)
+ * Log phone call outcome for a volunteer (admin)
  */
-export async function respondVolunteer(id, payload) {
-    const { data } = await apiClient.patch(`/volunteers/${id}/respond`, payload);
+export async function logVolunteerCall(id, outcome, notes) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/log-call`, { outcome, notes });
     return data;
 }

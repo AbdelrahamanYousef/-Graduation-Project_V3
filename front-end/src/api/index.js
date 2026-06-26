@@ -59,13 +59,14 @@ export {
 // Volunteers
 export {
     applyAsVolunteer, getVolunteers, getVolunteerById, approveVolunteer, rejectVolunteer,
+    getMyVolunteerApplications,
     volunteerKeys,
 } from './volunteers.api';
 
 // Special Requests
 export {
-    submitSpecialRequest, getSpecialRequests, getSpecialRequestById,
-    approveSpecialRequest, rejectSpecialRequest,
+    submitSpecialRequest, getSpecialRequests, getMyRequests,
+    updateSpecialRequestStatus, allocateSpecialRequestAid,
     specialRequestKeys,
 } from './specialRequests.api';
 
@@ -96,3 +97,9 @@ export {
 export {
     getDonorProfile, updateDonorProfile, getDonorDonations, getDonorStats,
 } from './donorAccount.api';
+
+// Uploads
+export {
+    uploadProfilePhoto, uploadImage, uploadCv,
+} from './upload.api';
+

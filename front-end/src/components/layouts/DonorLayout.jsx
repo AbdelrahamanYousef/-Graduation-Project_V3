@@ -93,6 +93,7 @@ function DonorLayout({ children }) {
         { path: '/blog', label: t('nav.updates'), icon: 'fa-solid fa-newspaper' },
         { path: '/zakat', label: t('nav.zakatCalc'), icon: 'fa-solid fa-calculator' },
         { path: '/volunteer', label: t('nav.volunteer'), icon: 'fa-solid fa-handshake' },
+        { path: '/special-requests', label: 'طلب مساعدة', icon: 'fa-solid fa-hand-holding-heart' },
         { path: '/about', label: t('nav.about'), icon: 'fa-solid fa-building-columns' },
         { path: '/contact', label: t('nav.contact'), icon: 'fa-solid fa-phone' },
     ], []);
@@ -359,6 +360,7 @@ function DonorLayout({ children }) {
                                 {[
                                     { to: '/campaigns', label: t('nav.campaigns') },
                                     { to: '/volunteer', label: t('nav.volunteer') },
+                                    { to: '/special-requests', label: 'طلب مساعدة' },
                                     { to: '/zakat', label: t('nav.zakatCalc') },
                                     { to: '/about', label: t('nav.about') },
                                 ].map((link) => (

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import OverviewTab from './OverviewTab';
 import DonationsTab from './DonationsTab';
 import ProfileTab from './ProfileTab';
+import SubmissionsTab from './SubmissionsTab';
 
 function Account() {
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ function Account() {
     const [searchParams] = useSearchParams();
     const [activeTab, setActiveTab] = useState(() => {
         const tab = searchParams.get('tab');
-        return ['overview', 'donations', 'profile'].includes(tab) ? tab : 'overview';
+        return ['overview', 'donations', 'profile', 'submissions'].includes(tab) ? tab : 'overview';
     });
 
     const handleTabChange = (newValue) => {
@@ -31,7 +32,7 @@ function Account() {
 
     useEffect(() => {
         const tab = searchParams.get('tab');
-        if (tab && ['overview', 'donations', 'profile'].includes(tab)) {
+        if (tab && ['overview', 'donations', 'profile', 'submissions'].includes(tab)) {
             setActiveTab(tab);
         }
     }, [searchParams]);
@@ -80,6 +81,7 @@ function Account() {
     const tabs = [
         { value: 'overview', label: 'نظرة عامة', icon: 'fa-solid fa-chart-pie' },
         { value: 'donations', label: 'تبرعاتي', icon: 'fa-solid fa-hand-holding-heart' },
+        { value: 'submissions', label: 'طلباتي', icon: 'fa-solid fa-file-invoice' },
         { value: 'profile', label: 'بياناتي', icon: 'fa-solid fa-user' },
     ];
 
@@ -151,6 +153,7 @@ function Account() {
                 <div>
                     {activeTab === 'overview' && <OverviewTab user={user} donations={donations} isDark={isDark} />}
                     {activeTab === 'donations' && <DonationsTab donations={donations} isDark={isDark} />}
+                    {activeTab === 'submissions' && <SubmissionsTab isDark={isDark} />}
                     {activeTab === 'profile' && <ProfileTab isDark={isDark} donorInfo={donorInfo} updateDonorPhoto={updateDonorPhoto} />}
                 </div>
             </div>
