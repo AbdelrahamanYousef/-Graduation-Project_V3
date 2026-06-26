@@ -8,7 +8,7 @@ const MAX_CV_MB = 5;
 const ALLOWED_CV_EXT = ['pdf', 'doc', 'docx'];
 
 export default function VolunteerSignupForm({
-    isDark, form, setForm, touched, setTouched, submitted, handleSubmit, handleBlur,
+    isDark, form, setForm, touched, setTouched, submitted, submitting, handleSubmit, handleBlur,
     getError, getHelper, cvMode, setCvMode, cvError, fileInputRef, handleCvFile, clearCv, volunteerAreas,
 }) {
     return (
@@ -313,20 +313,20 @@ export default function VolunteerSignupForm({
                                 <div className="pt-2">
                                     <button
                                         type="submit"
-                                        disabled={submitted}
+                                        disabled={submitting || submitted}
                                         className="w-full h-[52px] rounded-xl font-bold text-[1.05rem] text-white transition-all"
                                         style={{
                                             background: isDark ? `linear-gradient(135deg, ${G_GREEN} 0%, #059669 100%)` : `linear-gradient(135deg, ${TEAL} 0%, #0d7c65 100%)`,
                                             boxShadow: `0 6px 16px ${isDark ? 'rgba(0,177,106,0.3)' : 'rgba(26,74,68,0.3)'}`,
-                                            opacity: submitted ? 0.7 : 1,
-                                            cursor: submitted ? 'not-allowed' : 'pointer',
+                                            opacity: (submitting || submitted) ? 0.7 : 1,
+                                            cursor: (submitting || submitted) ? 'not-allowed' : 'pointer',
                                         }}
-                                        onMouseEnter={e => { if (!submitted) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${isDark ? 'rgba(0,177,106,0.45)' : 'rgba(26,74,68,0.45)'}`; }}}
-                                        onMouseLeave={e => { if (!submitted) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `0 6px 16px ${isDark ? 'rgba(0,177,106,0.3)' : 'rgba(26,74,68,0.3)'}`; }}}
+                                        onMouseEnter={e => { if (!submitting && !submitted) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${isDark ? 'rgba(0,177,106,0.45)' : 'rgba(26,74,68,0.45)'}`; }}}
+                                        onMouseLeave={e => { if (!submitting && !submitted) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `0 6px 16px ${isDark ? 'rgba(0,177,106,0.3)' : 'rgba(26,74,68,0.3)'}`; }}}
                                     >
-                                        {submitted ? (
+                                        {submitting ? (
                                             <span className="flex items-center justify-center gap-1">
-                                                تم التسجيل بنجاح! <i className="fa-solid fa-check"></i>
+                                                جاري الإرسال... <i className="fa-solid fa-spinner fa-spin"></i>
                                             </span>
                                         ) : t('common.joinNow')}
                                     </button>

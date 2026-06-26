@@ -1,6 +1,7 @@
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import { donationCategories, categoryColors } from '../../data/mockData';
+import { categoryColors } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import DonationSidebar from './DonationSidebar';
 import RelatedItems from './RelatedItems';
 
@@ -8,7 +9,7 @@ const ARABIC_FONT = "'Cairo', 'Tajawal', sans-serif";
 const GREEN = '#00b16a';
 const GREEN_DK = '#009659';
 
-function findItem(categoryId, itemId) {
+function findItem(donationCategories, categoryId, itemId) {
     const cat = donationCategories.find(c => c.id === categoryId);
     if (!cat) return null;
     const item = cat.items.find(i => i.id === itemId);
@@ -38,7 +39,9 @@ function DonateItem() {
     const { categoryId, itemId } = useParams();
     const navigate = useNavigate();
     const { isDark } = useTheme();
-    const result = findItem(categoryId, itemId);
+    const { state } = useAdminData();
+    const donationCategories = state.donationCategories || [];
+    const result = findItem(donationCategories, categoryId, itemId);
 
     if (!result) {
         return (

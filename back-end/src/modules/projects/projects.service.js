@@ -7,6 +7,7 @@ async function list(query = {}) {
     if (query.status) where.status = query.status.toUpperCase();
     if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
     if (query.featured) where.featured = query.featured === 'true' || query.featured === true;
+    if (query.isHighlighted !== undefined) where.isHighlighted = query.isHighlighted === 'true' || query.isHighlighted === true;
 
     const page = parseInt(query.page) || 1;
     const limit = Math.min(parseInt(query.limit) || 20, 100);
@@ -45,7 +46,8 @@ async function list(query = {}) {
             donationAmount: p.donationAmount ? Number(p.donationAmount) : null,
             image: p.imageUrl || null,
             status: p.status.toLowerCase(),
-            featured: p.featured
+            featured: p.featured,
+            isHighlighted: p.isHighlighted
         };
     });
 

@@ -14,6 +14,8 @@ const projectSchema = z.object({
     location: z.string().optional(),
     imageUrl: z.string().optional(),
     status: z.enum(['ACTIVE', 'COMPLETED', 'PENDING']).optional(),
+    isHighlighted: z.boolean().optional(),
+    donationAmount: z.number().optional(),
 });
 
 router.get('/featured', ctrl.getFeatured);
@@ -23,6 +25,7 @@ router.get('/:id', ctrl.getById);
 router.post('/', authAdmin, validate({ body: projectSchema }), ctrl.create);
 router.put('/:id', authAdmin, validate({ body: projectSchema.partial() }), ctrl.update);
 router.put('/:id/featured', authAdmin, validate({ body: z.object({ featured: z.boolean() }) }), ctrl.toggleFeatured);
+router.put('/:id/highlight', authAdmin, validate({ body: z.object({ isHighlighted: z.boolean() }) }), ctrl.toggleHighlight);
 router.delete('/:id', authAdmin, ctrl.remove);
 
 module.exports = router;

@@ -22,5 +22,8 @@ async function getFeatured(req, res, next) {
 async function toggleFeatured(req, res, next) {
     try { res.json(await service.update(req.params.id, { featured: req.body.featured })); } catch (e) { next(e); }
 }
+async function toggleHighlight(req, res, next) {
+    try { res.json(await service.update(req.params.id, { isHighlighted: req.body.isHighlighted })); } catch (e) { next(e); }
+}
 
-module.exports = { list, getById, create, update, remove, getFeatured, toggleFeatured };
+module.exports = { list, getById, create, update, remove, getFeatured, toggleFeatured, toggleHighlight };

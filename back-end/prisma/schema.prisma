@@ -31,8 +31,12 @@ model User {
   notifications            Notification[]
   refreshTokens            RefreshToken[]
   generatedReports         Report[]
-  reviewedVolunteers       VolunteerApplication[] @relation("ReviewedBy")
-  reviewedSpecialRequests  SpecialRequest[]       @relation("ReviewedSpecialRequests")
+    reviewedVolunteers           VolunteerApplication[]    @relation("ReviewedBy")
+    reviewedSpecialRequests      SpecialRequest[]          @relation("ReviewedSpecialRequests")
+    volunteerApplications        VolunteerApplication[]    @relation("VolunteerApplicant")
+    performedVolunteerLogs       VolunteerProcessLog[]     @relation("VolunteerProcessLogActor")
+    performedSpecialRequestLogs  SpecialRequestProcessLog[] @relation("SpecialRequestProcessLogActor")
+    specialRequestApplications   SpecialRequest[]           @relation("SpecialRequestApplicant")
 
   @@map("users")
 }
@@ -56,6 +60,7 @@ model Program {
   color         String?
   description   String?
   status        EntityStatus  @default(ACTIVE)
+  isHighlighted Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
@@ -78,6 +83,7 @@ model Project {
   location       String?
   status         ProjectStatus @default(ACTIVE)
   featured       Boolean       @default(false)
+  isHighlighted  Boolean       @default(false)
   endDate        DateTime?
   donationAmount Decimal?      @db.Decimal(12, 2)
   createdAt      DateTime      @default(now())
@@ -195,23 +201,62 @@ model Notification {
 }
 
 model VolunteerApplication {
-  id              String          @id @default(cuid())
-  name            String
-  email           String
-  phone           String
-  area            VolunteerArea
-  message         String?
-  status          VolunteerStatus @default(PENDING)
-  reviewedById    String?
-  reviewedAt      DateTime?
-  rejectionReason String?
-  adminNotes      String?
-  nextSteps       String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  reviewedBy      User?           @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  id                String             @id @default(cuid())
+  name              String
+  email             String
+  phone             String
+  area              VolunteerArea
+  message           String?
+  status            VolunteerStatus    @default(PENDING)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  rejectionReason   String?
+  adminNotes        String?
+  nextSteps         String?
+  cvFile            String?
+  cvUrl             String?
+  userId            String?
+  contactMethod     String?
+  contactedAt       DateTime?
+  applicantResponse String?
+  respondedAt       DateTime?
+  responseNotes     String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  reviewedBy        User?              @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  user              User?              @relation("VolunteerApplicant", fields: [userId], references: [id])
+  processLogs       VolunteerProcessLog[]
 
+  @@index([userId])
   @@map("volunteer_applications")
+}
+
+model VolunteerProcessLog {
+  id            String             @id @default(cuid())
+  volunteerId   String
+  volunteer     VolunteerApplication @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
+  action        String
+  performedById String?
+  performedBy   User?              @relation("VolunteerProcessLogActor", fields: [performedById], references: [id])
+  details       Json?
+  createdAt     DateTime           @default(now())
+
+  @@index([volunteerId])
+  @@map("volunteer_process_logs")
+}
+
+model SpecialRequestProcessLog {
+  id              String          @id @default(cuid())
+  specialRequestId String
+  specialRequest  SpecialRequest  @relation(fields: [specialRequestId], references: [id], onDelete: Cascade)
+  action          String
+  performedById   String?
+  performedBy     User?           @relation("SpecialRequestProcessLogActor", fields: [performedById], references: [id])
+  details         Json?
+  createdAt       DateTime        @default(now())
+
+  @@index([specialRequestId])
+  @@map("special_request_process_logs")
 }
 
 model ContactMessage {
@@ -229,25 +274,34 @@ model ContactMessage {
 }
 
 model SpecialRequest {
-  id              String                @id @default(cuid())
-  name            String
-  email           String
-  phone           String
-  requestType     String
-  description     String
-  status          SpecialRequestStatus  @default(PENDING)
-  aidType         AidType?
-  adminNotes      String?
-  rejectionReason String?
-  reviewedById    String?
-  reviewedAt      DateTime?
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  reviewedBy      User?                 @relation("ReviewedSpecialRequests", fields: [reviewedById], references: [id])
+  id                String                     @id @default(cuid())
+  name              String
+  email             String
+  phone             String
+  requestType       String
+  description       String
+  status            SpecialRequestStatus       @default(PENDING)
+  aidType           AidType?
+  adminNotes        String?
+  rejectionReason   String?
+  reviewedById      String?
+  reviewedAt        DateTime?
+  userId            String?
+  contactMethod     String?
+  contactedAt       DateTime?
+  applicantResponse String?
+  respondedAt       DateTime?
+  responseNotes     String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  reviewedBy        User?                      @relation("ReviewedSpecialRequests", fields: [reviewedById], references: [id])
+  user              User?                      @relation("SpecialRequestApplicant", fields: [userId], references: [id])
+  processLogs       SpecialRequestProcessLog[]
 
   @@index([status])
   @@index([aidType])
   @@index([createdAt])
+  @@index([userId])
   @@map("special_requests")
 }
 
@@ -420,6 +474,9 @@ enum VolunteerStatus {
   PENDING
   APPROVED
   REJECTED
+  CONTACTED
+  CONFIRMED
+  WITHDRAWN
 }
 
 enum ContactStatus {
@@ -432,6 +489,9 @@ enum SpecialRequestStatus {
   PENDING
   APPROVED
   REJECTED
+  CONTACTED
+  CONFIRMED
+  COMPLETED
 }
 
 enum AidType {

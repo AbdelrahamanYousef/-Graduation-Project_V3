@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import { donationCategories, categoryColors } from '../../data/mockData';
+import { categoryColors } from '../../data/mockData';
+import { useAdminData } from '../../contexts/AdminDataContext';
 
 import { useInjectStyles } from '../../utils/injectStyles';
 const GREEN = '#00b16a';
@@ -20,12 +21,15 @@ function DonationCategoriesSection() {
     const [animKey, setAnimKey] = useState(0);
     const gridRef = useRef(null);
 
+    const { state } = useAdminData();
+    const donationCategories = state.donationCategories || [];
+
     useEffect(() => {
         setAnimKey(prev => prev + 1);
     }, [tabIndex]);
     useInjectStyles(donationCategoriesStyles, 'donation-categories-styles');
 
-    const currentCategory = donationCategories[tabIndex];
+    const currentCategory = donationCategories[tabIndex] || donationCategories[0];
     const items = currentCategory?.items || [];
 
     const handleDonate = (item) => {

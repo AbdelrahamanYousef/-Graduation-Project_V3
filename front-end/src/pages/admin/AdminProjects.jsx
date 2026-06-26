@@ -36,7 +36,6 @@ function AdminProjects() {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
         }
     };
-
     const toggleFeatured = useCallback(async (project) => {
         try {
             await api.updateProject(project.id, { featured: !project.featured });
@@ -49,6 +48,22 @@ function AdminProjects() {
             });
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
+        }
+    }, [api]);
+
+    const handleToggleHighlight = useCallback(async (project) => {
+        try {
+            const nextVal = !project.isHighlighted;
+            await api.toggleProjectHighlight(project.id, nextVal);
+            setSnackbar({
+                open: true,
+                severity: 'success',
+                msg: nextVal
+                    ? `تم تمييز "${project.title}" كأشد احتياجاً ⭐`
+                    : `تم إزالة تمييز "${project.title}" من الحالات الأشد احتياجاً`,
+            });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تعديل التمييز', severity: 'error' });
         }
     }, [api]);
 
@@ -250,6 +265,15 @@ function AdminProjects() {
                                         <option value="pending">قيد الانتظار</option>
                                     </select>
                                     <div className="flex-1" />
+                                    <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-bold text-neutral-600 dark:text-neutral-400 select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={project.isHighlighted || false}
+                                            onChange={() => handleToggleHighlight(project)}
+                                            className="w-3.5 h-3.5 text-amber-500 bg-neutral-100 border-neutral-300 rounded focus:ring-amber-500 cursor-pointer dark:bg-neutral-700 dark:border-neutral-600"
+                                        />
+                                        <span>أشد احتياجاً</span>
+                                    </label>
                                     <button
                                         title={project.featured ? t('admin.projectsPage.removeFeatured') : t('admin.projectsPage.addFeatured')}
                                         className="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-all"

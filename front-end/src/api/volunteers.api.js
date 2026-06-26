@@ -45,3 +45,19 @@ export async function rejectVolunteer(id, reason) {
     const { data } = await apiClient.patch(`/volunteers/${id}/reject`, { reason });
     return data;
 }
+
+/**
+ * Mark volunteer as contacted (admin)
+ */
+export async function contactVolunteer(id, payload) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/contact`, payload);
+    return data;
+}
+
+/**
+ * Record volunteer's response (admin)
+ */
+export async function respondVolunteer(id, payload) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/respond`, payload);
+    return data;
+}

@@ -1,7 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { projects as initialProjects, programs as initialPrograms, impactStats as initialStats, testimonials as initialTestimonials } from '../data/mockData';
-import { getPrograms, createProgram as apiCreateProgram, updateProgram as apiUpdateProgram, deleteProgram as apiDeleteProgram } from '../api/programs.api';
-import { getProjects, createProject as apiCreateProject, updateProject as apiUpdateProject, deleteProject as apiDeleteProject } from '../api/projects.api';
+import { getPrograms, createProgram as apiCreateProgram, updateProgram as apiUpdateProgram, deleteProgram as apiDeleteProgram, toggleProgramHighlight as apiToggleProgramHighlight } from '../api/programs.api';
+import { getProjects, createProject as apiCreateProject, updateProject as apiUpdateProject, deleteProject as apiDeleteProject, toggleProjectHighlight as apiToggleProjectHighlight } from '../api/projects.api';
 import { donationsList as initialDonations, beneficiariesList as initialBeneficiaries, financeDisbursements as initialDisbursements, dashboardActivities as initialActivities } from '../data/adminMockData';
 
 // ─── Storage Keys ────────────────────────────────────────────
@@ -467,7 +467,31 @@ export function AdminDataProvider({ children }) {
             return { ...prog, projectCount: linkedProjects.length, raised };
         });
 
-        // 3. Dashboard summary stats
+        // 3. Dynamic Donation Categories for donor views
+        const donationCategories = derivedPrograms.map(prog => {
+            const items = derivedProjects
+                .filter(p => p.programId === prog.id)
+                .map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    price: p.donationAmount || 0,
+                    goal: p.goal || 0,
+                    raised: p.raised || 0,
+                    donorsCount: p.donors || 0,
+                    status: p.status || 'active',
+                    isHighlighted: p.isHighlighted || false
+                }));
+            return {
+                id: prog.id,
+                name: prog.name,
+                icon: prog.icon || 'fa-solid fa-folder',
+                color: prog.color || '#00b16a',
+                isHighlighted: prog.isHighlighted || false,
+                items
+            };
+        });
+
+        // 4. Dashboard summary stats
         const completedDonations = state.donations.filter(d => d.status === 'completed');
         const dashboardStats = {
             totalDonations: completedDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0),
@@ -478,7 +502,7 @@ export function AdminDataProvider({ children }) {
             pendingDisbursements: (state.disbursements || []).filter(d => d.status === 'pending').length,
         };
 
-        return { ...state, projects: derivedProjects, programs: derivedPrograms, dashboardStats };
+        return { ...state, projects: derivedProjects, programs: derivedPrograms, dashboardStats, donationCategories };
     }, [state]);
 
     const api = {
@@ -486,9 +510,11 @@ export function AdminDataProvider({ children }) {
         createProgram: async (data) => { const res = await apiCreateProgram(data); await refreshAdminData(); return res; },
         updateProgram: async (id, data) => { const res = await apiUpdateProgram(id, data); await refreshAdminData(); return res; },
         deleteProgram: async (id) => { const res = await apiDeleteProgram(id); await refreshAdminData(); return res; },
+        toggleProgramHighlight: async (id, isHighlighted) => { const res = await apiToggleProgramHighlight(id, isHighlighted); await refreshAdminData(); return res; },
         createProject: async (data) => { const res = await apiCreateProject(data); await refreshAdminData(); return res; },
         updateProject: async (id, data) => { const res = await apiUpdateProject(id, data); await refreshAdminData(); return res; },
         deleteProject: async (id) => { const res = await apiDeleteProject(id); await refreshAdminData(); return res; },
+        toggleProjectHighlight: async (id, isHighlighted) => { const res = await apiToggleProjectHighlight(id, isHighlighted); await refreshAdminData(); return res; },
     };
 
     return (

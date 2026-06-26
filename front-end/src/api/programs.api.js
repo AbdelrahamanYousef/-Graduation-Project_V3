@@ -47,3 +47,11 @@ export async function deleteProgram(id) {
     const { data } = await apiClient.delete(`/programs/${id}`);
     return data;
 }
+
+/**
+ * Toggle highlighted status (admin)
+ */
+export async function toggleProgramHighlight(id, isHighlighted) {
+    const { data } = await apiClient.put(`/programs/${id}/highlight`, { isHighlighted });
+    return data;
+}

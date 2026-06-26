@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('Seeding database...');
 
-    // Clean existing data
+    // Clean existing data in correct constraint order
     await prisma.auditLog.deleteMany();
     await prisma.reconciliation.deleteMany();
     await prisma.disbursement.deleteMany();
@@ -38,62 +38,6 @@ async function main() {
     });
     console.log('  Created 3 users');
 
-    // ── Programs ──
-    const programs = await Promise.all([
-        prisma.program.create({ data: { name: 'كفالة الأيتام', icon: 'fa-solid fa-children', color: '#e74c3c', description: 'برنامج كفالة الأيتام المحتاجين' } }),
-        prisma.program.create({ data: { name: 'الخدمات الصحية', icon: 'fa-solid fa-heart-pulse', color: '#2ecc71', description: 'دعم الخدمات الطبية للمحتاجين' } }),
-        prisma.program.create({ data: { name: 'التعليم', icon: 'fa-solid fa-graduation-cap', color: '#3498db', description: 'دعم التعليم والتعلم' } }),
-        prisma.program.create({ data: { name: 'إغاثة الطوارئ', icon: 'fa-solid fa-truck-medical', color: '#e67e22', description: 'إغاثة عاجلة للمتضررين' } }),
-        prisma.program.create({ data: { name: 'التنمية المستدامة', icon: 'fa-solid fa-seedling', color: '#1abc9c', description: 'مشاريع التنمية المستدامة' } }),
-        prisma.program.create({ data: { name: 'ال(clean) المياه', icon: 'fa-solid fa-droplet', color: '#9b59b6', description: 'توفير المياه النظيفة' } }),
-    ]);
-    console.log('  Created 6 programs');
-
-    // ── Projects ──
-    const projects = await Promise.all([
-        prisma.project.create({ data: { programId: programs[0].id, title: 'كفالة 500 يتيم في الصعيد', description: 'مشروع كفالة أيتام في صعيد مصر', goal: 500000, raised: 320000, donorsCount: 150, featured: true, status: 'ACTIVE', imageUrl: '/images/orphans.jpg' } }),
-        prisma.project.create({ data: { programId: programs[1].id, title: 'إغاثة طبية عاجلة', description: 'دعم المستشفيات بالمعدات الطبية', goal: 300000, raised: 180000, donorsCount: 89, featured: true, status: 'ACTIVE', imageUrl: '/images/medical.jpg' } }),
-        prisma.project.create({ data: { programId: programs[2].id, title: 'بناء مدارس في الريف', description: 'إنشاء مدارس في المناطق النائية', goal: 800000, raised: 450000, donorsCount: 210, featured: true, status: 'ACTIVE', imageUrl: '/images/schools.jpg' } }),
-        prisma.project.create({ data: { programId: programs[3].id, title: 'إغاثة المتضررين', description: 'توفير اللوازم الأساسية للمتضررين', goal: 200000, raised: 190000, donorsCount: 320, featured: false, status: 'ACTIVE', imageUrl: '/images/relief.jpg' } }),
-        prisma.project.create({ data: { programId: programs[4].id, title: 'دعم المشاريع الصغيرة', description: 'تمكين الشباب بمشاريع صغيرة', goal: 400000, raised: 120000, donorsCount: 65, featured: false, status: 'ACTIVE', imageUrl: '/images/projects.jpg' } }),
-        prisma.project.create({ data: { programId: programs[5].id, title: 'حفر 10 آبار ارتوازية', description: 'توفير مياه نظيفة لقرى صحراوية', goal: 250000, raised: 250000, donorsCount: 180, featured: true, status: 'COMPLETED', imageUrl: '/images/water.jpg' } }),
-        prisma.project.create({ data: { programId: programs[1].id, title: 'دعم مراكز غسيل الكلى', description: 'توريد أجهزة غسيل كلى للمستشفيات', goal: 600000, raised: 95000, donorsCount: 42, featured: false, status: 'ACTIVE', imageUrl: '/images/dialysis.jpg' } }),
-    ]);
-    console.log('  Created 7 projects');
-
-    // ── Donations ──
-    const donationTypes = ['SADAQAH', 'ZAKAT', 'ORPHAN_SPONSORSHIP', 'SADAQAH_JARIYAH', 'GENERAL'];
-    const paymentMethods = ['CARD', 'VODAFONE_CASH', 'INSTAPAY', 'FAWRY', 'BANK_TRANSFER'];
-    const donorNames = ['أحمد محمد', 'فاطمة علي', 'محمود حسن', 'سارة أحمد', 'خالد إبراهيم'];
-    const amounts = [5000, 10000, 2500, 1000, 7500];
-
-    for (let i = 0; i < 5; i++) {
-        await prisma.donation.create({
-            data: {
-                userId: donor1.id,
-                projectId: projects[i % projects.length].id,
-                amount: amounts[i],
-                type: donationTypes[i],
-                paymentMethod: paymentMethods[i],
-                status: 'SUCCESS',
-                fullName: donorNames[i],
-                receiptNumber: `REC-${Date.now()}-${i}`,
-                paidAt: new Date(),
-            },
-        });
-    }
-    console.log('  Created 5 donations');
-
-    // ── Beneficiaries ──
-    await prisma.beneficiary.createMany({
-        data: [
-            { name: 'عائلة محمد حسن', type: 'FAMILY', governorate: 'قنا', membersCount: 5, status: 'ACTIVE', monthlyAid: 1500, programId: programs[0].id },
-            { name: 'عائلة أحمد سعيد', type: 'FAMILY', governorate: 'القاهرة', membersCount: 3, status: 'ACTIVE', monthlyAid: 2000, programId: programs[1].id },
-            { name: 'عائلة فاطمة علي', type: 'FAMILY', governorate: 'المنيا', membersCount: 7, status: 'ACTIVE', monthlyAid: 2500, programId: programs[0].id },
-        ],
-    });
-    console.log('  Created 3 beneficiaries');
-
     // ── Org Settings ──
     await prisma.orgSettings.create({
         data: {
@@ -106,14 +50,156 @@ async function main() {
     });
     console.log('  Created org settings');
 
-    // ── Audit Logs ──
-    await prisma.auditLog.createMany({
-        data: [
-            { actorId: admin1.id, actorRole: 'ADMIN', action: 'LOGIN', entity: 'User', entityId: admin1.id },
-            { actorId: admin2.id, actorRole: 'ADMIN', action: 'LOGIN', entity: 'User', entityId: admin2.id },
-        ],
-    });
-    console.log('  Created 2 audit logs');
+    // ── Programs and Projects Seeding ──
+    const programsData = [
+      {
+        name: 'كراتين طعام',
+        icon: 'fa-solid fa-box-open',
+        color: '#4caf50',
+        description: 'توزيع كراتين المواد الغذائية على الأسر الأولى بالرعاية لتلبية احتياجاتهم الأساسية.',
+        projects: [
+          { title: 'كرتونة طعام (13 كجم)', goal: 100000, donationAmount: 540, location: 'جميع المحافظات' },
+          { title: 'كرتونة طعام (10 كجم)', goal: 100000, donationAmount: 445, location: 'جميع المحافظات' },
+          { title: 'كرتونة طعام (7.5 كجم)', goal: 100000, donationAmount: 335, location: 'جميع المحافظات' },
+          { title: 'كرتونة طعام (6 كجم)', goal: 100000, donationAmount: 260, location: 'جميع المحافظات' },
+        ]
+      },
+      {
+        name: 'إفطار صائم',
+        icon: 'fa-solid fa-utensils',
+        color: '#ff9800',
+        description: 'توفير وجبات الإفطار الساخنة واللحوم للصائمين في المناطق الأكثر احتياجاً.',
+        projects: [
+          { title: 'لحمة', goal: 150000, donationAmount: 85, location: 'مطبخ الجمعية' },
+          { title: 'كفتة', goal: 100000, donationAmount: 65, location: 'مطبخ الجمعية' },
+          { title: 'فراخ', goal: 120000, donationAmount: 80, location: 'مطبخ الجمعية' },
+        ]
+      },
+      {
+        name: 'التعليم',
+        icon: 'fa-solid fa-graduation-cap',
+        color: '#2196f3',
+        description: 'دعم الطلاب غير القادرين والمدارس وتوفير المستلزمات التعليمية الأساسية.',
+        projects: [
+          { title: 'راجع مدرستي', goal: 200000, donationAmount: 500, location: 'المدارس المستهدفة' },
+          { title: 'التعليم حياة', goal: 300000, donationAmount: 500, location: 'المدارس المستهدفة' },
+          { title: 'حملات التوعية', goal: 50000, donationAmount: 200, location: 'المراكز المجتمعية' },
+          { title: 'تطوير المدارس', goal: 500000, donationAmount: 1000, location: 'المحافظات الحدودية' },
+          { title: 'اكفل تعليم طفل', goal: 150000, donationAmount: 500, location: 'المدارس المستهدفة' },
+          { title: 'شنطة أدوات مدرسية', goal: 80000, donationAmount: 450, location: 'جميع المحافظات' },
+        ]
+      },
+      {
+        name: 'الدعم الغذائي',
+        icon: 'fa-solid fa-bowl-food',
+        color: '#e91e63',
+        description: 'توفير وجبات غذائية جاهزة ومكونات جافة للأسر الأكثر فقراً بشكل مستدام.',
+        projects: [
+          { title: 'لقمة كريمة', goal: 100000, donationAmount: 20, location: 'مطبخ الكرم' },
+          { title: 'لحوم صدقات بلدي', goal: 200000, donationAmount: 380, location: 'جميع المحافظات' },
+          { title: 'مشروع مطبخ الكرم', goal: 500000, donationAmount: 1000, location: 'القاهرة' },
+        ]
+      },
+      {
+        name: 'الدعم الإغاثي الدولي',
+        icon: 'fa-solid fa-earth-asia',
+        color: '#9c27b0',
+        description: 'توجيه المساعدات الإغاثية والطبية الطارئة لضحايا الأزمات في غزة وخارجها.',
+        projects: [
+          { title: 'مساعدات غزة', goal: 1000000, donationAmount: 500, location: 'فلسطين - غزة' },
+        ]
+      },
+      {
+        name: 'حالات إنسانية',
+        icon: 'fa-solid fa-hand-holding-heart',
+        color: '#ffc107',
+        description: 'تمويل تحسين المنازل وفك كرب الغارمين وتجهيز العرائس للأسر المتعففة.',
+        projects: [
+          { title: 'تشييد أسقف للمنازل', goal: 300000, donationAmount: 500, location: 'القرى الأكثر احتياجاً' },
+          { title: 'وصلات مياه وكهرباء', goal: 200000, donationAmount: 250, location: 'القرى الأكثر احتياجاً' },
+          { title: 'فك كرب غارمين', goal: 150000, donationAmount: 250, location: 'السجون' },
+          { title: 'تجهيز يتيمات للزواج', goal: 250000, donationAmount: 500, location: 'جميع المحافظات' },
+          { title: 'تروسيكل لذوي الهمم', goal: 180000, donationAmount: 500, location: 'جميع المحافظات' },
+          { title: 'ماكينة خياطة', goal: 120000, donationAmount: 500, location: 'الأسر المنتجة' },
+        ]
+      },
+      {
+        name: 'حالات عاجلة',
+        icon: 'fa-solid fa-bell',
+        color: '#ff5722',
+        description: 'إنقاذ الأرواح وتوفير الرعاية الطبية والأجهزة الطبية العاجلة للحالات الحرجة.',
+        projects: [
+          { title: 'جهاز تنفس صناعي', goal: 400000, donationAmount: 500, location: 'المستشفيات العامة', isHighlighted: true, featured: true },
+          { title: 'مساعدة حالات طبية', goal: 350000, donationAmount: 500, location: 'جميع المحافظات', isHighlighted: true, featured: true },
+        ]
+      },
+      {
+        name: 'التمكين الاقتصادي',
+        icon: 'fa-solid fa-briefcase',
+        color: '#009688',
+        description: 'توفير التدريب المهني وحقائب العدد اللازمة لتأسيس مشروعات صغيرة مولدة للدخل.',
+        projects: [
+          { title: 'للفتيات', goal: 200000, donationAmount: 1000, location: 'مشغل الخياطة' },
+          { title: 'تدريب مهني', goal: 100000, donationAmount: 200, location: 'مراكز التدريب' },
+          { title: 'شنطة عدة', goal: 80000, donationAmount: 150, location: 'جميع المحافظات' },
+        ]
+      },
+      {
+        name: 'التمكين الاجتماعي',
+        icon: 'fa-solid fa-people-group',
+        color: '#3f51b5',
+        description: 'إقامة القوافل التنموية الشاملة والأنشطة التثقيفية لبناء وبث السعادة في المجتمع.',
+        projects: [
+          { title: 'قوافل السعادة', goal: 150000, donationAmount: 500, location: 'القرى النائية' },
+          { title: 'المعسكرات الشبابية', goal: 120000, donationAmount: 500, location: 'المراكز الشبابية' },
+          { title: 'انت الحياة', goal: 250000, donationAmount: 500, location: 'جميع المحافظات' },
+        ]
+      },
+      {
+        name: 'كرمك دفا',
+        icon: 'fa-solid fa-snowflake',
+        color: '#03a9f4',
+        description: 'توفير وسائل التدفئة والأسقف والبطانيات للأسر المتضررة من برد الشتاء القارس.',
+        projects: [
+          { title: 'سقف', goal: 300000, donationAmount: 500, location: 'القرى الأكثر احتياجاً' },
+          { title: 'بطانية صوف', goal: 100000, donationAmount: 350, location: 'جميع المحافظات' },
+          { title: 'سرير ومرتبة', goal: 150000, donationAmount: 2000, location: 'جميع المحافظات' },
+          { title: 'لبس الشتاء', goal: 180000, donationAmount: 550, location: 'جميع المحافظات' },
+        ]
+      }
+    ];
+
+    for (const progData of programsData) {
+        const program = await prisma.program.create({
+            data: {
+                name: progData.name,
+                icon: progData.icon,
+                color: progData.color,
+                description: progData.description,
+                status: 'ACTIVE',
+            }
+        });
+
+        console.log(`  Created program: ${program.name}`);
+
+        for (const projData of progData.projects) {
+            await prisma.project.create({
+                data: {
+                    programId: program.id,
+                    title: projData.title,
+                    description: `${progData.description} - ${projData.title}`,
+                    goal: projData.goal,
+                    donationAmount: projData.donationAmount,
+                    location: projData.location,
+                    isHighlighted: projData.isHighlighted || false,
+                    featured: projData.featured || false,
+                    status: 'ACTIVE',
+                    imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop'
+                }
+            });
+            console.log(`    Created project: ${projData.title}`);
+        }
+    }
 
     console.log('Seed complete!');
 }

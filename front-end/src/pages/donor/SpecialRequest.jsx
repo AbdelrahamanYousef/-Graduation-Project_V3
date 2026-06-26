@@ -22,16 +22,16 @@ function SpecialRequest() {
 
     const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
 
+    const EGYPTIAN_PHONE = /^(?:\+20|20|0)?1[0-2]\d{8}$/;
+    const NAME_REGEX = /^[\u0600-\u06FF\s]{3,}$/;
+
     const isEmailValid = (email) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isPhoneValid = (phone) => {
-        if (!phone) return false;
-        const digits = phone.replace(/\D/g, '');
-        return digits.length >= 10 && digits.length <= 15;
-    };
+    const isPhoneValid = (phone) => !phone || EGYPTIAN_PHONE.test(phone.replace(/\s/g, ''));
+    const isNameValid = (name) => NAME_REGEX.test(name.trim());
 
     const getError = (field) => {
         if (!touched[field]) return false;
-        if (field === 'name') return !form.name || form.name.trim().length < 3;
+        if (field === 'name') return !form.name || !isNameValid(form.name);
         if (field === 'email') return !form.email || !isEmailValid(form.email);
         if (field === 'phone') return !form.phone || !isPhoneValid(form.phone);
         if (field === 'requestType') return !form.requestType;
@@ -41,9 +41,9 @@ function SpecialRequest() {
 
     const getHelper = (field) => {
         if (!getError(field)) return ' ';
-        if (field === 'name' && form.name && form.name.trim().length < 3) return 'الاسم يجب أن يكون 3 أحرف على الأقل';
+        if (field === 'name' && form.name && !isNameValid(form.name)) return 'يرجى إدخال الاسم بالعربية (3 أحرف على الأقل)';
         if (field === 'email' && form.email) return 'أدخل بريدًا صالحًا';
-        if (field === 'phone' && form.phone) return 'أدخل رقمًا صالحًا (10–15 رقم)';
+        if (field === 'phone' && form.phone) return 'أدخل رقم مصري صالح (مثال: 010xxxxxxx)';
         if (field === 'description') return 'يرجى كتابة شرح وافي للطلب (10 أحرف على الأقل)';
         return 'هذا الحقل مطلوب';
     };
@@ -52,7 +52,7 @@ function SpecialRequest() {
         e.preventDefault();
         setTouched({ name: true, email: true, phone: true, requestType: true, description: true });
         const hasErrors = ['name', 'email', 'phone', 'requestType'].some(f => {
-            if (f === 'name') return !form.name || form.name.trim().length < 3;
+            if (f === 'name') return !form.name || !isNameValid(form.name);
             if (f === 'email') return !form.email || !isEmailValid(form.email);
             if (f === 'phone') return !form.phone || !isPhoneValid(form.phone);
             return !form[f];

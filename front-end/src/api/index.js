@@ -18,13 +18,14 @@ export {
 // Programs
 export {
     getPrograms, getProgramById, createProgram, updateProgram, deleteProgram,
+    toggleProgramHighlight,
     programKeys,
 } from './programs.api';
 
 // Projects
 export {
     getProjects, getFeaturedProjects, getProjectById,
-    createProject, updateProject, toggleProjectFeatured, deleteProject,
+    createProject, updateProject, toggleProjectFeatured, toggleProjectHighlight, deleteProject,
     projectKeys,
 } from './projects.api';
 

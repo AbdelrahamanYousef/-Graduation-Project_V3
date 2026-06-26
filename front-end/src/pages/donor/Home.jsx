@@ -24,7 +24,31 @@ function Home() {
     const dashboardStats = state.dashboardStats || {};
 
     const programs = state.programs?.filter(p => !p.status || p.status === 'active') || [];
-    const featuredProjectsList = state.projects?.filter(p => p.featured) || [];
+    
+    const highlightedProjects = state.projects?.filter(p => p.isHighlighted) || [];
+    const highlightedPrograms = state.programs?.filter(p => p.isHighlighted) || [];
+    const mappedHighlightedPrograms = highlightedPrograms.map(p => {
+        const progProjects = state.projects?.filter(proj => proj.programId === p.id) || [];
+        const raised = progProjects.reduce((sum, proj) => sum + Number(proj.raised || 0), 0);
+        const goal = progProjects.reduce((sum, proj) => sum + Number(proj.goal || 0), 0) || 100000;
+        const donorsCount = progProjects.reduce((sum, proj) => sum + Number(proj.donors || proj.donorsCount || 0), 0);
+        return {
+            id: p.id,
+            title: p.name,
+            description: p.description || 'برنامج تنموي شامل لدعم الفئات الأكثر احتياجاً.',
+            imageUrl: p.imageUrl || p.image || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
+            raised,
+            goal,
+            donorsCount,
+            status: p.status || 'active',
+            category: p.name,
+            isProgram: true
+        };
+    });
+    const featuredProjectsList = [
+        ...highlightedProjects.map(p => ({ ...p, isProgram: false, category: p.program })),
+        ...mappedHighlightedPrograms
+    ];
 
     const impactStats = {
         totalDonations: dashboardStats.totalDonations || 0,

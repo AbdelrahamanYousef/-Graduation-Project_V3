@@ -70,7 +70,6 @@ function AdminPrograms() {
         }
         setDeleteConfirm({ open: false, program: null });
     };
-
     const handleToggleStatus = useCallback(async (program) => {
         try {
             const nextStatus = program.status === 'active' ? 'INACTIVE' : 'ACTIVE';
@@ -84,6 +83,22 @@ function AdminPrograms() {
             });
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
+        }
+    }, [api]);
+
+    const handleToggleHighlight = useCallback(async (program) => {
+        try {
+            const nextVal = !program.isHighlighted;
+            await api.toggleProgramHighlight(program.id, nextVal);
+            setSnackbar({
+                open: true,
+                msg: nextVal
+                    ? `تم تمييز "${program.name}" كأشد احتياجاً ⭐`
+                    : `تم إزالة تمييز "${program.name}" من الحالات الأشد احتياجاً`,
+                severity: 'success'
+            });
+        } catch (e) {
+            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تعديل التمييز', severity: 'error' });
         }
     }, [api]);
 
@@ -146,6 +161,20 @@ function AdminPrograms() {
         {
             key: 'status', label: t('admin.programsPage.status'), align: 'center',
             render: (val) => <AdminStatusChip status={val || 'active'} />,
+        },
+        {
+            key: 'isHighlighted', label: 'أشد احتياجاً', align: 'center',
+            render: (val, row) => (
+                <label className="inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={val || false}
+                        onChange={() => handleToggleHighlight(row)}
+                        className="sr-only peer"
+                    />
+                    <div className="relative w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-amber-500"></div>
+                </label>
+            )
         },
     ];
 

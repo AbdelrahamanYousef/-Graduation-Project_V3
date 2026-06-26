@@ -15,5 +15,8 @@ async function update(req, res, next) {
 async function remove(req, res, next) {
     try { await service.remove(req.params.id); res.json({ success: true }); } catch (e) { next(e); }
 }
+async function toggleHighlight(req, res, next) {
+    try { res.json(await service.update(req.params.id, { isHighlighted: req.body.isHighlighted })); } catch (e) { next(e); }
+}
 
-module.exports = { list, getById, create, update, remove };
+module.exports = { list, getById, create, update, remove, toggleHighlight };

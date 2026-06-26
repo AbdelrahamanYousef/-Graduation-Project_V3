@@ -57,6 +57,14 @@ export async function toggleProjectFeatured(id) {
 }
 
 /**
+ * Toggle highlighted status (admin)
+ */
+export async function toggleProjectHighlight(id, isHighlighted) {
+    const { data } = await apiClient.put(`/projects/${id}/highlight`, { isHighlighted });
+    return data;
+}
+
+/**
  * Delete a project (admin, soft delete)
  */
 export async function deleteProject(id) {

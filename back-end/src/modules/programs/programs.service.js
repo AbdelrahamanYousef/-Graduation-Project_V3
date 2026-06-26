@@ -26,7 +26,8 @@ async function list(query = {}) {
             color: p.color || "#1F2D3D",
             projectCount: p._count.projects,
             totalDonations,
-            status: p.status.toLowerCase()
+            status: p.status.toLowerCase(),
+            isHighlighted: p.isHighlighted
         };
     });
 }

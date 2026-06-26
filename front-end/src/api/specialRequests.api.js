@@ -29,3 +29,13 @@ export async function rejectSpecialRequest(id, reason) {
     const { data } = await apiClient.patch(`/special-requests/${id}/reject`, { reason });
     return data;
 }
+
+export async function contactSpecialRequest(id, payload) {
+    const { data } = await apiClient.patch(`/special-requests/${id}/contact`, payload);
+    return data;
+}
+
+export async function respondSpecialRequest(id, payload) {
+    const { data } = await apiClient.patch(`/special-requests/${id}/respond`, payload);
+    return data;
+}

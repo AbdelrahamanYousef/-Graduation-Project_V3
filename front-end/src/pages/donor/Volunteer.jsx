@@ -8,6 +8,9 @@ import VolunteerReasons from './VolunteerReasons';
 import VolunteerOpportunities from './VolunteerOpportunities';
 import VolunteerSignupForm from './VolunteerSignupForm';
 
+const EGYPTIAN_PHONE = /^(?:\+20|20|0)?1[0-2]\d{8}$/;
+const NAME_REGEX = /^[\u0600-\u06FF\s]{3,}$/;
+
 function Volunteer() {
     const containerRef = useRef(null);
     const { isDark } = useTheme();
@@ -21,21 +24,19 @@ function Volunteer() {
     const [submitted, setSubmitted] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [touched, setTouched] = useState({});
+    const [snackbar, setSnackbar] = useState({ open: false, severity: 'success', message: '' });
 
     const handleBlur = (field) => setTouched(prev => ({ ...prev, [field]: true }));
     const isEmailValid = (email) => !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const isPhoneValid = (phone) => {
-        if (!phone) return false;
-        const digits = phone.replace(/\D/g, '');
-        return digits.length >= 10 && digits.length <= 15;
-    };
+    const isPhoneValid = (phone) => !phone || EGYPTIAN_PHONE.test(phone.replace(/\s/g, ''));
+    const isNameValid = (name) => NAME_REGEX.test(name.trim());
     const isUrlValid = (url) => {
         if (!url) return false;
         try { new URL(url); return /^https?:\/\//i.test(url); } catch { return false; }
     };
     const getError = (field) => {
         if (!touched[field]) return false;
-        if (field === 'name') return !form.name || form.name.trim().length < 3;
+        if (field === 'name') return !form.name || !isNameValid(form.name);
         if (field === 'email') return !form.email || !isEmailValid(form.email);
         if (field === 'phone') return !form.phone || !isPhoneValid(form.phone);
         if (field === 'area') return !form[field];
@@ -44,9 +45,9 @@ function Volunteer() {
     };
     const getHelper = (field) => {
         if (!getError(field)) return ' ';
-        if (field === 'name' && form.name && form.name.trim().length < 3) return 'الاسم يجب أن يكون 3 أحرف على الأقل';
+        if (field === 'name' && form.name && !isNameValid(form.name)) return 'يرجى إدخال الاسم بالعربية (3 أحرف على الأقل)';
         if (field === 'email' && form.email) return 'أدخل بريدًا صالحًا';
-        if (field === 'phone' && form.phone) return 'أدخل رقمًا صالحًا (10–15 رقم)';
+        if (field === 'phone' && form.phone) return 'أدخل رقم مصري صالح (مثال: 010xxxxxxx)';
         if (field === 'cvUrl') return 'أدخل رابطًا صالحًا يبدأ بـ http(s)';
         return 'هذا الحقل مطلوب';
     };
@@ -87,7 +88,7 @@ function Volunteer() {
         const allTouched = { name: true, email: true, phone: true, area: true, cvUrl: true };
         setTouched(allTouched);
         const hasErrors = ['name', 'email', 'phone', 'area'].some(f => {
-            if (f === 'name') return !form.name || form.name.trim().length < 3;
+            if (f === 'name') return !form.name || !isNameValid(form.name);
             if (f === 'email') return !form.email || !isEmailValid(form.email);
             if (f === 'phone') return !form.phone || !isPhoneValid(form.phone);
             return !form[f];
@@ -97,20 +98,34 @@ function Volunteer() {
 
         setSubmitting(true);
         try {
+            let cvFileUrl = null;
+            if (form.cvFile) {
+                const formData = new FormData();
+                formData.append('cv', form.cvFile);
+                const uploadRes = await fetch('/api/upload/cv-public', { method: 'POST', body: formData });
+                if (uploadRes.ok) {
+                    const uploadData = await uploadRes.json();
+                    cvFileUrl = uploadData.url;
+                }
+            }
+
             await applyAsVolunteer({
                 name: form.name.trim(),
                 email: form.email.trim(),
                 phone: form.phone.trim(),
                 area: form.area.toUpperCase(),
                 message: form.message.trim() || undefined,
+                cvFile: cvFileUrl,
+                cvUrl: form.cvUrl.trim() || undefined,
             });
             setSubmitted(true);
-            setTimeout(() => setSubmitted(false), 3000);
+            setSnackbar({ open: true, severity: 'success', message: 'تم إرسال طلب التطوع بنجاح! سنتواصل معك قريبًا.' });
             setForm({ name: '', email: '', phone: '', area: '', message: '', cvFile: null, cvUrl: '' });
             setTouched({});
             if (fileInputRef.current) fileInputRef.current.value = '';
+            setTimeout(() => setSubmitted(false), 4000);
         } catch (err) {
-            console.error('Failed to submit volunteer application:', err);
+            setSnackbar({ open: true, severity: 'error', message: err.response?.data?.error?.message || 'حدث خطأ أثناء الإرسال' });
         } finally {
             setSubmitting(false);
         }
@@ -131,6 +146,7 @@ function Volunteer() {
                         touched={touched}
                         setTouched={setTouched}
                         submitted={submitted}
+                        submitting={submitting}
                         handleSubmit={handleSubmit}
                         handleBlur={handleBlur}
                         getError={getError}
@@ -145,6 +161,20 @@ function Volunteer() {
                     />
                 </div>
             </div>
+
+            {snackbar.open && (
+                <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+                    <div className="flex items-center gap-2 px-4 py-3 rounded-[14px] text-white font-semibold text-[0.95rem] min-w-[320px]" style={{
+                        backgroundColor: snackbar.severity === 'success' ? '#00b16a' : '#e57373',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+                    }}>
+                        <span className="flex-1">{snackbar.message}</span>
+                        <button onClick={() => setSnackbar(s => ({ ...s, open: false }))} className="text-white/80 hover:text-white">
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

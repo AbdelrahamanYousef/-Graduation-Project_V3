@@ -12,12 +12,14 @@ const programSchema = z.object({
     color: z.string().optional(),
     description: z.string().optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).optional(),
+    isHighlighted: z.boolean().optional(),
 });
 
 router.get('/', ctrl.list);
 router.get('/:id', ctrl.getById);
 router.post('/', authAdmin, validate({ body: programSchema }), ctrl.create);
 router.put('/:id', authAdmin, validate({ body: programSchema.partial() }), ctrl.update);
+router.put('/:id/highlight', authAdmin, validate({ body: z.object({ isHighlighted: z.boolean() }) }), ctrl.toggleHighlight);
 router.delete('/:id', authAdmin, ctrl.remove);
 
 module.exports = router;

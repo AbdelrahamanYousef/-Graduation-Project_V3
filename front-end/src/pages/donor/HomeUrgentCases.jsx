@@ -69,7 +69,13 @@ function HomeUrgentCases({ featuredProjectsList, isDark, setDonateProject, navig
                             <CampaignCardItem
                                 campaign={project}
                                 index={i}
-                                onClick={() => navigate(`/campaigns`)}
+                                onClick={() => {
+                                    if (project.isProgram) {
+                                        navigate(`/programs/${project.id}`);
+                                    } else {
+                                        navigate(`/projects/${project.id}`);
+                                    }
+                                }}
                                 onDonate={(p) => setDonateProject(p)}
                             />
                         </div>
