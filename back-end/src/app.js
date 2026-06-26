@@ -39,7 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
 // Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '..', config.upload.dir)));
+app.use('/uploads', express.static(path.join(__dirname, config.upload.dir)));
 
 // ─── API Routes ─────────────────────────────────────
 const api = express.Router();
