@@ -115,8 +115,8 @@ function Volunteer() {
                 phone: form.phone.trim(),
                 area: form.area.toUpperCase(),
                 message: form.message.trim() || undefined,
-                cvFile: cvFileUrl,
-                cvUrl: form.cvUrl.trim() || undefined,
+                cvFile: cvFileUrl || undefined,
+                cvUrl: form.cvUrl?.trim() || undefined,
             });
             setSubmitted(true);
             setSnackbar({ open: true, severity: 'success', message: 'تم إرسال طلب التطوع بنجاح! سنتواصل معك قريبًا.' });

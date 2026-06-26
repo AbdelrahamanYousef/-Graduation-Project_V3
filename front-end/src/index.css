@@ -189,3 +189,12 @@ h1 { font-size: var(--text-2xl); } h2 { font-size: var(--text-xl); } h3 { font-s
 ::-webkit-scrollbar-track { background: var(--color-neutral-100); }
 ::-webkit-scrollbar-thumb { background: var(--color-neutral-300); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-400); }
+
+/* Hide scrollbar utility */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}

@@ -73,7 +73,10 @@ async function list(query = {}) {
     include: {
       reviewedBy: { select: { id: true, name: true } },
       user: { select: { id: true, name: true, email: true } },
-      processLogs: { orderBy: { createdAt: 'asc' } },
+      processLogs: {
+        include: { performedBy: { select: { id: true, name: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: { createdAt: 'desc' },
   });
