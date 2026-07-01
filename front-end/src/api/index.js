@@ -104,3 +104,9 @@ export {
     uploadProfilePhoto, uploadImage, uploadCv,
 } from './upload.api';
 
+// Transparency
+export {
+    getTransparencyStats, getAuditReports, createAuditReport, updateAuditReport, deleteAuditReport,
+} from './transparency.api';
+
+

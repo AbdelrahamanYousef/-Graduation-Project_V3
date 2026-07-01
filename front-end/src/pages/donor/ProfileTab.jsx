@@ -3,7 +3,7 @@ import { t } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateDonorProfile, changePassword, updateNotificationSettings } from '../../api';
 
-export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
+export default function ProfileTab({ donorInfo, updateDonorPhoto }) {
     const profilePhotoRef = useRef(null);
     const { updateDonorUser } = useAuth();
 
@@ -101,10 +101,11 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
 
 
     return (
-        <div className="flex flex-col gap-6 max-w-md">
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card border border-neutral-100 dark:border-neutral-700 overflow-hidden">
-                <div className="p-4 flex flex-col items-center py-8">
-                    <div className="relative mb-4">
+        <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
+            {/* Profile Avatar Card */}
+            <div className="bg-white dark:bg-neutral-100 rounded-2xl shadow-md border border-neutral-100 dark:border-neutral-100 overflow-hidden">
+                <div className="p-6 flex flex-col items-center py-8">
+                    <div className="relative mb-6">
                         <div
                             className="w-28 h-28 rounded-full bg-primary-500 text-white flex items-center justify-center overflow-hidden cursor-pointer"
                             onClick={() => profilePhotoRef.current?.click()}
@@ -116,18 +117,18 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                             )}
                         </div>
                         <button
-                            className="absolute bottom-0 right-0 p-2 rounded-md bg-white dark:bg-neutral-700 shadow-md hover:bg-neutral-50 dark:hover:bg-neutral-600 transition-colors"
+                            className="absolute bottom-0 right-0 p-2 rounded-full bg-white dark:bg-neutral-200 shadow-md hover:bg-neutral-50 dark:hover:bg-neutral-300 text-neutral-600 dark:text-neutral-900 transition-colors border border-neutral-100 dark:border-neutral-200"
                             onClick={() => profilePhotoRef.current?.click()}
                         >
-                            <i className="fa-solid fa-camera"></i>
+                            <i className="fa-solid fa-camera text-sm"></i>
                         </button>
                     </div>
                     <div className="flex gap-3">
-                        <button onClick={() => profilePhotoRef.current?.click()} className="border border-primary-500 text-primary-500 px-4 py-1.5 rounded-md font-semibold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors text-sm">
+                        <button onClick={() => profilePhotoRef.current?.click()} className="border border-primary-500 text-primary-500 px-5 py-2 rounded-xl font-bold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors text-xs text-center">
                             {t('account.changePhoto')}
                         </button>
                         {donorInfo?.photo && (
-                            <button onClick={() => updateDonorPhoto(null)} className="border border-error-500 text-error-500 px-4 py-1.5 rounded-md font-semibold hover:bg-error-50 dark:hover:bg-error-500/10 transition-colors text-sm">
+                            <button onClick={() => updateDonorPhoto(null)} className="border border-error-500 text-error-500 px-5 py-2 rounded-xl font-bold hover:bg-error-50 dark:hover:bg-error-500/10 transition-colors text-xs text-center">
                                 {t('account.removePhoto')}
                             </button>
                         )}
@@ -142,39 +143,46 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card border border-neutral-100 dark:border-neutral-700 overflow-hidden">
-                <div className="p-4">
-                    <h6 className="text-base font-bold mb-3 dark:text-white">{'معلومات الحساب'}</h6>
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-4">
-                        <input
-                            label={'الاسم الكامل'}
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none dark:text-white"
-                            placeholder="الاسم الكامل"
-                            required
-                            disabled={isSaving}
-                        />
-                        <input
-                            label={'البريد الإلكتروني'}
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none dark:text-white"
-                            placeholder="البريد الإلكتروني"
-                            required
-                            disabled={isSaving}
-                        />
-                        <input
-                            label={'رقم الهاتف'}
-                            type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none dark:text-white"
-                            placeholder="رقم الهاتف"
-                            required
-                            disabled={isSaving}
-                        />
+            {/* Account Info Form */}
+            <div className="bg-white dark:bg-neutral-100 rounded-2xl shadow-md border border-neutral-100 dark:border-neutral-100 overflow-hidden">
+                <div className="p-6 sm:p-8">
+                    <h6 className="text-base font-bold mb-4 dark:text-white">{'معلومات الحساب'}</h6>
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+                        <div>
+                            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">الاسم الكامل</label>
+                            <input
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-300 rounded-xl bg-neutral-50 dark:bg-neutral-200 text-neutral-900 dark:text-white focus:bg-white dark:focus:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
+                                placeholder="الاسم الكامل"
+                                required
+                                disabled={isSaving}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">البريد الإلكتروني</label>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-300 rounded-xl bg-neutral-50 dark:bg-neutral-200 text-neutral-900 dark:text-white focus:bg-white dark:focus:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
+                                placeholder="البريد الإلكتروني"
+                                required
+                                disabled={isSaving}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 block mb-1.5">رقم الهاتف</label>
+                            <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-300 rounded-xl bg-neutral-50 dark:bg-neutral-200 text-neutral-900 dark:text-white focus:bg-white dark:focus:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all text-sm"
+                                placeholder="رقم الهاتف"
+                                required
+                                disabled={isSaving}
+                            />
+                        </div>
                         {successMsg && (
                             <p className="text-sm text-green-600 dark:text-green-400 font-semibold">{successMsg}</p>
                         )}
@@ -184,7 +192,7 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                         <button 
                             type="submit" 
                             disabled={isSaving} 
-                            className="self-start bg-primary-500 text-white px-5 py-2 rounded-md font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50"
+                            className="self-start bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all disabled:opacity-50 text-sm shadow-sm hover:shadow-md"
                         >
                             {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
                         </button>
@@ -192,32 +200,34 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card border border-neutral-100 dark:border-neutral-700 overflow-hidden">
-                <div className="p-4">
-                    <h6 className="text-base font-bold mb-3 dark:text-white">{'إعدادات الحساب'}</h6>
-                    <div className="flex flex-col gap-4 mt-3">
+            {/* Account Settings Form */}
+            <div className="bg-white dark:bg-neutral-100 rounded-2xl shadow-md border border-neutral-100 dark:border-neutral-100 overflow-hidden">
+                <div className="p-6 sm:p-8">
+                    <h6 className="text-base font-bold mb-4 dark:text-white">{'إعدادات الحساب'}</h6>
+                    <div className="flex flex-col gap-5 mt-2">
+                        {/* Change Password Block */}
                         <div className="flex flex-col gap-3">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div>
-                                    <p className="font-medium dark:text-white">{'تغيير كلمة المرور'}</p>
-                                    <p className="text-sm text-neutral-500 dark:text-neutral-400">{'قم بتحديث كلمة المرور الخاصة بك'}</p>
+                                    <p className="font-semibold text-sm dark:text-white">{'تغيير كلمة المرور'}</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-600 mt-0.5">{'قم بتحديث كلمة المرور الخاصة بك'}</p>
                                 </div>
                                 <button 
                                     onClick={() => setShowPasswordForm(!showPasswordForm)} 
-                                    className="border border-primary-500 text-primary-500 px-4 py-1.5 rounded-md font-semibold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors text-sm"
+                                    className="border border-primary-500 text-primary-500 px-4 py-1.5 rounded-xl font-bold hover:bg-primary-50 dark:hover:bg-primary-500/10 transition-colors text-xs"
                                 >
                                     {showPasswordForm ? 'إلغاء' : 'تغيير'}
                                 </button>
                             </div>
                             
                             {showPasswordForm && (
-                                <form onSubmit={handlePasswordChange} className="flex flex-col gap-3 bg-neutral-50 dark:bg-neutral-900 p-4 rounded-lg mt-2 border border-neutral-100 dark:border-neutral-800">
+                                <form onSubmit={handlePasswordChange} className="flex flex-col gap-4 bg-neutral-50 dark:bg-neutral-50 p-5 rounded-xl mt-2 border border-neutral-100 dark:border-neutral-100 animate-slideDown">
                                     <input
                                         type="password"
                                         placeholder="كلمة المرور الحالية"
                                         value={oldPassword}
                                         onChange={(e) => setOldPassword(e.target.value)}
-                                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-transparent text-sm dark:text-white outline-none focus:ring-2 focus:ring-primary-500"
+                                        className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-200 rounded-xl bg-white dark:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dark:text-white text-sm"
                                         required
                                         disabled={pwSaving}
                                     />
@@ -226,7 +236,7 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                                         placeholder="كلمة المرور الجديدة"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-transparent text-sm dark:text-white outline-none focus:ring-2 focus:ring-primary-500"
+                                        className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-200 rounded-xl bg-white dark:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dark:text-white text-sm"
                                         required
                                         disabled={pwSaving}
                                     />
@@ -235,7 +245,7 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                                         placeholder="تأكيد كلمة المرور الجديدة"
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-700 rounded-lg bg-transparent text-sm dark:text-white outline-none focus:ring-2 focus:ring-primary-500"
+                                        className="w-full px-4 py-3 border border-neutral-200 dark:border-neutral-200 rounded-xl bg-white dark:bg-neutral-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all dark:text-white text-sm"
                                         required
                                         disabled={pwSaving}
                                     />
@@ -244,7 +254,7 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                                     <button 
                                         type="submit" 
                                         disabled={pwSaving}
-                                        className="bg-primary-500 hover:bg-primary-600 text-white py-2 px-5 rounded-md font-semibold text-sm self-start transition-colors disabled:opacity-50"
+                                        className="bg-primary-500 hover:bg-primary-600 text-white py-2 px-5 rounded-xl font-bold text-xs self-start transition-colors disabled:opacity-50"
                                     >
                                         {pwSaving ? 'جاري الحفظ...' : 'حفظ كلمة المرور'}
                                     </button>
@@ -254,13 +264,14 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                             {pwError && !showPasswordForm && <p className="text-xs text-error-500 font-semibold">{pwError}</p>}
                         </div>
 
-                        <hr className="border-t border-neutral-200 dark:border-neutral-700" />
+                        <hr className="border-t border-neutral-200 dark:border-neutral-200" />
                         
+                        {/* Email Notifications Block */}
                         <div className="flex flex-col gap-2">
-                            <div className="flex justify-between items-center">
+                            <div className="flex justify-between items-center flex-wrap gap-4">
                                 <div>
-                                    <p className="font-medium dark:text-white">{'إشعارات البريد'}</p>
-                                    <p className="text-sm text-neutral-500 dark:text-neutral-400">{'تلقي إشعارات التحديثات والتبرعات عبر البريد'}</p>
+                                    <p className="font-semibold text-sm dark:text-white">{'إشعارات البريد'}</p>
+                                    <p className="text-xs text-neutral-500 dark:text-neutral-600 mt-0.5">{'تلقي إشعارات التحديثات والتبرعات عبر البريد'}</p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input 
@@ -270,7 +281,7 @@ export default function ProfileTab({ isDark, donorInfo, updateDonorPhoto }) {
                                         disabled={notifSaving}
                                         className="sr-only peer" 
                                     />
-                                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-600 peer-checked:bg-primary-500"></div>
+                                    <div className="w-11 h-6 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-200 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-neutral-200 peer-checked:bg-primary-500"></div>
                                 </label>
                             </div>
                             {notifError && <p className="text-xs text-error-500 font-semibold">{notifError}</p>}

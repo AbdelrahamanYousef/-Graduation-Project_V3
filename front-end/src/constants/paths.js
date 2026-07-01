@@ -1,5 +1,6 @@
 export const paths = Object.freeze({
   home: '/',
+  programs: '/programs',
   auth: Object.freeze({
     login: '/login',
     adminLogin: '/admin/login',

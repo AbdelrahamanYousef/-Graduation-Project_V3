@@ -507,3 +507,15 @@ enum AidType {
   EDUCATIONAL
   OTHER
 }
+
+model AuditReport {
+  id        String   @id @default(cuid())
+  year      String
+  firm      String
+  status    String
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("audit_reports")
+}

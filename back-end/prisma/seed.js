@@ -8,6 +8,7 @@ async function main() {
 
     // Clean existing data in correct constraint order
     await prisma.auditLog.deleteMany();
+    await prisma.auditReport.deleteMany();
     await prisma.reconciliation.deleteMany();
     await prisma.disbursement.deleteMany();
     await prisma.donation.deleteMany();
@@ -200,6 +201,18 @@ async function main() {
             console.log(`    Created project: ${projData.title}`);
         }
     }
+
+    // ── Audit Reports ──
+    const auditReportsData = [
+        { year: '2024', firm: 'شركة الحسابات المصرية', status: 'قيد المراجعة', fileUrl: null },
+        { year: '2023', firm: 'شركة الحسابات المصرية', status: 'معتمد', fileUrl: '#' },
+        { year: '2022', firm: 'PWC مصر', status: 'معتمد', fileUrl: '#' },
+        { year: '2021', firm: 'PWC مصر', status: 'معتمد', fileUrl: '#' },
+    ];
+    for (const report of auditReportsData) {
+        await prisma.auditReport.create({ data: report });
+    }
+    console.log('  Created 4 audit reports');
 
     console.log('Seed complete!');
 }
