@@ -216,39 +216,46 @@ function DonorLayout({ children }) {
                                     </div>
 
                                     {/* User Menu */}
-                                    <button onClick={handleOpenUserMenu} className="p-0.5 rounded-full border-2 border-primary-500 ml-1">
-                                        {donorUser?.photo ? (
-                                            <img src={donorUser.photo} alt={getUserName()} className="w-8 h-8 rounded-full object-cover" />
-                                        ) : (
-                                            <div className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold">{getInitials()}</div>
-                                        )}
-                                    </button>
-                                    {anchorElUser && (
-                                        <div className="fixed inset-0 z-[1200]" onClick={handleCloseUserMenu}></div>
-                                    )}
-                                    <div className={`absolute top-full left-0 w-[240px] bg-white dark:bg-neutral-800 rounded-xl shadow-modal border border-neutral-200 dark:border-neutral-700 z-[1201] ${anchorElUser ? 'block' : 'hidden'}`}
-                                        style={{ position: 'fixed', top: showAnnouncement ? 108 : 72, left: 'auto', right: 16 }}>
-                                        <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
-                                            <p className="font-bold text-sm truncate">{getUserName()}</p>
-                                            <p className="text-xs text-neutral-500 truncate">{donorUser?.email || donorUser?.phone}</p>
-                                        </div>
-                                        <Link to="/account?tab=overview" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm">
-                                            <i className="fa-solid fa-user w-5 text-neutral-500"></i>
-                                            <span>{t('nav.myProfile')}</span>
-                                        </Link>
-                                        <Link to="/account?tab=donations" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm">
-                                            <i className="fa-solid fa-heart w-5 text-neutral-500"></i>
-                                            <span>{t('nav.myDonations')}</span>
-                                        </Link>
-                                        <Link to="/account?tab=profile" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm">
-                                            <i className="fa-solid fa-gear w-5 text-neutral-500"></i>
-                                            <span>{t('nav.settings')}</span>
-                                        </Link>
-                                        <div className="border-t border-neutral-200 dark:border-neutral-700 my-1"></div>
-                                        <button onClick={handleLogout} className="w-full text-right flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-error-500 text-sm">
-                                            <i className="fa-solid fa-right-from-bracket w-5"></i>
-                                            <span>{t('nav.logout')}</span>
+                                    <div className="relative">
+                                        <button onClick={handleOpenUserMenu} className="p-0.5 rounded-full border-2 border-primary-500 ml-1 flex items-center">
+                                            {donorUser?.photo ? (
+                                                <img src={donorUser.photo} alt={getUserName()} className="w-8 h-8 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold">{getInitials()}</div>
+                                            )}
                                         </button>
+                                        {anchorElUser && (
+                                            <div className="fixed inset-0 z-[1200]" onClick={handleCloseUserMenu}></div>
+                                        )}
+                                        <div 
+                                            className={`absolute top-full left-0 mt-2 w-[240px] bg-white dark:bg-neutral-800 rounded-xl shadow-lg border border-neutral-200 dark:border-neutral-700 z-[1201] transition-all duration-200 ease-out origin-top-left ${
+                                                anchorElUser 
+                                                    ? 'opacity-100 scale-100 pointer-events-auto' 
+                                                    : 'opacity-0 scale-95 pointer-events-none'
+                                            }`}
+                                        >
+                                            <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-700">
+                                                <p className="font-bold text-sm truncate dark:text-neutral-200">{getUserName()}</p>
+                                                <p className="text-xs text-neutral-500 dark:text-neutral-450 truncate">{donorUser?.email || donorUser?.phone}</p>
+                                            </div>
+                                            <Link to="/account?tab=overview" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm dark:text-neutral-200 transition-colors duration-200">
+                                                <i className="fa-solid fa-user w-5 text-neutral-500 dark:text-neutral-400"></i>
+                                                <span>{t('nav.myProfile')}</span>
+                                            </Link>
+                                            <Link to="/account?tab=donations" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm dark:text-neutral-200 transition-colors duration-200">
+                                                <i className="fa-solid fa-hand-holding-heart w-5 text-neutral-500 dark:text-neutral-400"></i>
+                                                <span>{t('nav.myDonations')}</span>
+                                            </Link>
+                                            <Link to="/account?tab=profile" onClick={handleCloseUserMenu} className="flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 no-underline text-inherit text-sm dark:text-neutral-200 transition-colors duration-200">
+                                                <i className="fa-solid fa-gear w-5 text-neutral-500 dark:text-neutral-400"></i>
+                                                <span>{t('nav.settings')}</span>
+                                            </Link>
+                                            <div className="border-t border-neutral-200 dark:border-neutral-700 my-1"></div>
+                                            <button onClick={handleLogout} className="w-full text-right flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-error-500 text-sm">
+                                                <i className="fa-solid fa-right-from-bracket w-5"></i>
+                                                <span>{t('nav.logout')}</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </>
                             ) : (
