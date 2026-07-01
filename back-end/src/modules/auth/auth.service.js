@@ -356,6 +356,8 @@ function buildUserResponse(user) {
             role: user.role,
             roleEn: 'Admin',
             emailVerified: user.emailVerified,
+            photo: user.avatarUrl,
+            emailNotifications: user.emailNotifications,
             loggedInAt: new Date().toISOString(),
         };
     }
@@ -367,6 +369,8 @@ function buildUserResponse(user) {
         nameEn: '',
         email: isPlaceholder ? null : user.email,
         emailVerified: user.emailVerified,
+        photo: user.avatarUrl,
+        emailNotifications: user.emailNotifications,
         joinDate: user.createdAt.toISOString().split('T')[0],
         totalDonations: 0,
         donationCount: 0,

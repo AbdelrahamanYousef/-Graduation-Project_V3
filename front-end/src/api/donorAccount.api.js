@@ -31,3 +31,19 @@ export async function getDonorStats() {
     const { data } = await apiClient.get('/donor/stats');
     return data;
 }
+
+/**
+ * Change user password
+ */
+export async function changePassword(passwordData) {
+    const { data } = await apiClient.put('/donor/profile/change-password', passwordData);
+    return data;
+}
+
+/**
+ * Update user email notification preferences
+ */
+export async function updateNotificationSettings(notificationData) {
+    const { data } = await apiClient.put('/donor/profile/notifications', notificationData);
+    return data;
+}

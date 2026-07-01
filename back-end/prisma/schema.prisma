@@ -16,6 +16,7 @@ model User {
   role                     UserRole               @default(USER)
   status                   EntityStatus           @default(ACTIVE)
   avatarUrl                String?
+  emailNotifications       Boolean                @default(true)
   emailVerified            Boolean                @default(false)
   verificationOtp          String?
   verificationOtpExpiry    DateTime?

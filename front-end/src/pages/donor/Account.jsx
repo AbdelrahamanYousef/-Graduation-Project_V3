@@ -91,6 +91,7 @@ function Account() {
         name: donorUser.name,
         email: donorUser.email,
         phone: donorUser.phone,
+        emailNotifications: donorUser.emailNotifications,
         joinDate: donorUser.joinDate || donorUser.loggedInAt,
         totalDonations: stats.totalDonated || 0,
         donationCount: stats.donationsCount || 0,

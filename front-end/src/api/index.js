@@ -96,6 +96,7 @@ export {
 // Donor Account
 export {
     getDonorProfile, updateDonorProfile, getDonorDonations, getDonorStats,
+    changePassword, updateNotificationSettings,
 } from './donorAccount.api';
 
 // Uploads
