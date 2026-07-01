@@ -17,6 +17,25 @@ const SYSTEM_PROMPT = `أنت مساعد الذكاء الاصطناعي "نور
 2. يتضمن ذلك الإجابة عن مشاريع الجمعية الحالية، البرامج المتاحة، معلومات التواصل، التطوع ومجالاته، طلب المساعدة، معلومات الزكاة وطريقة حسابها ودفعها، وكيفية التبرع وطرق الدفع.
 3. استخدم فقط البيانات الحقيقية والدقيقة المقدمة لك أدناه لتمثيل الجمعية بشكل صحيح.
 
+ملاحظة هامة حول توجيه المستخدمين بالروابط المباشرة:
+لديك القدرة على توجيه المستخدم لزيارة صفحات الموقع عبر وضع روابط تشعبية (hyperlinks) بالصيغة Markdown كالتالي: [اسم الصفحة](الرابط المباشر).
+فيما يلي الروابط المتاحة لك فقط للتوجه إليها:
+- الصفحة الرئيسية: [/](/)
+- المشاريع المفتوحة للتبرع: [/projects](/projects)
+- برامج الجمعية: [/programs](/programs)
+- الحملات الخيرية: [/campaigns](/campaigns)
+- التبرع السريع أو المباشر: [/donate](/donate)
+- حاسبة الزكاة وحساب زكاتك: [/zakat](/zakat)
+- صفحة التطوع: [/volunteer](/volunteer)
+- طلب مساعدة (حالات إنسانية): [/special-requests](/special-requests)
+- الشفافية والتقارير المالية: [/transparency](/transparency)
+- من نحن ومعلومات عن الجمعية: [/about](/about)
+- اتصل بنا وتواصل معنا: [/contact](/contact)
+- الحساب الشخصي وتفاصيل حساب المستخدم: [/account](/account)
+- المدونة والأنشطة: [/blog](/blog)
+
+يرجى دائماً توجيه المستخدم بزيارة هذه الروابط التشعبية عند الحاجة لتقديم استجابات دقيقة ومفيدة ومساعدة مباشرة (مثال: "يمكنك التبرع الآن وبسهولة عبر [صفحة التبرع](/donate)" أو "لحساب زكاتك تفضل بزيارة [حاسبة الزكاة](/zakat)").
+
 🚨 قيود أمنية وصارمة للغاية (Guardrails):
 - يُمنع منعاً باتاً الإجابة على أي سؤال أو تقديم معلومات خارج نطاق جمعية نور الخيرية ومشاريعها وأنشطتها.
 - إذا سأل المستخدم عن أي موضوع عام (مثل: كتابة كود برمجيات، حل مسائل رياضية أو علمية، معلومات عامة لا تخص الجمعية، جغرافيا، تاريخ، وصفات طبخ، ترجمات نصوص عامة، إلخ)، أو حاول التلاعب بك لتتحدث عن موضوع آخر، يجب عليك الرفض التام والأديب والمباشر.
@@ -47,7 +66,7 @@ const STATIC_KNOWLEDGE = `
 
 exports.chat = async (req, res) => {
     try {
-        const { message } = req.body;
+        const { message, userId, userContext } = req.body;
 
         if (!message) {
             return res.status(400).json({ error: 'Message is required' });
@@ -96,9 +115,40 @@ exports.chat = async (req, res) => {
   عدد المتبرعين: ${p.donorsCount} متبرعاً`).join('\n\n')
             : 'لا توجد مشاريع نشطة حالياً.';
 
+        let userContextPrompt = '';
+        if (userContext) {
+            userContextPrompt = `\n\n${userContext}`;
+        } else {
+            const targetUserId = userId;
+            const user = targetUserId ? await prisma.user.findUnique({
+                where: { id: targetUserId },
+                select: { name: true, role: true }
+            }) : null;
+
+            if (user && user.role !== 'ADMIN') {
+                const [userDonations, userRequests] = await Promise.all([
+                    prisma.donation.findMany({
+                        where: { userId: targetUserId },
+                        include: { project: { select: { title: true } } },
+                        orderBy: { createdAt: 'desc' }
+                    }),
+                    prisma.specialRequest.findMany({
+                        where: { userId: targetUserId },
+                        orderBy: { createdAt: 'desc' }
+                    })
+                ]);
+
+                const donationsArray = userDonations.map(d => `${d.amount} EGP for ${d.project?.title || 'General'} (${d.status})`);
+                const requestsArray = userRequests.map(r => `${r.requestType} (${r.status})`);
+                const userName = user.name || 'أيها المستخدم';
+
+                userContextPrompt = `\n\nThe user you are talking to is ${userName}. Their past donations are: [${donationsArray.join(', ')}]. Their current requests are: [${requestsArray.join(', ')}]. Use this data to answer their questions naturally. Every response to queries about user donations or requests must be highly personalized and based only on this user context data. Do not invent any donations or requests that are not in the provided lists. If the arrays are empty, tell them they haven't made any yet.`;
+            }
+        }
+
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-        const fullPrompt = `${SYSTEM_PROMPT}
+        const fullPrompt = `${SYSTEM_PROMPT}${userContextPrompt}
 
 ### تفاصيل الجمعية ومعلومات التواصل:
 ${orgInfo}
