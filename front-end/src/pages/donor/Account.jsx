@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import { t, getLanguage, formatCurrency, formatDate } from '../../i18n';
+import { t, formatDate } from '../../i18n';
 import { useAuth } from '../../contexts/AuthContext';
+import { getDonorDonations, getDonorStats } from '../../api';
 import OverviewTab from './OverviewTab';
 import DonationsTab from './DonationsTab';
 import ProfileTab from './ProfileTab';
@@ -26,16 +27,44 @@ function Account() {
         return ['overview', 'donations', 'profile', 'submissions'].includes(tab) ? tab : 'overview';
     });
 
-    const handleTabChange = (newValue) => {
-        setActiveTab(newValue);
-    };
-
     useEffect(() => {
         const tab = searchParams.get('tab');
         if (tab && ['overview', 'donations', 'profile', 'submissions'].includes(tab)) {
             setActiveTab(tab);
         }
     }, [searchParams]);
+
+    const [donations, setDonations] = useState([]);
+    const [stats, setStats] = useState({ totalDonated: 0, donationsCount: 0 });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!isDonorLoggedIn) return;
+
+        let isMounted = true;
+        async function fetchData() {
+            try {
+                const [donationsData, statsData] = await Promise.all([
+                    getDonorDonations(),
+                    getDonorStats()
+                ]);
+                if (isMounted) {
+                    setDonations(donationsData || []);
+                    setStats(statsData || { totalDonated: 0, donationsCount: 0 });
+                }
+            } catch (error) {
+                console.error('Error fetching donor data:', error);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+        fetchData();
+        return () => {
+            isMounted = false;
+        };
+    }, [isDonorLoggedIn]);
 
     if (!isDonorLoggedIn) {
         return (
@@ -56,22 +85,16 @@ function Account() {
         );
     }
 
+
+
     const user = {
         name: donorUser.name,
         email: donorUser.email,
         phone: donorUser.phone,
         joinDate: donorUser.joinDate || donorUser.loggedInAt,
-        totalDonations: donorUser.totalDonations || 0,
-        donationCount: donorUser.donationCount || 0,
+        totalDonations: stats.totalDonated || 0,
+        donationCount: stats.donationsCount || 0,
     };
-
-    const donations = [
-        { id: 1, date: '2024-01-15', project: 'مشروع المياه النظيفة', amount: 5000, status: 'completed' },
-        { id: 2, date: '2024-01-10', project: 'كفالة يتيم', amount: 1500, status: 'completed' },
-        { id: 3, date: '2023-12-25', project: 'القافلة الطبية', amount: 3000, status: 'completed' },
-        { id: 4, date: '2023-12-15', project: 'تجهيز فصول دراسية', amount: 2500, status: 'completed' },
-        { id: 5, date: '2023-11-20', project: 'إفطار صائم', amount: 1000, status: 'completed' },
-    ];
 
     const handleLogout = () => {
         donorLogout();
@@ -151,10 +174,19 @@ function Account() {
 
                 {/* Content */}
                 <div>
-                    {activeTab === 'overview' && <OverviewTab user={user} donations={donations} isDark={isDark} />}
-                    {activeTab === 'donations' && <DonationsTab donations={donations} isDark={isDark} />}
-                    {activeTab === 'submissions' && <SubmissionsTab isDark={isDark} />}
-                    {activeTab === 'profile' && <ProfileTab isDark={isDark} donorInfo={donorInfo} updateDonorPhoto={updateDonorPhoto} />}
+                    {loading ? (
+                        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card p-12 text-center text-neutral-500 dark:text-neutral-400 flex flex-col items-center justify-center gap-2">
+                            <i className="fa-solid fa-circle-notch fa-spin text-3xl text-primary-500"></i>
+                            <p className="text-sm">{'جاري تحميل البيانات...'}</p>
+                        </div>
+                    ) : (
+                        <>
+                            {activeTab === 'overview' && <OverviewTab user={user} donations={donations} />}
+                            {activeTab === 'donations' && <DonationsTab donations={donations} />}
+                            {activeTab === 'submissions' && <SubmissionsTab isDark={isDark} />}
+                            {activeTab === 'profile' && <ProfileTab isDark={isDark} donorInfo={donorInfo} updateDonorPhoto={updateDonorPhoto} />}
+                        </>
+                    )}
                 </div>
             </div>
         </div>

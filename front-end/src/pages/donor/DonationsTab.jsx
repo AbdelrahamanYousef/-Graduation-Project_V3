@@ -1,6 +1,17 @@
 import { formatCurrency, formatDate } from '../../i18n';
 
-export default function DonationsTab({ donations, isDark }) {
+export default function DonationsTab({ donations }) {
+    if (donations.length === 0) {
+        return (
+            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card p-12 text-center text-neutral-500 dark:text-neutral-400 flex flex-col items-center justify-center gap-2">
+                <div className="text-4xl text-neutral-300 dark:text-neutral-600 mb-2">
+                    <i className="fa-solid fa-hand-holding-heart"></i>
+                </div>
+                <p className="text-base font-medium">{'لا توجد تبرعات حتى الآن'}</p>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card overflow-hidden">
             <table className="w-full border-collapse">

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { formatCurrency, formatDate } from '../../i18n';
 
-export default function OverviewTab({ user, donations, isDark }) {
+export default function OverviewTab({ user, donations }) {
     return (
         <div className="flex flex-col gap-6">
             <div className="grid grid-cols-12 gap-4">
@@ -38,20 +38,26 @@ export default function OverviewTab({ user, donations, isDark }) {
                     <h6 className="text-base font-bold mb-3 dark:text-white">{'آخر التبرعات'}</h6>
                     <hr className="border-t border-neutral-200 dark:border-neutral-700 mb-3" />
                     <div className="flex flex-col gap-3">
-                        {donations.slice(0, 3).map(donation => (
-                            <div key={donation.id} className="flex justify-between items-center py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-primary-500/10 text-primary-500 flex items-center justify-center text-sm font-bold overflow-hidden">
-                                        <i className="fa-solid fa-hand-holding-heart"></i>
-                                    </div>
-                                    <span className="font-medium dark:text-white">{donation.project}</span>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-primary-500">{formatCurrency(donation.amount)}</p>
-                                    <span className="text-xs text-neutral-500 dark:text-neutral-400">{formatDate(donation.date)}</span>
-                                </div>
+                        {donations.length === 0 ? (
+                            <div className="text-center py-6 text-neutral-500 dark:text-neutral-400">
+                                <p className="text-sm">{'لا توجد تبرعات حتى الآن'}</p>
                             </div>
-                        ))}
+                        ) : (
+                            donations.slice(0, 3).map(donation => (
+                                <div key={donation.id} className="flex justify-between items-center py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-primary-500/10 text-primary-500 flex items-center justify-center text-sm font-bold overflow-hidden">
+                                            <i className="fa-solid fa-hand-holding-heart"></i>
+                                        </div>
+                                        <span className="font-medium dark:text-white">{donation.project}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-primary-500">{formatCurrency(donation.amount)}</p>
+                                        <span className="text-xs text-neutral-500 dark:text-neutral-400">{formatDate(donation.date)}</span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
             </div>
