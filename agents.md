@@ -25,6 +25,12 @@
 - **Visual Contrast:** NEVER place white cards on a pure white background. Use subtle off-white backgrounds (e.g., `bg-gray-50`) for the page body to ensure white components (`bg-white`) stand out. Apply subtle borders (`border-gray-100`) and soft shadows (`shadow-sm`) to delineate sections.
 - **Color Pop:** Ensure buttons, badges, and status indicators have distinct, accessible colors that guide the user's eye naturally without causing visual fatigue.
 
+## 🎨 Banner Color Themes
+To maintain 100% UI consistency across the platform, banners must strictly follow one of the 3 semantic color themes via the `<HeroBanner themeVariant="..." />` component:
+- `programs` (Default): Emerald/Forest Green (representing Growth and core charity). Used for Programs, Home, and About pages.
+- `campaigns`: Blue/Teal (representing Trust, relief, and seasonal support). Used for Campaigns and Volunteer pages.
+- `zakat`: Amber/Warm Orange (representing Urgency, warmth, and wealth). Used for Zakat Calculator and Urgent Cases sections.
+
 ## 🔄 Data, Database & State Management
 - **Database Consistency:** Any modification, addition, or deletion on the frontend MUST correctly communicate with the backend and successfully reflect in the Database.
 - **Cache Awareness:** Be mindful of cached data. If updates are not appearing, ensure the cache is cleared or invalidated after mutations so the user sees the latest updates immediately.

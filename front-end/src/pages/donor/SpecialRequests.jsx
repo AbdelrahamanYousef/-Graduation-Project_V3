@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useInjectStyles } from '../../utils/injectStyles';
 import { submitSpecialRequest } from '../../api';
 import { t } from '../../i18n';
+import { HeroBanner } from '../../components/common';
+import { HeartHandshake, FileText, ShieldCheck, PhoneCall } from 'lucide-react';
 
 const TEAL = '#1a4a44';
 const TEAL_DARK = '#0a1f1c';
@@ -144,24 +146,28 @@ function SpecialRequests() {
     return (
         <div ref={containerRef} className="min-h-screen pb-12" style={{ backgroundColor: contentBg }}>
             {/* Hero Section */}
-            <div className="relative text-white py-12 md:py-20 overflow-hidden" style={{
-                background: isDark
-                    ? `linear-gradient(135deg, ${TEAL_DARK} 0%, #0f172a 100%)`
-                    : `linear-gradient(135deg, ${TEAL} 0%, #082f27 100%)`,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
-            }}>
-                <div className="max-w-[1200px] mx-auto px-4 md:px-6 relative z-10 text-center">
-                    <h1 className="font-extrabold text-[2.2rem] md:text-[3rem] mb-4 tracking-tight animate-fadeInUp">
-                        الطلبات الخاصة ومساعدات الحالات
-                    </h1>
-                    <p className="max-w-[640px] mx-auto text-white/80 text-[1.05rem] md:text-[1.15rem] leading-relaxed animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
-                        نحن هنا لنقف بجانبكم. في حال كنتم بحاجة إلى مساعدة خاصة أو عينية، يرجى ملء هذا النموذج بدقة وسيقوم فريقنا المختص ببحث الحالة والتواصل معكم.
-                    </p>
-                </div>
-            </div>
+            <HeroBanner 
+                themeVariant="programs"
+                badgeText="نحن هنا لدعمك"
+                headline="الطلبات الخاصة ومساعدات الحالات"
+                highlightedWord="مساعدات"
+                subtext="نحن هنا لنقف بجانبكم. في حال كنتم بحاجة إلى مساعدة خاصة أو عينية، يرجى ملء هذا النموذج بدقة وسيقوم فريقنا المختص ببحث الحالة والتواصل معكم."
+                primaryCtaText="تعبئة النموذج"
+                primaryCtaLink="#help-form"
+                stats={[
+                    { number: "24/7", label: "استقبال الطلبات" },
+                    { number: "سرية", label: "تامة للمعلومات" }
+                ]}
+                floatingIcons={[
+                    <HeartHandshake key="heart" size={24} />,
+                    <FileText key="file" size={24} />,
+                    <ShieldCheck key="shield" size={24} />,
+                    <PhoneCall key="phone" size={24} />
+                ]}
+            />
 
             {/* Form Section */}
-            <div className="relative overflow-hidden py-10 md:py-16">
+            <div id="help-form" className="relative overflow-hidden py-10 md:py-16">
                 <div className="max-w-[800px] mx-auto px-4 relative z-10">
                     <div className="p-4 sm:p-6 md:p-8" style={{
                         borderRadius: `${CARD_RADIUS}px`,

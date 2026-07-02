@@ -59,6 +59,7 @@ function Programs() {
     return (
         <div className="pb-16 bg-gray-200 dark:bg-[#060d18] min-h-screen">
             <HeroBanner 
+                themeVariant="programs"
                 badgeText="برامجنا التنموية"
                 headline="اكتشف برامجنا المتنوعة التي تستهدف فئات المحتاجين في المجتمع المصري"
                 highlightedWord="المتنوعة"

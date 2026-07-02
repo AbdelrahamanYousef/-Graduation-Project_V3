@@ -16,6 +16,33 @@ const heroBannerKeyframes = `
     }
 `;
 
+const THEME_CONFIG = {
+    programs: {
+        bg: 'border-emerald-950/20 bg-gradient-to-r from-emerald-800 to-teal-900 dark:from-gray-950 dark:to-emerald-950',
+        btn: 'bg-emerald-600 hover:bg-emerald-700 text-white hover:!text-white',
+        badge: 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300',
+        badgeDot: 'bg-emerald-400',
+        highlight: 'text-emerald-400 dark:text-emerald-300',
+        highlightLine: 'bg-emerald-500/30'
+    },
+    campaigns: {
+        bg: 'border-teal-950/20 bg-gradient-to-r from-blue-900 to-teal-800 dark:from-gray-950 dark:to-teal-950',
+        btn: 'bg-teal-500 hover:bg-teal-600 text-white hover:!text-white',
+        badge: 'bg-teal-500/10 border border-teal-500/20 text-teal-300',
+        badgeDot: 'bg-teal-400',
+        highlight: 'text-teal-400 dark:text-teal-300',
+        highlightLine: 'bg-teal-500/30'
+    },
+    zakat: {
+        bg: 'border-amber-950/20 bg-gradient-to-r from-orange-800 to-amber-700 dark:from-gray-950 dark:to-amber-950',
+        btn: 'bg-orange-500 hover:bg-orange-600 text-white hover:!text-white',
+        badge: 'bg-amber-500/10 border border-amber-500/20 text-amber-300',
+        badgeDot: 'bg-amber-400',
+        highlight: 'text-amber-400 dark:text-amber-300',
+        highlightLine: 'bg-amber-500/30'
+    }
+};
+
 export default function HeroBanner({
     badgeText,
     headline,
@@ -26,9 +53,12 @@ export default function HeroBanner({
     secondaryCtaText,
     secondaryCtaLink,
     stats = [],
-    floatingIcons = []
+    floatingIcons = [],
+    themeVariant = 'programs'
 }) {
     useInjectStyles(heroBannerKeyframes, 'hero-banner-keyframes');
+
+    const theme = THEME_CONFIG[themeVariant] || THEME_CONFIG.programs;
 
     // Helper to highlight a word in the headline
     const renderHeadline = () => {
@@ -39,9 +69,9 @@ export default function HeroBanner({
         return (
             <>
                 {parts[0]}
-                <span className="text-primary-400 dark:text-primary-300 relative inline-block">
+                <span className={`${theme.highlight} relative inline-block`}>
                     {highlightedWord}
-                    <span className="absolute bottom-0 right-0 w-full h-1 bg-primary-500/30 rounded-full"></span>
+                    <span className={`absolute bottom-0 right-0 w-full h-1 ${theme.highlightLine} rounded-full`}></span>
                 </span>
                 {parts[1]}
             </>
@@ -50,7 +80,7 @@ export default function HeroBanner({
 
     return (
         <section 
-            className="relative overflow-hidden text-white py-12 md:py-16 px-4 md:px-6 border-b border-emerald-950/20 bg-gradient-to-r from-emerald-800 to-teal-900 dark:from-gray-950 dark:to-emerald-950"
+            className={`relative overflow-hidden text-white py-12 md:py-16 px-4 md:px-6 border-b ${theme.bg}`}
         >
             {/* Soft background glows */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden dark:opacity-40">
@@ -62,8 +92,8 @@ export default function HeroBanner({
                 {/* Content side */}
                 <div className="lg:col-span-7 flex flex-col text-center lg:text-right">
                     {badgeText && (
-                        <div className="inline-flex self-center lg:self-start items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-semibold mb-4 tracking-wide">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                        <div className={`inline-flex self-center lg:self-start items-center gap-1.5 px-3 py-1.5 rounded-full ${theme.badge} text-xs font-semibold mb-4 tracking-wide`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${theme.badgeDot} animate-ping`}></span>
                             {badgeText}
                         </div>
                     )}
@@ -83,7 +113,7 @@ export default function HeroBanner({
                         {primaryCtaText && primaryCtaLink && (
                             <Link 
                                 to={primaryCtaLink} 
-                                className="bg-white hover:bg-emerald-50 text-emerald-950 hover:!text-emerald-950 font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 text-sm"
+                                className={`${theme.btn} font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 text-sm`}
                             >
                                 {primaryCtaText}
                             </Link>
@@ -114,7 +144,7 @@ export default function HeroBanner({
                             return (
                                 <div 
                                     key={idx} 
-                                    className="absolute p-3 rounded-2xl bg-white/5 border border-white/10 text-emerald-300 text-xl shadow-lg backdrop-blur-sm"
+                                    className={`absolute p-3 rounded-2xl bg-white/5 border border-white/10 ${theme.highlight} text-xl shadow-lg backdrop-blur-sm`}
                                     style={style}
                                 >
                                     {item}
@@ -131,7 +161,7 @@ export default function HeroBanner({
                                     key={idx} 
                                     className="p-4 rounded-2xl bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-gray-700 hover:bg-white/15 dark:hover:bg-black/30 transition-all text-center shadow-md flex flex-col justify-center text-white"
                                 >
-                                    <span className="text-xl md:text-2xl font-extrabold text-primary-400 dark:text-primary-300 mb-1">
+                                    <span className={`text-xl md:text-2xl font-extrabold ${theme.highlight} mb-1`}>
                                         {stat.number}
                                     </span>
                                     <span className="text-xs text-emerald-100 font-medium">

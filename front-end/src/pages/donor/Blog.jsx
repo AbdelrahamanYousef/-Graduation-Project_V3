@@ -2,6 +2,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { t, formatDate } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { useState, useMemo } from 'react';
+import { HeroBanner } from '../../components/common';
+import { Newspaper, Camera, Users, BookOpen } from 'lucide-react';
 
 const CATEGORIES = ['الكل', 'أخبار', 'تقارير', 'قصص نجاح', 'فعاليات', 'مقالات'];
 
@@ -97,13 +99,27 @@ function Blog() {
     return (
         <div className="pb-16 min-h-[70vh]">
             {/* Page Header */}
-            <div className="bg-gradient-to-br from-[#0d6b4b] to-[#094a33] text-white py-16 px-0 text-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.08),transparent)]"></div>
-                <div className="max-w-[1200px] mx-auto px-4 md:px-6 relative z-10">
-                    <h3 className="text-3xl md:text-4xl font-extrabold mb-3">المدونة ومعرض الفعاليات</h3>
-                    <p className="text-base md:text-lg opacity-90 max-w-[600px] mx-auto">تابع آخر أخبارنا وتقاريرنا، وشاهد ثمار عطائكم من أرض الواقع</p>
-                </div>
-            </div>
+            <HeroBanner 
+                themeVariant="programs"
+                badgeText="أخبارنا وفعالياتنا"
+                headline="المدونة ومعرض الفعاليات"
+                highlightedWord="الفعاليات"
+                subtext="تابع آخر أخبارنا وتقاريرنا، وشاهد ثمار عطائكم من أرض الواقع."
+                primaryCtaText="تصفح الأخبار"
+                primaryCtaLink="#news"
+                secondaryCtaText="معرض الصور"
+                secondaryCtaLink="#gallery"
+                stats={[
+                    { number: posts.length > 0 ? `${posts.length}+` : "150+", label: "مقال وخبر" },
+                    { number: galleryItems.length > 0 ? `${galleryItems.length}+` : "80+", label: "تغطية مصورة" }
+                ]}
+                floatingIcons={[
+                    <Newspaper key="news" size={24} />,
+                    <Camera key="camera" size={24} />,
+                    <Users key="users" size={24} />,
+                    <BookOpen key="book" size={24} />
+                ]}
+            />
 
             <div className="max-w-[1200px] mx-auto px-4 md:px-6 mt-8">
                 {/* Modern Navigation Tabs */}
@@ -136,7 +152,7 @@ function Blog() {
 
                 {/* TAB 1: NEWS AND ARTICLES */}
                 {activeTab === 'blog' && (
-                    <div>
+                    <div id="news">
                         {/* Search & Filter */}
                         <div className="flex gap-3 mb-6 flex-wrap">
                             <div className="relative min-w-[280px]">
@@ -218,7 +234,7 @@ function Blog() {
 
                 {/* TAB 2: GALLERY AND EVENTS */}
                 {activeTab === 'gallery' && (
-                    <div className="flex flex-col gap-8">
+                    <div id="gallery" className="flex flex-col gap-8">
                         {/* 1. Grouped Photos by Event */}
                         {groupedGallery.groups.map((group) => (
                             <div key={group.post.id} className="bg-neutral-50/50 dark:bg-neutral-800/25 p-5 rounded-2xl border border-neutral-100 dark:border-neutral-800/80">

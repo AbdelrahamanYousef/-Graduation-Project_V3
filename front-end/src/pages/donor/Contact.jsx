@@ -4,7 +4,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { useInjectStyles } from '../../utils/injectStyles';
 import { submitContactMessage } from '../../api/contact.api';
-import ContactHero from './ContactHero';
+import { HeroBanner } from '../../components/common';
+import { Phone, Mail, MapPin, MessageSquare } from 'lucide-react';
 import ContactInfoCard from './ContactInfoCard';
 import ContactSocialCard from './ContactSocialCard';
 import ContactForm from './ContactForm';
@@ -102,9 +103,27 @@ function Contact() {
     return (
         <>
             <div ref={containerRef} className="min-h-screen" style={{ backgroundColor: contentBg }}>
-                <ContactHero isDark={isDark} />
+                <HeroBanner 
+                    themeVariant="programs"
+                    badgeText="تواصل معنا"
+                    headline="نسعد بتواصلكم معنا لأي استفسار أو اقتراح"
+                    highlightedWord="بتواصلكم"
+                    subtext="فريقنا متواجد دائماً للرد على أسئلتكم، استقبال مقترحاتكم، وتقديم الدعم اللازم لتسهيل رحلة عطائكم."
+                    primaryCtaText="أرسل رسالة"
+                    primaryCtaLink="#contact-form"
+                    stats={[
+                        { number: "24/7", label: "استقبل الرسائل" },
+                        { number: "سريع", label: "معدل الاستجابة" }
+                    ]}
+                    floatingIcons={[
+                        <Phone key="phone" size={24} />,
+                        <Mail key="mail" size={24} />,
+                        <MapPin key="map" size={24} />,
+                        <MessageSquare key="msg" size={24} />
+                    ]}
+                />
 
-                <div className="relative overflow-hidden py-10 md:py-20">
+                <div className="relative overflow-hidden pt-16 pb-20 md:pt-24 md:pb-28">
                     <div className="absolute top-[60px] left-[3%] w-[300px] h-[300px] rounded-full pointer-events-none z-0" style={{
                         background: isDark ? 'radial-gradient(circle, rgba(0,177,106,0.06) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(26,74,68,0.05) 0%, transparent 70%)',
                         animation: 'float 9s ease-in-out infinite',
@@ -120,15 +139,6 @@ function Contact() {
                     }} />
 
                     <div className="max-w-[1200px] mx-auto px-4 md:px-6 relative z-10">
-                        <div className="text-center mb-8 md:mb-16" style={{ opacity: 0, animation: 'fadeInUp 0.5s ease forwards 0.2s' }}>
-                            <h2 className="font-extrabold mb-1.5 text-[1.3rem] md:text-[1.6rem]" style={{ color: isDark ? '#e2e8f0' : '#1a1a2e' }}>
-                                {t('contact.description')}
-                            </h2>
-                            <p className="max-w-[480px] mx-auto leading-relaxed" style={{ color: isDark ? 'rgba(226,232,240,0.6)' : '#64748b' }}>
-                                {t('contact.subtitle')}
-                            </p>
-                        </div>
-
                         <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-start">
                             <div className="flex-[0_0_100%] md:flex-[0_0_38%] w-full md:w-[38%] order-2 md:order-1">
                                 <div className="flex flex-col gap-2 md:sticky md:top-[88px]">
@@ -148,7 +158,7 @@ function Contact() {
                                 </div>
                             </div>
 
-                            <div className="flex-[1_1_100%] md:flex-[1_1_0%] w-full md:w-auto order-1 md:order-2">
+                            <div id="contact-form" className="flex-[1_1_100%] md:flex-[1_1_0%] w-full md:w-auto order-1 md:order-2">
                                 <ContactForm
                                     isDark={isDark}
                                     isRTL={isRTL}

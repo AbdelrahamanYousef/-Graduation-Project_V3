@@ -9,7 +9,8 @@ import CropsCalculator from '../../components/zakat/CropsCalculator';
 import ZakatSummaryCard from '../../components/zakat/ZakatSummaryCard';
 import { useInjectStyles } from '../../utils/injectStyles';
 import ZakatInfoModal from './ZakatInfoModal';
-import ZakatPriceBadges from './ZakatPriceBadges';
+import { HeroBanner } from '../../components/common';
+import { Calculator, Coins, Scale, Wallet } from 'lucide-react';
 
 const DARK_BG = '#0f172a';
 const DARK_TEXT = '#e2e8f0';
@@ -39,6 +40,10 @@ export default function ZakatCalculator() {
 
     const { prices, loading, error, isLive, lastUpdated, source, refetch, nisab } = useGoldPrice();
 
+    const gold24Price = prices?.gold24k ? formatCurrency(prices.gold24k) : '...';
+    const gold21Price = prices?.gold21k ? formatCurrency(prices.gold21k) : '...';
+    const silverPrice = prices?.silver ? formatCurrency(prices.silver) : '...';
+
     const {
         cash, setCash,
         goldEntries, addGoldEntry, removeGoldEntry, updateGoldEntry,
@@ -67,47 +72,30 @@ export default function ZakatCalculator() {
     return (
         <>
             <div className="pb-10 min-h-screen" style={{ backgroundColor: dk ? DARK_BG : '#f5f7f9', direction: dir }}>
-                <div className="text-center text-white relative overflow-hidden py-12 md:pb-[68px]" style={{
-                    background: `linear-gradient(135deg, ${G_GREEN_DK} 0%, ${G_GREEN} 100%)`,
-                }}>
-                    <div className="max-w-[768px] mx-auto px-4">
-                        <div className="text-[38px] mb-1" style={{ color: 'rgba(255,255,255,0.85)', animation: 'fadeInUp 0.5s ease forwards' }}>
-                            <i className="fa-solid fa-calculator" />
-                        </div>
-                        <h1 className="font-black text-[1.6rem] md:text-[2.1rem]" style={{ fontFamily: font, animation: 'fadeInUp 0.5s ease 0.1s both' }}>
-                            {loc('حاسبة الزكاة', 'Zakat Calculator')}
-                        </h1>
-                        <div className="max-w-[700px] mx-auto mt-1.5 px-2.5 py-1.5 rounded-[14px]" style={{
-                            backgroundColor: 'rgba(255,255,255,0.08)',
-                            border: '1px solid rgba(255,255,255,0.12)',
-                            animation: 'fadeInUp 0.5s ease 0.15s both',
-                        }}>
-                            <p className="text-[0.72rem] md:text-[0.82rem] leading-relaxed text-center" style={{ fontFamily: ARABIC_FONT, color: 'rgba(255,255,255,0.85)', direction: 'rtl' }}>
-                                ﴿ إِنَّمَا الصَّدَقَاتُ لِلْفُقَرَاءِ وَالْمَسَاكِينِ... ﴾
-                            </p>
-                            <p className="text-[0.65rem] mt-0.5 text-center" style={{ fontFamily: font, color: 'rgba(255,255,255,0.45)' }}>
-                                {loc('سورة التوبة : 60', 'At-Tawbah : 60')}
-                            </p>
-                        </div>
-                        <ZakatPriceBadges prices={prices} formatCurrency={formatCurrency} loc={loc} font={font} source={source} />
-                        <div className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-full" style={{
-                            backgroundColor: source === 'fallback' ? 'rgba(255,193,7,0.2)' : 'rgba(0,177,106,0.2)',
-                            border: `1px solid ${source === 'fallback' ? 'rgba(255,193,7,0.4)' : 'rgba(0,177,106,0.4)'}`,
-                            animation: 'fadeInUp 0.5s ease 0.35s both',
-                        }}>
-                            <div className="w-[7px] h-[7px] rounded-full" style={{ backgroundColor: source === 'fallback' ? '#ffc107' : '#00e676', animation: 'pulse 2s ease infinite' }} />
-                            <span className="text-[0.72rem] font-semibold text-white" style={{ fontFamily: font }}>
-                                {source === 'admin'
-                                    ? loc('أسعار معتمدة من الإدارة', 'Admin verified prices')
-                                    : source === 'api'
-                                        ? loc('أسعار حية من goldapi.io', 'Live prices from goldapi.io')
-                                        : loc('أسعار تقديرية', 'Estimated prices')}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                <HeroBanner 
+                    themeVariant="zakat"
+                    badgeText="ركن الإسلام الثالث"
+                    headline="حاسبة الزكاة المتقدمة لتطهير مالك"
+                    highlightedWord="تطهير"
+                    subtext="﴿ إِنَّمَا الصَّدَقَاتُ لِلْفُقَرَاءِ وَالْمَسَاكِينِ ﴾ - سورة التوبة: 60"
+                    primaryCtaText="ابدأ الحساب"
+                    primaryCtaLink="#calculator"
+                    secondaryCtaText="أحكام الزكاة"
+                    secondaryCtaLink="#rules"
+                    stats={[
+                        { number: gold24Price, label: 'ذهب عيار 24' },
+                        { number: gold21Price, label: 'ذهب عيار 21' },
+                        { number: silverPrice, label: 'فضة' }
+                    ]}
+                    floatingIcons={[
+                        <Calculator key="calc" size={24} />,
+                        <Coins key="coins" size={24} />,
+                        <Scale key="scale" size={24} />,
+                        <Wallet key="wallet" size={24} />
+                    ]}
+                />
 
-                <div className="max-w-[992px] mx-auto px-4 -mt-3.5 relative z-10">
+                <div id="calculator" className="max-w-[992px] mx-auto px-4 -mt-3.5 relative z-10">
                     <div className="flex flex-col md:flex-row gap-3.5 items-start">
                         <div className="flex-[1_1_auto] md:flex-[0_0_calc(33.333%-14px)] w-full md:w-[calc(33.333%-14px)] order-2 md:order-1">
                             <div className="sticky top-[85px]">
@@ -120,7 +108,7 @@ export default function ZakatCalculator() {
                         </div>
                         <div className="flex-[1_1_auto] md:flex-[0_0_calc(66.666%-14px)] w-full md:w-[calc(66.666%-14px)] order-1 md:order-2">
                             <div className="flex flex-col gap-2.5">
-                                <div onClick={() => setShowInfoModal(true)}
+                                <div id="rules" onClick={() => setShowInfoModal(true)}
                                     className="flex items-center gap-2 px-3 rounded-[16px] cursor-pointer transition-all"
                                     style={{
                                         paddingTop: '1.8rem', paddingBottom: '1.8rem',
