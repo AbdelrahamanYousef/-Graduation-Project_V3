@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import { t, formatNumber } from '../../i18n';
+import { t, formatNumber, formatCurrency } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { paths } from '../../constants/paths';
 
 function Projects() {
     const { isDark } = useTheme();
@@ -107,8 +108,9 @@ function ProjectListCard({ project, isDark }) {
             <div className="relative md:h-full md:w-80 shrink-0">
                 <img
                     className="w-full h-48 md:h-full object-cover"
-                    src={project.image}
+                    src={project.image || project.imageUrl || '/vite.svg'}
                     alt={project.title}
+                    onError={(e) => { e.target.src = '/vite.svg'; }}
                 />
                 <span className="absolute top-4 left-4 inline-flex px-2 py-0.5 rounded text-xs font-medium bg-primary-500 text-white shadow-md">
                     {project.program}
@@ -118,7 +120,7 @@ function ProjectListCard({ project, isDark }) {
             <div className="p-4 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-1">
                     <Link
-                        to={`/projects/${project.id}`}
+                        to={paths.getProjectDetails(project.programId, project.id)}
                         className="text-xl font-bold hover:text-primary-500 transition-colors no-underline text-inherit"
                     >
                         {project.title}
@@ -134,23 +136,34 @@ function ProjectListCard({ project, isDark }) {
                     {project.location}
                 </div>
 
-                <div className="mt-auto">
-                    <div className="flex justify-between mb-1">
-                        <span className="text-sm font-bold text-primary-500">{progress}%</span>
-                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
-                            {t('projects.daysLeft')}: <strong>{project.daysLeft}</strong>
-                        </span>
+                <div className="mt-auto space-y-2">
+                    {project.donationAmount > 0 && (
+                        <div className="flex justify-between text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                            <span>قيمة المساهمة:</span>
+                            <span className="text-primary-600 dark:text-primary-400 font-extrabold">{formatCurrency(project.donationAmount)}</span>
+                        </div>
+                    )}
+
+                    <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                        <span>تم جمع {formatCurrency(project.raised || 0)}</span>
+                        <span>الهدف {formatCurrency(project.goal)}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden mb-2">
+
+                    <div className="h-2.5 rounded-full bg-neutral-100 dark:bg-neutral-700/60 overflow-hidden">
                         <div className="h-full rounded-full bg-primary-500 transition-all" style={{ width: `${progress}%` }}></div>
                     </div>
 
-                    <div className="flex justify-between items-center">
-                        <span className="text-sm text-neutral-500 dark:text-neutral-400">
+                    <div className="flex justify-between text-[11px] text-neutral-400 dark:text-neutral-500 font-medium">
+                        <span>نسبة الإنجاز: {progress}%</span>
+                        <span>{project.daysLeft} يوم متبقي</span>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-1">
+                        <span className="text-xs text-neutral-500 dark:text-neutral-400">
                             <strong>{formatNumber(project.donors)}</strong> {t('projects.donors')}
                         </span>
                         <Link
-                            to={`/projects/${project.id}`}
+                            to={paths.getProjectDetails(project.programId, project.id)}
                             className="bg-primary-500 text-white px-5 py-2 rounded-md font-semibold hover:bg-primary-600 transition-colors"
                         >
                             {t('common.donate')}

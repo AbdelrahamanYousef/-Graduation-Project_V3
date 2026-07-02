@@ -1,6 +1,8 @@
 export const paths = Object.freeze({
   home: '/',
   programs: '/programs',
+  projectDetailsRoute: '/programs/:programId/projects/:projectId',
+  getProjectDetails: (programId, projectId) => `/programs/${programId}/projects/${projectId}`,
   auth: Object.freeze({
     login: '/login',
     adminLogin: '/admin/login',

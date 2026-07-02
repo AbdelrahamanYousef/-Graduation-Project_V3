@@ -135,9 +135,9 @@ function ProgramDetail() {
                                     >
                                         <img
                                             className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-105"
-                                            src={project.image || project.imageUrl || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=350&fit=crop'}
+                                            src={project.image || project.imageUrl || '/vite.svg'}
                                             alt={project.title}
-                                            onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=350&fit=crop'; }}
+                                            onError={(e) => { e.target.src = '/vite.svg'; }}
                                         />
                                         <div className="p-4 flex-1 flex flex-col">
                                             <h6 className="font-bold text-gray-900 dark:text-gray-100 mb-1 group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors line-clamp-1">
@@ -147,22 +147,31 @@ function ProgramDetail() {
                                                 {project.description || 'مشروع تنموي مستدام يسعى لإحداث تغيير إيجابي.'}
                                             </p>
                                             
-                                            <div className="mb-4">
-                                                <div className="flex justify-between mb-1">
-                                                    <span className="text-xs font-bold text-primary-500 dark:text-primary-400">
-                                                        {formatCurrency(project.raised || 0)}
-                                                    </span>
-                                                    <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                                                        {pct}%
-                                                    </span>
+                                            <div className="mb-4 space-y-2">
+                                                {project.donationAmount > 0 && (
+                                                    <div className="flex justify-between text-xs font-semibold text-neutral-600 dark:text-neutral-300">
+                                                        <span>قيمة المساهمة:</span>
+                                                        <span className="text-primary-600 dark:text-primary-400 font-extrabold">{formatCurrency(project.donationAmount)}</span>
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="flex justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                                                    <span>تم جمع {formatCurrency(project.raised || 0)}</span>
+                                                    <span>الهدف {formatCurrency(project.goal)}</span>
                                                 </div>
-                                                <div className="h-2 rounded-full bg-neutral-200 dark:bg-neutral-700 overflow-hidden">
+
+                                                <div className="h-2.5 rounded-full bg-neutral-100 dark:bg-neutral-700/60 overflow-hidden relative">
                                                     <div className="h-full rounded-full bg-primary-500 dark:bg-primary-400 transition-all" style={{ width: `${pct}%` }}></div>
+                                                </div>
+                                                
+                                                <div className="flex justify-between text-[11px] text-neutral-400 dark:text-neutral-500 font-medium">
+                                                    <span>نسبة الإنجاز: {pct}%</span>
+                                                    <span>{project.donors || 0} متبرع</span>
                                                 </div>
                                             </div>
 
                                             <Link
-                                                to={paths.donor.projectDetail.replace(':id', project.id)}
+                                                to={paths.getProjectDetails(project.programId, project.id)}
                                                 className="block w-full bg-primary-500 hover:bg-primary-600 text-white hover:!text-white text-center px-4 py-2.5 rounded-xl font-bold transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 text-sm mt-auto"
                                             >
                                                 عرض تفاصيل المشروع
