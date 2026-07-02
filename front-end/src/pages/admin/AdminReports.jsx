@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminStatsGrid, AdminIconBox } from '../../components/admin';
 import { t, formatCurrency, formatNumber } from '../../i18n';
 import { recentReports, reportTypes } from '../../data/adminMockData';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import { getAuditReports, createAuditReport, deleteAuditReport } from '../../api';
+import { getAuditReports, createAuditReport, updateAuditReport, deleteAuditReport, uploadDocument } from '../../api';
 
 function AdminReports() {
     const { state } = useAdminData();
@@ -12,7 +12,26 @@ function AdminReports() {
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
     const [auditReports, setAuditReports] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editReport, setEditReport] = useState(null);
     const [newReport, setNewReport] = useState({ year: '', firm: '', status: 'معتمد', fileUrl: '' });
+    const fileInputRef = useRef(null);
+    const [uploading, setUploading] = useState(false);
+
+    const handleFileSelect = async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        setUploading(true);
+        try {
+            const res = await uploadDocument(file);
+            setNewReport(prev => ({ ...prev, fileUrl: res.url }));
+            setSnackbar({ open: true, msg: 'تم رفع الملف بنجاح', severity: 'success' });
+        } catch (err) {
+            console.error('Failed to upload file:', err);
+            setSnackbar({ open: true, msg: err.message || 'فشل رفع الملف', severity: 'error' });
+        } finally {
+            setUploading(false);
+        }
+    };
 
     useEffect(() => {
         if (snackbar.open) {
@@ -108,18 +127,36 @@ function AdminReports() {
         fetchAuditReports();
     }, []);
 
-    const handleAddAuditReport = async (e) => {
+    const handleSaveAuditReport = async (e) => {
         e.preventDefault();
         try {
-            const report = await createAuditReport(newReport);
-            setAuditReports(prev => [report, ...prev]);
+            if (editReport) {
+                const report = await updateAuditReport(editReport.id, newReport);
+                setAuditReports(prev => prev.map(r => r.id === editReport.id ? report : r));
+                setSnackbar({ open: true, msg: 'تم تحديث تقرير المراجعة بنجاح', severity: 'success' });
+            } else {
+                const report = await createAuditReport(newReport);
+                setAuditReports(prev => [report, ...prev]);
+                setSnackbar({ open: true, msg: 'تم إضافة تقرير المراجعة بنجاح', severity: 'success' });
+            }
             setIsModalOpen(false);
+            setEditReport(null);
             setNewReport({ year: '', firm: '', status: 'معتمد', fileUrl: '' });
-            setSnackbar({ open: true, msg: 'تم إضافة تقرير المراجعة بنجاح', severity: 'success' });
         } catch (err) {
-            console.error('Failed to add audit report:', err);
-            setSnackbar({ open: true, msg: 'حدث خطأ أثناء إضافة التقرير', severity: 'error' });
+            console.error('Failed to save audit report:', err);
+            setSnackbar({ open: true, msg: err.message || 'حدث خطأ أثناء حفظ التقرير', severity: 'error' });
         }
+    };
+
+    const handleEditAuditReport = (report) => {
+        setEditReport(report);
+        setNewReport({
+            year: report.year,
+            firm: report.firm,
+            status: report.status,
+            fileUrl: report.fileUrl || ''
+        });
+        setIsModalOpen(true);
     };
 
     const handleDeleteAuditReport = async (id) => {
@@ -130,7 +167,7 @@ function AdminReports() {
             setSnackbar({ open: true, msg: 'تم حذف تقرير المراجعة بنجاح', severity: 'success' });
         } catch (err) {
             console.error('Failed to delete audit report:', err);
-            setSnackbar({ open: true, msg: 'حدث خطأ أثناء حذف التقرير', severity: 'error' });
+            setSnackbar({ open: true, msg: err.message || 'حدث خطأ أثناء حذف التقرير', severity: 'error' });
         }
     };
 
@@ -255,10 +292,18 @@ function AdminReports() {
                                                 <span className="text-neutral-400">-</span>
                                             )}
                                         </td>
-                                        <td className="p-3">
+                                        <td className="p-3 flex gap-1 justify-end">
+                                            <button 
+                                                onClick={() => handleEditAuditReport(report)}
+                                                className="text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/30 p-1.5 rounded transition-all"
+                                                title="تعديل"
+                                            >
+                                                <i className="fa-solid fa-pen"></i>
+                                            </button>
                                             <button 
                                                 onClick={() => handleDeleteAuditReport(report.id)}
                                                 className="text-error-500 hover:bg-error-50 dark:hover:bg-error-950/30 p-1.5 rounded transition-all"
+                                                title="حذف"
                                             >
                                                 <i className="fa-solid fa-trash"></i>
                                             </button>
@@ -276,12 +321,12 @@ function AdminReports() {
                 <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white dark:bg-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-xl border border-neutral-100 dark:border-neutral-700 text-right" style={{ direction: 'rtl' }}>
                         <div className="flex justify-between items-center mb-4">
-                            <h5 className="text-lg font-bold">إضافة تقرير مالي مراجع</h5>
-                            <button onClick={() => setIsModalOpen(false)} className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
+                            <h5 className="text-lg font-bold">{editReport ? 'تعديل تقرير مالي مراجع' : 'إضافة تقرير مالي مراجع'}</h5>
+                            <button onClick={() => { setIsModalOpen(false); setEditReport(null); setNewReport({ year: '', firm: '', status: 'معتمد', fileUrl: '' }); }} className="text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300">
                                 <i className="fa-solid fa-times text-lg"></i>
                             </button>
                         </div>
-                        <form onSubmit={handleAddAuditReport} className="flex flex-col gap-4">
+                        <form onSubmit={handleSaveAuditReport} className="flex flex-col gap-4">
                             <div>
                                 <label className="block text-xs font-semibold mb-1 text-neutral-600 dark:text-neutral-300">السنة المالية</label>
                                 <input 
@@ -316,20 +361,37 @@ function AdminReports() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold mb-1 text-neutral-600 dark:text-neutral-300">رابط ملف التقرير (اختياري)</label>
-                                <input 
-                                    type="text" 
-                                    placeholder="مثال: /uploads/reports/2024.pdf" 
-                                    value={newReport.fileUrl}
-                                    onChange={(e) => setNewReport(prev => ({ ...prev, fileUrl: e.target.value }))}
-                                    className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-transparent focus:border-primary-500 focus:outline-none text-sm text-left"
-                                    style={{ direction: 'ltr' }}
-                                />
+                                <label className="block text-xs font-semibold mb-1 text-neutral-600 dark:text-neutral-300">ملف التقرير (PDF)</label>
+                                <div className="flex gap-2 items-center">
+                                    <input 
+                                        type="text" 
+                                        placeholder="مثال: /uploads/reports/2024.pdf" 
+                                        value={newReport.fileUrl}
+                                        onChange={(e) => setNewReport(prev => ({ ...prev, fileUrl: e.target.value }))}
+                                        className="flex-1 px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-transparent focus:border-primary-500 focus:outline-none text-sm text-left"
+                                        style={{ direction: 'ltr' }}
+                                    />
+                                    <input 
+                                        type="file" 
+                                        accept=".pdf,.doc,.docx,.xls,.xlsx" 
+                                        ref={fileInputRef} 
+                                        onChange={handleFileSelect} 
+                                        className="hidden" 
+                                    />
+                                    <button 
+                                        type="button" 
+                                        disabled={uploading}
+                                        onClick={() => fileInputRef.current?.click()} 
+                                        className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                    >
+                                        {uploading ? 'جاري الرفع...' : 'رفع ملف'}
+                                    </button>
+                                </div>
                             </div>
                             <div className="flex gap-2 justify-end mt-2">
                                 <button 
                                     type="button" 
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={() => { setIsModalOpen(false); setEditReport(null); setNewReport({ year: '', firm: '', status: 'معتمد', fileUrl: '' }); }}
                                     className="px-4 py-2 text-xs font-bold rounded-lg border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-700 transition-colors"
                                 >
                                     إلغاء

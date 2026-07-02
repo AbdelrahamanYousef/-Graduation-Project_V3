@@ -101,7 +101,7 @@ export {
 
 // Uploads
 export {
-    uploadProfilePhoto, uploadImage, uploadCv,
+    uploadProfilePhoto, uploadImage, uploadCv, uploadDocument,
 } from './upload.api';
 
 // Transparency

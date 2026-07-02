@@ -138,7 +138,7 @@ router.put('/auditors/:id', authAdmin, async (req, res, next) => {
 // DELETE /api/transparency/auditors/:id (Admin only)
 router.delete('/auditors/:id', authAdmin, async (req, res, next) => {
     try {
-        await prisma.auditReport.delete({
+        await prisma.auditReport.deleteMany({
             where: { id: req.params.id }
         });
         res.json({ success: true });
