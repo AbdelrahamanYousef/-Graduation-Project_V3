@@ -77,6 +77,14 @@ export default {
           600: 'var(--color-error-600)',
           700: 'var(--color-error-700)',
         },
+        page: {
+          bg: 'var(--color-page-bg)',
+        },
+        card: {
+          bg: 'var(--color-card-bg)',
+          border: 'var(--color-card-border)',
+        },
+        muted: 'var(--color-text-muted)',
       },
       fontFamily: {
         arabic: ['Tajawal', 'Cairo', 'sans-serif'],

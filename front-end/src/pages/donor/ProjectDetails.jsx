@@ -45,13 +45,13 @@ function ProjectDetails() {
     const tabs = [t('projectDetails.overview'), t('projectDetails.updates'), t('projectDetails.budget'), t('projectDetails.faq')];
 
     return (
-        <div className="pb-12 bg-[#f8fafc] dark:bg-slate-950 min-h-screen transition-colors duration-200">
+        <div className="pb-12 bg-page-bg min-h-screen transition-colors duration-200">
             {/* Hero / Header Section */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-12">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-card-bg rounded-2xl shadow-sm border border-card-border p-6 transition-colors duration-200">
                     {/* Project Image Panel */}
                     <div className="col-span-12 md:col-span-5 md:order-2">
-                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 flex justify-center items-center">
+                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-card-border flex justify-center items-center">
                             <img
                                 className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
                                 src={project.image || project.imageUrl || '/vite.svg'}
@@ -71,7 +71,7 @@ function ProjectDetails() {
                         <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight">
                             {title}
                         </h2>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 pt-2 font-medium">
+                        <div className="flex flex-wrap gap-4 text-sm text-muted pt-2 font-medium">
                             <div className="flex items-center gap-2">
                                 <i className="fa-solid fa-location-dot text-emerald-500"></i>
                                 <span>{project.location}</span>
@@ -89,7 +89,7 @@ function ProjectDetails() {
                 <div className="grid grid-cols-12 gap-8">
                     {/* Content Column */}
                     <div className="col-span-12 lg:col-span-8">
-                        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 md:p-8 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.03)] dark:shadow-none border border-slate-200/80 dark:border-slate-800/80 transition-colors duration-200">
+                        <div className="bg-card-bg rounded-3xl p-6 md:p-8 shadow-sm border border-card-border transition-colors duration-200">
                             {/* Tabs Navigation */}
                             <div className="border-b border-slate-100 dark:border-slate-800 mb-6">
                                 <div className="flex overflow-x-auto gap-2 pb-px no-scrollbar">
@@ -247,7 +247,7 @@ function ProjectDetails() {
 
                     {/* Donation Sidebar Column */}
                     <div className="col-span-12 lg:col-span-4">
-                        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-none sticky top-24 border border-slate-200/80 dark:border-slate-800/80 transition-all p-6 md:p-8">
+                        <div className="bg-card-bg rounded-3xl shadow-sm border border-card-border sticky top-24 transition-all p-6 md:p-8">
                             <div className="space-y-5">
                                 {/* Raised and Goal Progress */}
                                 <div>
