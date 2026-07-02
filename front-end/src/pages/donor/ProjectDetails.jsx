@@ -45,24 +45,12 @@ function ProjectDetails() {
     const tabs = [t('projectDetails.overview'), t('projectDetails.updates'), t('projectDetails.budget'), t('projectDetails.faq')];
 
     return (
-        <div className="pb-12 bg-page-bg min-h-screen transition-colors duration-200">
+        <div className="pb-12 bg-gray-100 dark:bg-slate-950 min-h-screen transition-colors duration-200">
             {/* Hero / Header Section */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-12">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors duration-200">
-                    {/* Project Image Panel */}
-                    <div className="col-span-12 md:col-span-5 md:order-2">
-                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 flex justify-center items-center">
-                            <img
-                                className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
-                                src={project.image || project.imageUrl || '/vite.svg'}
-                                alt={title}
-                                onError={(e) => { e.target.src = '/vite.svg'; }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Title & Info */}
-                    <div className="col-span-12 md:col-span-7 md:order-1 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-2 border-gray-100 dark:border-gray-700 p-6 md:p-8">
+                    {/* Text/Content Wrapper (Col-Span-7) */}
+                    <div className="col-span-1 md:col-span-7 flex flex-col justify-center items-start text-right space-y-4">
                         <div>
                             <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 tracking-wide uppercase">
                                 {program}
@@ -81,6 +69,16 @@ function ProjectDetails() {
                                 <span>{project.daysLeft} {t('projects.daysLeft')}</span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Image Wrapper (Col-Span-5) */}
+                    <div className="col-span-1 md:col-span-5 w-full aspect-video bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 flex items-center justify-center p-2">
+                        <img
+                            className="w-full h-full object-contain"
+                            src={project.image || project.imageUrl || '/vite.svg'}
+                            alt={title}
+                            onError={(e) => { e.target.src = '/vite.svg'; }}
+                        />
                     </div>
                 </div>
             </div>
