@@ -6,6 +6,57 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('Seeding database...');
 
+    let foodIdx = 0;
+    let eduIdx = 0;
+    let homeIdx = 0;
+    let medIdx = 0;
+    let empowerIdx = 0;
+    let intlIdx = 0;
+
+    const foodImages = [
+        'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1595246140625-573b715d11dc?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1584263343329-8a2096339890?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1534482421-64566f976cfa?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1607349913338-fca6f7fc42d0?w=600&h=400&fit=crop'
+    ];
+
+    const eduImages = [
+        'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=600&h=400&fit=crop'
+    ];
+
+    const homeImages = [
+        'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1582268611958-ebfd161ff975?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1460317442991-0ec209397118?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&h=400&fit=crop'
+    ];
+
+    const medImages = [
+        'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1581594693702-fbdc51b2763b?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=600&h=400&fit=crop'
+    ];
+
+    const empowerImages = [
+        'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1531535934027-667f6db87580?w=600&h=400&fit=crop'
+    ];
+
+    const intlImages = [
+        'https://images.unsplash.com/photo-1469571486040-4b9b3d225147?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
+        'https://images.unsplash.com/photo-1489710437720-ebb67ec84dd2?w=600&h=400&fit=crop'
+    ];
+
     // Clean existing data in correct constraint order
     await prisma.auditLog.deleteMany();
     await prisma.auditReport.deleteMany();
@@ -184,6 +235,28 @@ async function main() {
         console.log(`  Created program: ${program.name}`);
 
         for (const projData of progData.projects) {
+            let projectImage = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=350&fit=crop';
+            const title = projData.title;
+            if (title.includes('طعام') || title.includes('وجبات') || title.includes('لحم') || title.includes('كفتة') || title.includes('فراخ') || title.includes('لقمة')) {
+                projectImage = foodImages[foodIdx % foodImages.length];
+                foodIdx++;
+            } else if (title.includes('مدرسة') || title.includes('تعليم') || title.includes('طفل') || title.includes('أدوات') || title.includes('حقيبة') || title.includes('شنطة')) {
+                projectImage = eduImages[eduIdx % eduImages.length];
+                eduIdx++;
+            } else if (title.includes('مياه') || title.includes('كهرباء') || title.includes('سقف') || title.includes('أسقف') || title.includes('منزل') || title.includes('منازل')) {
+                projectImage = homeImages[homeIdx % homeImages.length];
+                homeIdx++;
+            } else if (title.includes('غزة') || title.includes('مساعدات')) {
+                projectImage = intlImages[intlIdx % intlImages.length];
+                intlIdx++;
+            } else if (title.includes('جهاز') || title.includes('حالات طبية') || title.includes('تنفس')) {
+                projectImage = medImages[medIdx % medImages.length];
+                medIdx++;
+            } else if (title.includes('خياطة') || title.includes('تروسيكل') || title.includes('تدريب') || title.includes('عدة')) {
+                projectImage = empowerImages[empowerIdx % empowerImages.length];
+                empowerIdx++;
+            }
+
             await prisma.project.create({
                 data: {
                     programId: program.id,
@@ -195,7 +268,7 @@ async function main() {
                     isHighlighted: projData.isHighlighted || false,
                     featured: projData.featured || false,
                     status: 'ACTIVE',
-                    imageUrl: 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop'
+                    imageUrl: projectImage
                 }
             });
             console.log(`    Created project: ${projData.title}`);

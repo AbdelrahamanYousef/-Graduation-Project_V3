@@ -20,6 +20,11 @@
 - **Dark Mode Mandatory:** Every new component, page, or UI modification MUST support Dark Mode out-of-the-box. Ensure CSS/Tailwind classes handle both light and dark themes seamlessly.
 - **Responsive Design:** Ensure all modifications look correct on mobile, tablet, and desktop views.
 
+## 📐 UI/UX Scaling & Contrast Rules
+- **Proper Scaling:** Avoid oversized elements. Use standard container widths (e.g., `max-w-7xl mx-auto`). Keep padding (`p-4` to `p-6`) and typography sizes reasonable so users do not have to scroll excessively to view primary content on desktop screens.
+- **Visual Contrast:** NEVER place white cards on a pure white background. Use subtle off-white backgrounds (e.g., `bg-gray-50`) for the page body to ensure white components (`bg-white`) stand out. Apply subtle borders (`border-gray-100`) and soft shadows (`shadow-sm`) to delineate sections.
+- **Color Pop:** Ensure buttons, badges, and status indicators have distinct, accessible colors that guide the user's eye naturally without causing visual fatigue.
+
 ## 🔄 Data, Database & State Management
 - **Database Consistency:** Any modification, addition, or deletion on the frontend MUST correctly communicate with the backend and successfully reflect in the Database.
 - **Cache Awareness:** Be mindful of cached data. If updates are not appearing, ensure the cache is cleared or invalidated after mutations so the user sees the latest updates immediately.

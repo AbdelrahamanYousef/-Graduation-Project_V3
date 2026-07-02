@@ -9,3 +9,4 @@ export { default as Skeleton } from './Skeleton';
 export { default as EmptyState } from './EmptyState';
 export { default as Tabs } from './Tabs';
 export { default as Loading } from './Loading';
+export { default as HeroBanner } from './HeroBanner';

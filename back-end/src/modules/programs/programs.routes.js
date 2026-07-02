@@ -11,6 +11,7 @@ const programSchema = z.object({
     icon: z.string().optional(),
     color: z.string().optional(),
     description: z.string().optional(),
+    imageUrl: z.string().optional().nullable(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).optional(),
     isHighlighted: z.boolean().optional(),
 });
