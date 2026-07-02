@@ -48,10 +48,10 @@ function ProjectDetails() {
         <div className="pb-12 bg-page-bg min-h-screen transition-colors duration-200">
             {/* Hero / Header Section */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-12">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-card-bg rounded-2xl shadow-sm border border-card-border p-6 transition-colors duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6 transition-colors duration-200">
                     {/* Project Image Panel */}
                     <div className="col-span-12 md:col-span-5 md:order-2">
-                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-card-border flex justify-center items-center">
+                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 flex justify-center items-center">
                             <img
                                 className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
                                 src={project.image || project.imageUrl || '/vite.svg'}
