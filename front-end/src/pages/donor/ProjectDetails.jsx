@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useTheme } from '../../contexts/ThemeContext';
 import { t, formatCurrency, formatNumber, formatDate, getLanguage } from '../../i18n';
 import { updates } from '../../data/mockData';
 import { useAdminData } from '../../contexts/AdminDataContext';
 
 function ProjectDetails() {
-    const { programId, projectId } = useParams();
-    const { isDark } = useTheme();
+    const { projectId } = useParams();
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
     const isEn = getLanguage() === 'en';
@@ -49,38 +47,38 @@ function ProjectDetails() {
     return (
         <div className="pb-12 bg-[#f8fafc] dark:bg-slate-950 min-h-screen transition-colors duration-200">
             {/* Hero / Header Section */}
-            <div className="bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 py-8 md:py-12 transition-colors duration-200">
-                <div className="max-w-[1200px] mx-auto px-4 md:px-6">
-                    <div className="grid grid-cols-12 gap-6 md:gap-8 items-center">
-                        {/* Title & Info */}
-                        <div className="col-span-12 md:col-span-7 space-y-4">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-12">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors duration-200">
+                    {/* Project Image Panel */}
+                    <div className="col-span-12 md:col-span-5 md:order-2">
+                        <div className="relative h-60 md:h-72 w-full rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 flex justify-center items-center">
+                            <img
+                                className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
+                                src={project.image || project.imageUrl || '/vite.svg'}
+                                alt={title}
+                                onError={(e) => { e.target.src = '/vite.svg'; }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Title & Info */}
+                    <div className="col-span-12 md:col-span-7 md:order-1 space-y-4">
+                        <div>
                             <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-primary-500/10 text-primary-600 dark:text-primary-400 tracking-wide uppercase">
                                 {program}
                             </span>
-                            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight">
-                                {title}
-                            </h2>
-                            <div className="flex flex-wrap gap-5 text-sm text-slate-500 dark:text-slate-400 pt-2 font-medium">
-                                <div className="flex items-center gap-1.5">
-                                    <i className="fa-solid fa-location-dot text-emerald-500"></i>
-                                    <span>{project.location}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    <i className="fa-regular fa-clock text-emerald-500"></i>
-                                    <span>{project.daysLeft} {t('projects.daysLeft')}</span>
-                                </div>
-                            </div>
                         </div>
-                        
-                        {/* Project Image Panel */}
-                        <div className="col-span-12 md:col-span-5">
-                            <div className="relative h-60 md:h-72 w-full rounded-3xl overflow-hidden shadow-[0_15px_30px_rgba(0,0,0,0.06)] dark:shadow-none border border-slate-200/80 dark:border-slate-800 flex justify-center items-center">
-                                <img
-                                    className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-105"
-                                    src={project.image || project.imageUrl || '/vite.svg'}
-                                    alt={title}
-                                    onError={(e) => { e.target.src = '/vite.svg'; }}
-                                />
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-50 leading-tight tracking-tight">
+                            {title}
+                        </h2>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 pt-2 font-medium">
+                            <div className="flex items-center gap-2">
+                                <i className="fa-solid fa-location-dot text-emerald-500"></i>
+                                <span>{project.location}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <i className="fa-regular fa-clock text-emerald-500"></i>
+                                <span>{project.daysLeft} {t('projects.daysLeft')}</span>
                             </div>
                         </div>
                     </div>
