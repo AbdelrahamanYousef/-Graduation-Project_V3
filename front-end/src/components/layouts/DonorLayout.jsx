@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { t, getLanguage } from '../../i18n';
+import { t } from '../../i18n';
 import { useTheme as useAppTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import ChatBot from '../donor/ChatBot';
@@ -269,7 +269,9 @@ function DonorLayout({ children }) {
             {mobileOpen && (
                 <div className="fixed inset-0 z-[1200] bg-black/50 md:hidden" onClick={handleDrawerToggle}></div>
             )}
-            <div className={`fixed top-0 bottom-0 left-0 w-[280px] bg-white dark:bg-neutral-800 z-[1201] shadow-xl transition-transform duration-300 md:hidden ${mobileOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            
+            {/* التعديل هنا: تم تبديل translate-x-full بـ -translate-x-full ليعمل بشكل صحيح مع اتجاه الـ RTL */}
+            <div className={`fixed top-0 bottom-0 left-0 w-[280px] bg-white dark:bg-neutral-800 z-[1201] shadow-xl transition-transform duration-300 md:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                 <div className="h-full flex flex-col">
                     <div className="py-3 px-4 flex items-center justify-center gap-1 border-b border-neutral-200 dark:border-neutral-700">
                         <i className="fa-solid fa-moon text-xl text-primary-500"></i>
