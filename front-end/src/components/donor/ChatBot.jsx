@@ -201,7 +201,7 @@ function ChatBot() {
             return;
         }
         setWinSize({ w: newW, h: newH });
-    }, [resizing, winSize.h]);
+    }, [navigate, resizing, winSize.h]);
 
     const handleResizeEnd = useCallback(() => setResizing(false), []);
 
@@ -523,27 +523,39 @@ function ChatBot() {
 
             {!open && (
                 <button
-                    ref={fabRef}
-                    className="fixed z-[1100] w-14 h-14 rounded-full text-white flex items-center justify-center"
-                    style={{
-                        background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DK})`,
-                        boxShadow: dragging ? `0 8px 30px rgba(0,177,106,0.5)` : `0 4px 20px rgba(0,177,106,0.4)`,
-                        left: fabPos.x + 'px',
-                        bottom: fabPos.y + 'px',
-                        transition: dragging ? 'none' : 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                        cursor: dragging ? 'grabbing' : 'grab',
-                        userSelect: 'none',
-                        transform: dragging ? 'scale(1.08)' : 'none',
-                        touchAction: 'none',
-                    }}
-                    onMouseDown={handleDragStart}
-                    onTouchStart={handleDragStart}
-                    onClick={() => setOpen(true)}
-                    onMouseEnter={e => { if (!dragging) { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = `0 8px 30px rgba(0,177,106,0.5)`; }}}
-                    onMouseLeave={e => { if (!dragging) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = `0 4px 20px rgba(0,177,106,0.4)`; }}}
-                >
-                    <i className="fa-solid fa-comment-dots" style={{ fontSize: '1.4rem', pointerEvents: 'none' }} />
-                </button>
+    ref={fabRef}
+    className="fixed z-[1100] w-14 h-14 rounded-full text-white flex items-center justify-center"
+    style={{
+        background: `linear-gradient(135deg, ${GREEN}, ${GREEN_DK})`,
+        boxShadow: dragging ? `0 8px 30px rgba(0,177,106,0.5)` : `0 4px 20px rgba(0,177,106,0.4)`,
+        left: fabPos.x + 'px',
+        bottom: fabPos.y + 'px',
+        transition: dragging ? 'none' : 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        cursor: dragging ? 'grabbing' : 'grab',
+        userSelect: 'none',
+        transform: dragging 
+            ? 'scale(1.08)' 
+            : window.innerWidth < 768 ? 'translateY(-64px)' : 'none',
+        touchAction: 'none',
+    }}
+    onMouseDown={handleDragStart}
+    onTouchStart={handleDragStart}
+    onClick={() => setOpen(true)}
+    onMouseEnter={e => { 
+        if (!dragging) { 
+            e.currentTarget.style.transform = window.innerWidth < 768 ? 'translateY(-64px) scale(1.1)' : 'scale(1.1)'; 
+            e.currentTarget.style.boxShadow = `0 8px 30px rgba(0,177,106,0.5)`; 
+        } 
+    }}
+    onMouseLeave={e => { 
+        if (!dragging) { 
+            e.currentTarget.style.transform = window.innerWidth < 768 ? 'translateY(-64px)' : ''; 
+            e.currentTarget.style.boxShadow = `0 4px 20px rgba(0,177,106,0.4)`; 
+        } 
+    }}
+>
+    <i className="fa-solid fa-comment-dots" style={{ fontSize: '1.4rem', pointerEvents: 'none' }} />
+</button>
             )}
         </>
     );
