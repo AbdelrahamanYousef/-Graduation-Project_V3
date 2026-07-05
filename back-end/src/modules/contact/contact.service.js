@@ -13,6 +13,7 @@ async function create(data) {
             phone: data.phone || null,
             subject: data.subject,
             message: data.message,
+            contactMethod: data.contactMethod || data.preferredContact || null,
             status: 'NEW',
         },
     });

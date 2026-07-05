@@ -15,9 +15,17 @@ router.post('/', validate({
         subject: z.string().min(2),
         message: z.string().min(10),
         preferredContact: z.enum(['email', 'phone', 'whatsapp']).optional(),
+        contactMethod: z.string().optional(),
     }),
 }), async (req, res, next) => {
-    try { res.status(201).json(await service.create(req.body)); } catch (e) { next(e); }
+    try {
+        const message = await service.create(req.body);
+        res.status(201).json({
+            status: 201,
+            message: "Message sent successfully",
+            data: message
+        });
+    } catch (e) { next(e); }
 });
 
 // Admin: list contact messages

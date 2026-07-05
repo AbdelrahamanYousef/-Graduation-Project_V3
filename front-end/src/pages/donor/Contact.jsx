@@ -4,8 +4,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { useInjectStyles } from '../../utils/injectStyles';
 import { submitContactMessage } from '../../api/contact.api';
-import { HeroBanner } from '../../components/common';
+import { HeroBanner, useToast } from '../../components/common';
 import { Phone, Mail, MapPin, MessageSquare } from 'lucide-react';
+
 import ContactInfoCard from './ContactInfoCard';
 import ContactSocialCard from './ContactSocialCard';
 import ContactForm from './ContactForm';
@@ -33,13 +34,12 @@ function Contact() {
     const orgInfo = state?.settings?.organization || {};
     const socialLinks = state?.settings?.social || {};
 
+    const toast = useToast();
     const [form, setForm] = useState({
         name: '', email: '', phone: '', subject: '', message: '', preferredContact: '',
     });
     const [touched, setTouched] = useState({});
-    const [submitting, setSubmitting] = useState(false);
-    const [snackbar, setSnackbar] = useState({ open: false, severity: 'success', message: '' });
-    const handleSnackbarClose = () => setSnackbar(p => ({ ...p, open: false }));
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleBlur = (f) => setTouched(p => ({ ...p, [f]: true }));
     const getError = (f) => {
@@ -67,27 +67,28 @@ function Contact() {
         const hasErr = [
             !form.name || form.name.trim().length < 3,
             !form.email || !isEmailValid(form.email),
-            form.phone.trim() !== '' && !isPhoneValid(form.phone),
+            (form.phone || '').trim() !== '' && !isPhoneValid(form.phone),
             !form.subject || form.subject.trim().length < 3,
             !form.message || form.message.trim().length < 10,
         ].some(Boolean);
         if (hasErr) return;
-        setSubmitting(true);
+        setIsLoading(true);
         try {
             await submitContactMessage({
                 name: form.name.trim(),
                 email: form.email.trim(),
-                phone: form.phone.trim() || undefined,
+                phone: (form.phone || '').trim() || undefined,
                 subject: form.subject.trim(),
                 message: form.message.trim(),
+                preferredContact: form.preferredContact || undefined,
             });
             setForm({ name: '', email: '', phone: '', subject: '', message: '', preferredContact: '' });
             setTouched({});
-            setSnackbar({ open: true, severity: 'success', message: t('contact.messageSent') });
+            toast.success("تم إرسال رسالتك بنجاح");
         } catch (err) {
-            setSnackbar({ open: true, severity: 'error', message: err.response?.data?.error?.message || 'حدث خطأ أثناء الإرسال' });
+            toast.error(err.message || 'حدث خطأ أثناء الإرسال');
         } finally {
-            setSubmitting(false);
+            setIsLoading(false);
         }
     };
 
@@ -167,7 +168,7 @@ function Contact() {
                                     setForm={setForm}
                                     touched={touched}
                                     setTouched={setTouched}
-                                    submitting={submitting}
+                                    submitting={isLoading}
                                     errors={getError}
                                     handleBlur={handleBlur}
                                     getHelper={getHelper}
@@ -176,21 +177,6 @@ function Contact() {
                         </div>
                     </div>
                 </div>
-
-                {snackbar.open && (
-                    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50">
-                        <div className="flex items-center gap-2 px-4 py-3 rounded-[14px] text-white font-semibold text-[0.95rem] min-w-[320px]" style={{
-                            backgroundColor: snackbar.severity === 'success' ? '#00b16a' : snackbar.severity === 'error' ? '#e57373' : '#ff9800',
-                            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-                            animation: 'fadeInUp 0.3s ease both',
-                        }}>
-                            <span className="flex-1">{snackbar.message}</span>
-                            <button onClick={handleSnackbarClose} className="text-white/80 hover:text-white">
-                                <i className="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    </div>
-                )}
             </div>
         </>
     );

@@ -57,6 +57,9 @@ api.use('/dashboard', dashboardRoutes);
 api.use('/notifications', notificationRoutes);
 api.use('/volunteers', volunteerRoutes);
 api.use('/contact', contactRoutes);
+api.get('/admin/messages', require('./middleware/auth').authAdmin, async (req, res, next) => {
+    try { res.json(await require('./modules/contact/contact.service').list(req.query)); } catch (e) { next(e); }
+});
 api.use('/settings', settingsRoutes);
 api.use('/users', userRoutes);
 api.use('/donor', accountRoutes);
