@@ -3,6 +3,9 @@ const prisma = require('../../lib/prisma');
 const { authUser } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
+const bcrypt = require('bcryptjs');
+const ApiError = require('../../shared/ApiError');
+
 
 const router = Router();
 router.use(authUser);
@@ -12,7 +15,7 @@ router.get('/profile', async (req, res, next) => {
     try {
         const user = await prisma.user.findUnique({
             where: { id: req.user.id },
-            select: { id: true, name: true, email: true, phone: true, role: true, avatarUrl: true, createdAt: true },
+            select: { id: true, name: true, email: true, phone: true, role: true, avatarUrl: true, emailNotifications: true, createdAt: true },
         });
         if (!user) return res.status(404).json({ error: 'User not found' });
         const { avatarUrl, ...rest } = user;
@@ -26,13 +29,14 @@ router.put('/profile', validate({
         name: z.string().min(2).optional(),
         email: z.string().email().optional(),
         phone: z.string().min(10).optional(),
+        avatarUrl: z.string().nullable().optional(),
     }).partial(),
 }), async (req, res, next) => {
     try {
         const user = await prisma.user.update({
             where: { id: req.user.id },
             data: req.body,
-            select: { id: true, name: true, email: true, phone: true, role: true, avatarUrl: true },
+            select: { id: true, name: true, email: true, phone: true, role: true, avatarUrl: true, emailNotifications: true },
         });
         const { avatarUrl, ...rest } = user;
         res.json({ user: { ...rest, avatar: avatarUrl } });
@@ -86,6 +90,57 @@ router.get('/stats', async (req, res, next) => {
             donationsCount: result._count.id || 0,
             activeSubscriptions: activeSubs,
         });
+    } catch (e) { next(e); }
+});
+
+const passwordSchema = z.string()
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+
+// Change password
+router.put('/profile/change-password', validate({
+    body: z.object({
+        oldPassword: z.string().min(1),
+        newPassword: passwordSchema,
+    }),
+}), async (req, res, next) => {
+    try {
+        const user = await prisma.user.findUnique({
+            where: { id: req.user.id }
+        });
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        const valid = await bcrypt.compare(req.body.oldPassword, user.passwordHash);
+        if (!valid) {
+            return res.status(400).json({ error: 'كلمة المرور الحالية غير صحيحة' });
+        }
+
+        const hashed = await bcrypt.hash(req.body.newPassword, 10);
+        await prisma.user.update({
+            where: { id: req.user.id },
+            data: { passwordHash: hashed }
+        });
+
+        res.json({ message: 'تم تغيير كلمة المرور بنجاح' });
+    } catch (e) { next(e); }
+});
+
+// Update notification preferences
+router.put('/profile/notifications', validate({
+    body: z.object({
+        emailNotifications: z.boolean(),
+    }),
+}), async (req, res, next) => {
+    try {
+        const user = await prisma.user.update({
+            where: { id: req.user.id },
+            data: { emailNotifications: req.body.emailNotifications },
+            select: { id: true, emailNotifications: true }
+        });
+        res.json({ message: 'تم تحديث تفضيلات الإشعارات بنجاح', emailNotifications: user.emailNotifications });
     } catch (e) { next(e); }
 });
 

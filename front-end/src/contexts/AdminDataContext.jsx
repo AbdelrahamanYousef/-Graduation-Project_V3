@@ -455,7 +455,7 @@ export function AdminDataProvider({ children }) {
             );
             const raised = projDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
             const donors = new Set(projDonations.map(d => d.donorName || d.donor || d.donorId)).size;
-            return { ...proj, raised, donors };
+            return { ...proj, raised, donors, image: proj.imageUrl || proj.image };
         });
 
         // 2. Programs with linked project count & total raised
@@ -479,7 +479,8 @@ export function AdminDataProvider({ children }) {
                     raised: p.raised || 0,
                     donorsCount: p.donors || 0,
                     status: p.status || 'active',
-                    isHighlighted: p.isHighlighted || false
+                    isHighlighted: p.isHighlighted || false,
+                    image: p.image || p.imageUrl
                 }));
             return {
                 id: prog.id,

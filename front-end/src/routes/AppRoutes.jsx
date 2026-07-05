@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DonorLayout, AdminLayout } from '../components/layouts';
 import AdminGuard from '../components/layouts/AdminGuard';
+import { paths } from '../constants/paths';
 
 // ─── Lazy: Donor Pages ──────────────────────────────────────
 const Home = lazy(() => import('../pages/donor/Home'));
@@ -75,7 +76,7 @@ export default function AppRoutes() {
             <Route path="/campaigns" element={<DonorLayout><Campaigns /></DonorLayout>} />
             <Route path="/campaigns/:id" element={<DonorLayout><CampaignDetail /></DonorLayout>} />
             <Route path="/projects" element={<DonorLayout><Projects /></DonorLayout>} />
-            <Route path="/projects/:id" element={<DonorLayout><ProjectDetails /></DonorLayout>} />
+            <Route path={paths.projectDetailsRoute} element={<DonorLayout><ProjectDetails /></DonorLayout>} />
             <Route path="/donate" element={<DonorLayout><Donate /></DonorLayout>} />
 <Route path="/donate/:categoryId/:itemId" element={<DonorLayout><DonateItem /></DonorLayout>} />
             <Route path="/confirmation" element={<DonorLayout><Confirmation /></DonorLayout>} />

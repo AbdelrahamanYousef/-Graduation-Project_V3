@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { categoryColors } from '../../data/mockData';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { paths } from '../../constants/paths';
 
 import { useInjectStyles } from '../../utils/injectStyles';
 const GREEN = '#00b16a';
@@ -33,7 +34,7 @@ function DonationCategoriesSection() {
     const items = currentCategory?.items || [];
 
     const handleDonate = (item) => {
-        navigate(`/donate/${currentCategory.id}/${item.id}`);
+        navigate(paths.getProjectDetails(currentCategory.id, item.id));
     };
 
     return (
@@ -121,20 +122,31 @@ function DonationCategoriesSection() {
                                         onMouseLeave={e => { e.currentTarget.style.transform = ''; }}
                                     >
                                         {/* Background */}
-                                        <div className="h-[110px] sm:h-[130px] flex items-center justify-center relative transition-transform duration-[0.6s]"
-                                            style={{
-                                                background: (() => {
-                                                    const colors = categoryColors[currentCategory.id] || ['#e8f5e9', '#4caf50'];
-                                                    return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
-                                                })(),
-                                            }}
-                                        >
-                                            <i className={currentCategory.icon} style={{
-                                                fontSize: '2.4rem',
-                                                color: 'rgba(255,255,255,0.7)',
-                                                textShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                                                transition: 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                                            }} />
+                                        <div className="h-[110px] sm:h-[130px] relative overflow-hidden transition-transform duration-[0.6s]">
+                                            {(item.image || item.imageUrl) ? (
+                                                <img 
+                                                    src={item.image || item.imageUrl || '/vite.svg'} 
+                                                    alt={item.title} 
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => { e.target.src = '/vite.svg'; }}
+                                                />
+                                            ) : (
+                                                <div 
+                                                    className="w-full h-full flex items-center justify-center"
+                                                    style={{
+                                                        background: (() => {
+                                                            const colors = categoryColors[currentCategory.id] || ['#e8f5e9', '#4caf50'];
+                                                            return `linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 100%)`;
+                                                        })(),
+                                                    }}
+                                                >
+                                                    <i className={currentCategory.icon} style={{
+                                                        fontSize: '2.4rem',
+                                                        color: 'rgba(255,255,255,0.7)',
+                                                        textShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                                                    }} />
+                                                </div>
+                                            )}
                                         </div>
 
                                         {/* Content */}

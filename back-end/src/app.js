@@ -28,6 +28,7 @@ const uploadRoutes = require('./modules/upload/upload.routes');
 const aiRoutes = require('./modules/ai/ai.routes');
 const specialRequestRoutes = require('./modules/special-requests/special-requests.routes');
 const campaignRoutes = require('./modules/campaigns/campaigns.routes');
+const transparencyRoutes = require('./modules/transparency/transparency.routes');
 
 const app = express();
 
@@ -65,6 +66,7 @@ api.use('/upload', uploadRoutes);
 api.use('/ai', aiRoutes);
 api.use('/special-requests', specialRequestRoutes);
 api.use('/campaigns', campaignRoutes);
+api.use('/transparency', transparencyRoutes);
 
 app.use('/api', api);
 

@@ -24,6 +24,8 @@ async function list(query = {}) {
             nameEn: "",
             icon: p.icon || "fa-solid fa-cube",
             color: p.color || "#1F2D3D",
+            description: p.description || "",
+            imageUrl: p.imageUrl || "",
             projectCount: p._count.projects,
             totalDonations,
             status: p.status.toLowerCase(),

@@ -95,6 +95,30 @@ router.post('/cv-public', (req, res, next) => {
   });
 });
 
+const docUpload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /\.(pdf|doc|docx|xls|xlsx)$/i;
+    if (allowed.test(path.extname(file.originalname))) cb(null, true);
+    else cb(ApiError.badRequest('Only PDF and office documents are allowed (.pdf, .doc, .docx, .xls, .xlsx)'));
+  },
+});
+
+router.post('/document', authAdmin, (req, res, next) => {
+  docUpload.single('file')(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') return next(ApiError.badRequest('File too large. Maximum size is 10MB.'));
+        return next(ApiError.badRequest(err.message));
+      }
+      return next(err);
+    }
+    if (!req.file) return next(ApiError.badRequest('No file uploaded'));
+    res.json({ url: `/uploads/${req.file.filename}`, filename: req.file.filename });
+  });
+});
+
 router.post('/cv-auth', authUser, (req, res, next) => {
   cvUpload.single('cv')(req, res, (err) => {
     if (err) {

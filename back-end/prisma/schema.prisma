@@ -16,6 +16,7 @@ model User {
   role                     UserRole               @default(USER)
   status                   EntityStatus           @default(ACTIVE)
   avatarUrl                String?
+  emailNotifications       Boolean                @default(true)
   emailVerified            Boolean                @default(false)
   verificationOtp          String?
   verificationOtpExpiry    DateTime?
@@ -505,4 +506,16 @@ enum AidType {
   MEDICAL
   EDUCATIONAL
   OTHER
+}
+
+model AuditReport {
+  id        String   @id @default(cuid())
+  year      String
+  firm      String
+  status    String
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("audit_reports")
 }

@@ -1,10 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getLanguage } from '../../i18n';
+import { getLanguage, formatNumber } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import CampaignCardItem from './CampaignCardItem';
 import QuickDonateModal from './QuickDonateModal';
+import { HeroBanner } from '../../components/common';
+import { paths } from '../../constants/paths';
+import { Megaphone, HeartHandshake, Flame, Globe } from 'lucide-react';
+import { getTransparencyStats } from '../../api/transparency.api';
 
 const EMERALD = '#10b981';
 const DARK_BG = '#0f172a';
@@ -23,6 +27,41 @@ function Campaigns() {
     const [activeFilter, setActiveFilter] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
     const [donateCampaign, setDonateCampaign] = useState(null);
+    const [beneficiaryCount, setBeneficiaryCount] = useState(0);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchStats() {
+            try {
+                const transData = await getTransparencyStats();
+                if (isMounted && transData?.financialData?.beneficiaries !== undefined) {
+                    setBeneficiaryCount(transData.financialData.beneficiaries);
+                }
+            } catch (err) {
+                console.warn('Could not fetch transparency stats', err);
+            }
+        }
+        fetchStats();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    const activeCampaignsCount = useMemo(() => {
+        return campaigns.filter(c => c.status === 'active').length;
+    }, [campaigns]);
+
+    const totalBeneficiaries = beneficiaryCount || state.beneficiaries?.length || 0;
+
+    const governoratesCount = useMemo(() => {
+        const bLocations = (state.beneficiaries || []).map(b => b.location || b.governorate);
+        const pLocations = (state.projects || []).map(p => p.location || p.governorate);
+        const allLocations = [...bLocations, ...pLocations]
+            .filter(Boolean)
+            .map(loc => loc.trim());
+        const unique = new Set(allLocations);
+        return unique.size;
+    }, [state.beneficiaries, state.projects]);
 
     const filteredCampaigns = useMemo(() => {
         return campaigns
@@ -47,39 +86,30 @@ function Campaigns() {
 
     return (
         <div style={{ paddingBottom: 24, backgroundColor: isDark ? DARK_BG : '#f8fafc', minHeight: '100vh' }}>
-            <div style={{
-                paddingTop: 100, paddingBottom: 100, textAlign: 'center', position: 'relative', overflow: 'hidden', color: '#fff',
-                background: isDark
-                    ? `linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(15,23,42,1) 100%)`
-                    : `linear-gradient(135deg, ${EMERALD} 0%, #059669 100%)`
-            }}>
-                <div style={{ position: 'absolute', inset: 0, opacity: isDark ? 0.05 : 0.1, backgroundImage: `radial-gradient(circle at 20px 20px, #ffffff 2px, transparent 0)`, backgroundSize: '40px 40px' }} />
-                <div className="container relative z-10 mx-auto px-4">
-                    <span style={{
-                        display: 'inline-block', padding: '6px 16px', borderRadius: 999,
-                        backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.2)',
-                        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-                        fontSize: '0.85rem', fontWeight: 700, marginBottom: 16, fontFamily: ARABIC_FONT,
-                        color: isDark ? EMERALD : '#fff', border: `1px solid ${isDark ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.3)'}`
-                    }}>
-                        {loc('شارك في التغيير', 'Join the Change')}
-                    </span>
-                    <h1 style={{ fontFamily: ARABIC_FONT, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', marginBottom: 16, textShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-                        {loc('حملاتنا الخيرية', 'Our Charity Campaigns')}
-                    </h1>
-                    <p style={{ fontFamily: ARABIC_FONT, fontSize: '1.1rem', maxWidth: 600, margin: '0 auto', opacity: 0.9, lineHeight: 1.6 }}>
-                        {loc('اكتشف الحملات المستقلة التي نطلقها لتلبية الاحتياجات العاجلة والموسمية.', 'Discover our independent campaigns launched to meet urgent and seasonal needs.')}
-                    </p>
-                </div>
+            <HeroBanner 
+                themeVariant="campaigns"
+                badgeText="حملاتنا الإغاثية والموسمية"
+                headline="ساهم في حملاتنا العاجلة لتوفير الدعم الفوري للفئات الأكثر احتياجاً"
+                highlightedWord="العاجلة"
+                subtext="تبرعك الآن يصنع فارقاً حقيقياً في أوقات الأزمات والمواسم الخيرية. كن جزءاً من الاستجابة السريعة."
+                primaryCtaText="تبرع الآن"
+                primaryCtaLink={paths.donor.donate}
+                secondaryCtaText="استكشف الحملات"
+                secondaryCtaLink="#campaigns-list"
+                stats={[
+                    { number: activeCampaignsCount > 0 ? `${activeCampaignsCount}+` : "0", label: "حملة نشطة" },
+                    { number: totalBeneficiaries > 0 ? `${formatNumber(totalBeneficiaries)}+` : "0", label: "مستفيد" },
+                    { number: governoratesCount > 0 ? `${governoratesCount}+` : "0", label: "محافظة" }
+                ]}
+                floatingIcons={[
+                    <Megaphone key="megaphone" size={24} />,
+                    <HeartHandshake key="heart" size={24} />,
+                    <Flame key="flame" size={24} />,
+                    <Globe key="globe" size={24} />
+                ]}
+            />
 
-                <div style={{ position: 'absolute', bottom: -2, left: 0, right: 0, width: '100%', overflow: 'hidden', lineHeight: 0 }}>
-                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{ display: 'block', width: '100%', height: 60, fill: isDark ? DARK_BG : '#f8fafc' }}>
-                        <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118.08,130.83,120.22,192.39,109.1,236.4,101.27,279.16,81.18,321.39,56.44Z" />
-                    </svg>
-                </div>
-            </div>
-
-            <div className="container mx-auto px-4" style={{ marginTop: -20, position: 'relative', zIndex: 10, marginBottom: 32 }}>
+            <div id="campaigns-list" className="container mx-auto px-4" style={{ marginTop: -20, position: 'relative', zIndex: 10, marginBottom: 32 }}>
                 <div style={{
                     display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between',
                     backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : 'rgba(255,255,255,0.9)',

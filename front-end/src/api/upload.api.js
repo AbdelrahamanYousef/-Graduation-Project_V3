@@ -37,3 +37,17 @@ export async function uploadCv(file) {
     });
     return data;
 }
+
+/**
+ * Upload a document (PDF, docx, etc.) for admin use
+ * @param {File} file
+ */
+export async function uploadDocument(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const { data } = await apiClient.post('/upload/document', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+}

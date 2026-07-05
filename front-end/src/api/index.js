@@ -96,10 +96,17 @@ export {
 // Donor Account
 export {
     getDonorProfile, updateDonorProfile, getDonorDonations, getDonorStats,
+    changePassword, updateNotificationSettings,
 } from './donorAccount.api';
 
 // Uploads
 export {
-    uploadProfilePhoto, uploadImage, uploadCv,
+    uploadProfilePhoto, uploadImage, uploadCv, uploadDocument,
 } from './upload.api';
+
+// Transparency
+export {
+    getTransparencyStats, getAuditReports, createAuditReport, updateAuditReport, deleteAuditReport,
+} from './transparency.api';
+
 

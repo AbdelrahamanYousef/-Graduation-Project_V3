@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency } from '../../i18n';
+import { getTransparencyStats } from '../../api';
 
 const primaryMain = '#00b16a';
 const primaryDark = '#009659';
@@ -7,15 +9,10 @@ const primaryLight = '#33c489';
 
 function Transparency() {
     const { isDark } = useTheme();
-
-    const financialData = {
-        totalDonations: 15234567,
-        totalSpent: 14123456,
-        programExpenses: 12500000,
-        adminExpenses: 1200000,
-        fundraisingExpenses: 423456,
-        beneficiaries: 48520,
-    };
+    const [financialData, setFinancialData] = useState(null);
+    const [rawProgramBreakdown, setRawProgramBreakdown] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     const programColors = {
         primary: primaryMain,
@@ -25,20 +22,80 @@ function Transparency() {
         info: '#3b82f6',
     };
 
-    const programBreakdown = [
-        { name: 'رعاية الأيتام', amount: 4500000, percentage: 36, color: programColors.primary },
-        { name: 'الرعاية الصحية', amount: 2800000, percentage: 22, color: programColors.success },
-        { name: 'التعليم', amount: 2200000, percentage: 18, color: programColors.secondary },
-        { name: 'الإغاثة العاجلة', amount: 1800000, percentage: 14, color: programColors.error },
-        { name: 'التنمية المجتمعية', amount: 1200000, percentage: 10, color: programColors.info },
+    const colorList = [
+        programColors.primary,
+        programColors.success,
+        programColors.secondary,
+        programColors.error,
+        programColors.info,
     ];
 
-    const auditors = [
-        { year: '2024', firm: 'شركة الحسابات المصرية', status: 'قيد المراجعة' },
-        { year: '2023', firm: 'شركة الحسابات المصرية', status: 'معتمد' },
-        { year: '2022', firm: 'PWC مصر', status: 'معتمد' },
-        { year: '2021', firm: 'PWC مصر', status: 'معتمد' },
-    ];
+    const [auditors, setAuditors] = useState([]);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchStats() {
+            try {
+                setIsLoading(true);
+                // TODO: Replace with the correct API endpoint later if the path changes
+                const data = await getTransparencyStats();
+                if (isMounted) {
+                    setFinancialData(data.financialData);
+                    setRawProgramBreakdown(data.programBreakdown || []);
+                    setAuditors(data.auditors || []);
+                    setError(null);
+                }
+            } catch (err) {
+                console.error('Failed to load transparency data:', err);
+                if (isMounted) {
+                    setError('حدث خطأ أثناء تحميل البيانات المالية. يرجى المحاولة مرة أخرى لاحقاً.');
+                }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            }
+        }
+        fetchStats();
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-[400px] flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#0f172a]">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-500 border-t-transparent"></div>
+                <p className="text-neutral-500 text-sm">جاري تحميل بيانات الشفافية...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-[400px] flex flex-col items-center justify-center gap-3 bg-white dark:bg-[#0f172a] px-4 text-center">
+                <div className="text-error-500 text-5xl mb-2"><i className="fa-solid fa-triangle-exclamation"></i></div>
+                <p className="text-neutral-500 text-sm font-semibold max-w-[400px]">{error}</p>
+            </div>
+        );
+    }
+
+    if (!financialData) {
+        return null;
+    }
+
+    const totalSpentVal = financialData.totalSpent || 1;
+    const deg1 = Math.round((financialData.programExpenses / totalSpentVal) * 360);
+    const deg2 = Math.round(((financialData.programExpenses + financialData.adminExpenses) / totalSpentVal) * 360);
+
+    const programPct = Math.round((financialData.programExpenses / totalSpentVal) * 100);
+    const adminPct = Math.round((financialData.adminExpenses / totalSpentVal) * 100);
+    const fundraisingPct = Math.max(0, 100 - programPct - adminPct);
+
+    const programBreakdown = rawProgramBreakdown.map((program, index) => ({
+        ...program,
+        color: program.color || colorList[index % colorList.length],
+    }));
 
     return (
         <div className="pb-12 bg-white dark:bg-[#0f172a]">
@@ -94,7 +151,9 @@ function Transparency() {
                                 <div className="text-3xl mb-1">
                                     <i className="fa-solid fa-bullseye"></i>
                                 </div>
-                                <h4 className="text-2xl font-bold">88%</h4>
+                                <h4 className="text-2xl font-bold">
+                                    {financialData.totalSpent > 0 ? Math.round((financialData.programExpenses / financialData.totalSpent) * 100) : 0}%
+                                </h4>
                                 <p className="text-sm opacity-90">نسبة الإنفاق على البرامج</p>
                             </div>
                         </div>
@@ -104,7 +163,7 @@ function Transparency() {
                                     <i className="fa-solid fa-users"></i>
                                 </div>
                                 <h5 className="text-xl font-bold" style={{ color: isDark ? '#e2e8f0' : '#1a1a2e' }}>
-                                    {financialData.beneficiaries.toLocaleString('ar-EG')}
+                                    {(financialData.beneficiaries || 0).toLocaleString('ar-EG')}
                                 </h5>
                                 <p className="text-sm" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>
                                     مستفيد
@@ -123,7 +182,7 @@ function Transparency() {
                         <div className="w-full md:w-2/3">
                             <div className={`p-4 rounded-2xl ${isDark ? 'bg-[#1e293b]' : 'bg-white'} shadow-lg`}>
                                 <div className="w-[200px] h-[200px] rounded-full mx-auto mb-3 relative flex items-center justify-center" style={{
-                                    background: `conic-gradient(${primaryMain} 0deg 316deg, ${isDark ? '#4a5568' : '#cbd5e1'} 316deg 349deg, ${programColors.secondary} 349deg 360deg)`,
+                                    background: `conic-gradient(${primaryMain} 0deg ${deg1}deg, ${isDark ? '#4a5568' : '#cbd5e1'} ${deg1}deg ${deg2}deg, ${programColors.secondary} ${deg2}deg 360deg)`,
                                 }}>
                                     <div className={`w-[100px] h-[100px] rounded-full flex flex-col items-center justify-center z-10 ${isDark ? 'bg-[#0f172a]' : 'bg-white'}`}>
                                         <p className="text-sm" style={{ color: isDark ? '#94a3b8' : '#64748b' }}>البرامج</p>
@@ -133,17 +192,17 @@ function Transparency() {
                                     <div className="flex items-center gap-2">
                                         <div className="w-4 h-4 rounded" style={{ backgroundColor: primaryMain }}></div>
                                         <p className="text-sm flex-1" style={{ color: isDark ? '#e2e8f0' : '#333' }}>مصروفات البرامج</p>
-                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>88%</p>
+                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>{programPct}%</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-4 h-4 rounded" style={{ backgroundColor: isDark ? '#4a5568' : '#cbd5e1' }}></div>
                                         <p className="text-sm flex-1" style={{ color: isDark ? '#e2e8f0' : '#333' }}>مصروفات إدارية</p>
-                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>9%</p>
+                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>{adminPct}%</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <div className="w-4 h-4 rounded" style={{ backgroundColor: programColors.secondary }}></div>
                                         <p className="text-sm flex-1" style={{ color: isDark ? '#e2e8f0' : '#333' }}>تكاليف جمع التبرعات</p>
-                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>3%</p>
+                                        <p className="text-sm font-medium" style={{ color: isDark ? '#e2e8f0' : '#333' }}>{fundraisingPct}%</p>
                                     </div>
                                 </div>
                             </div>
@@ -207,7 +266,7 @@ function Transparency() {
                                         </td>
                                         <td className="p-3">
                                             {audit.status === 'معتمد' ? (
-                                                <a href="#" className="flex items-center gap-1 text-sm hover:underline" style={{ color: primaryMain }}>
+                                                <a href={audit.fileUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm hover:underline" style={{ color: primaryMain }}>
                                                     <i className="fa-solid fa-file-pdf"></i> تحميل
                                                 </a>
                                             ) : (

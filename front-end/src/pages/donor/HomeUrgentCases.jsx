@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { t } from '../../i18n';
+import { paths } from '../../constants/paths';
 import CampaignCardItem from './CampaignCardItem';
 import { useState, useEffect, useRef } from 'react';
 
@@ -195,12 +196,12 @@ function HomeUrgentCases({ featuredProjectsList, isDark, setDonateProject, navig
                                         campaign={project}
                                         index={i}
                                         onClick={() => {
-                                            if (project.isProgram) {
-                                                navigate(`/programs/${project.id}`);
-                                            } else {
-                                                navigate(`/projects/${project.id}`);
-                                            }
-                                        }}
+                                             if (project.isProgram) {
+                                                 navigate(`/programs/${project.id}`);
+                                             } else {
+                                                 navigate(paths.getProjectDetails(project.programId, project.id));
+                                             }
+                                         }}
                                         onDonate={(p) => setDonateProject(p)}
                                     />
                                 </div>

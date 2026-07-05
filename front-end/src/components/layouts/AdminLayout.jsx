@@ -71,6 +71,7 @@ function AdminLayout() {
     const sidebarItems = [
         { path: '/admin/programs', label: t('admin.programs'), icon: 'fa-solid fa-folder-open' },
         { path: '/admin/projects', label: t('admin.projects'), icon: 'fa-solid fa-clipboard-list' },
+        { path: '/admin/reports', label: t('admin.reports'), icon: 'fa-solid fa-chart-line' },
         { path: '/admin/campaigns', label: 'الحملات', icon: 'fa-solid fa-bullhorn' },
         { path: '/admin/donations', label: t('admin.donations'), icon: 'fa-solid fa-coins' },
         { path: '/admin/beneficiaries', label: t('admin.beneficiaries'), icon: 'fa-solid fa-users' },

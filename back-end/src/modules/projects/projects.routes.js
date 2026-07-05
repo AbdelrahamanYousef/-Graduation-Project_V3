@@ -9,13 +9,13 @@ const router = Router();
 const projectSchema = z.object({
     programId: z.string().min(1),
     title: z.string().min(2),
-    description: z.string().optional(),
+    description: z.string().optional().nullable(),
     goal: z.number().positive(),
-    location: z.string().optional(),
-    imageUrl: z.string().optional(),
+    location: z.string().optional().nullable(),
+    imageUrl: z.string().optional().nullable(),
     status: z.enum(['ACTIVE', 'COMPLETED', 'PENDING']).optional(),
     isHighlighted: z.boolean().optional(),
-    donationAmount: z.number().optional(),
+    donationAmount: z.number().optional().nullable(),
 });
 
 router.get('/featured', ctrl.getFeatured);

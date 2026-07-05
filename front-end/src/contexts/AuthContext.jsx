@@ -8,6 +8,8 @@ import {
     getCurrentUser,
 } from '../api/auth.api';
 import { uploadProfilePhoto } from '../api/upload.api';
+import { updateDonorProfile } from '../api/donorAccount.api';
+
 
 const AuthContext = createContext(null);
 
@@ -169,16 +171,30 @@ export function AuthProvider({ children }) {
 
     const updateDonorPhoto = useCallback(async (file) => {
         try {
-            const result = await uploadProfilePhoto(file);
+            let photoUrl = null;
+            if (file) {
+                const result = await uploadProfilePhoto(file);
+                photoUrl = result.url;
+            }
+            await updateDonorProfile({ avatarUrl: photoUrl });
             setDonorUser(prev => {
-                const updated = { ...prev, photo: result.url };
+                const updated = { ...prev, photo: photoUrl };
                 localStorage.setItem('nour-donor', JSON.stringify(updated));
                 return updated;
             });
-            return { success: true, url: result.url };
+            return { success: true, url: photoUrl };
         } catch (err) {
+            console.error('Failed to update photo:', err);
             return { success: false, error: err.message || 'Upload failed' };
         }
+    }, []);
+
+    const updateDonorUser = useCallback((userData) => {
+        setDonorUser(prev => {
+            const updated = { ...prev, ...userData };
+            localStorage.setItem('nour-donor', JSON.stringify(updated));
+            return updated;
+        });
     }, []);
 
     const getToken = useCallback(() => adminToken || donorToken, [adminToken, donorToken]);
@@ -187,8 +203,8 @@ export function AuthProvider({ children }) {
         <AuthContext.Provider value={{
             isAdmin, adminUser, login, logout, updateAdminPhoto,
             isDonorLoggedIn, donorUser, donorLogin, donorLogout, updateDonorPhoto,
-            registerDonor, verifyDonorEmail, resendDonorVerification,
-            getToken, adminToken, donorToken, loading,
+            registerDonor, verifyDonorEmail, resendVerification: resendDonorVerification,
+            getToken, adminToken, donorToken, loading, updateDonorUser,
         }}>
             {children}
         </AuthContext.Provider>

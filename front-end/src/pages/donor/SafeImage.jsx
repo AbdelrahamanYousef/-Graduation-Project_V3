@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const FALLBACK_IMG = 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=600&h=400&fit=crop';
+const FALLBACK_IMG = '/vite.svg';
 
 function SafeImage({ src, alt, className, style }) {
     const [s, setS] = useState(src);

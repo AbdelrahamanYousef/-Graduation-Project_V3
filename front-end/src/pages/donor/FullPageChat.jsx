@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { faqs, greetingMessages, quickReplies } from '../../data/chatbotData';
 import { donationCategories } from '../../data/mockData';
 import { aiChat } from '../../api/ai.api';
 import { useInjectStyles } from '../../utils/injectStyles';
+import { getDonorDonations } from '../../api/donorAccount.api';
+import { getMyRequests } from '../../api/specialRequests.api';
 
 const GREEN = '#00b16a';
 const GREEN_DK = '#009659';
@@ -25,12 +28,59 @@ const fullPageChatStyles = `
     }
 `;
 
+const parseMarkdownLinks = (text) => {
+    if (!text) return '';
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(text.substring(lastIndex, match.index));
+        }
+        const linkText = match[1];
+        const linkUrl = match[2];
+        parts.push(
+            <a 
+                key={match.index} 
+                href={linkUrl} 
+                className="underline font-bold hover:opacity-85"
+                style={{ color: 'inherit', textDecoration: 'underline' }}
+            >
+                {linkText}
+            </a>
+        );
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        parts.push(text.substring(lastIndex));
+    }
+    return parts.length > 0 ? parts : text;
+};
+
 function FullPageChat() {
     const { isDark } = useTheme();
+    const { donorUser } = useAuth();
     const navigate = useNavigate();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [userDonations, setUserDonations] = useState([]);
+    const [userRequests, setUserRequests] = useState([]);
+
+    useEffect(() => {
+        if (donorUser) {
+            getDonorDonations()
+                .then(data => setUserDonations(data || []))
+                .catch(err => console.error("Error fetching chatbot donations:", err));
+            getMyRequests()
+                .then(data => setUserRequests(data || []))
+                .catch(err => console.error("Error fetching chatbot requests:", err));
+        } else {
+            setUserDonations([]);
+            setUserRequests([]);
+        }
+    }, [donorUser]);
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
     const categories = [...new Set(faqs.map(f => f.category))];
@@ -60,7 +110,19 @@ function FullPageChat() {
         addMessage([{ type: 'user', text: question }]);
         setLoading(true);
         try {
-            const data = await aiChat(question, projectsData);
+            let userContext = null;
+            if (donorUser) {
+                const userName = donorUser.name || 'أيها المستخدم';
+                const donationsText = userDonations && userDonations.length > 0
+                    ? userDonations.map(d => `${d.amount} EGP for ${d.project || 'General'} (${d.status})`).join(', ')
+                    : '';
+                const requestsText = userRequests && userRequests.length > 0
+                    ? userRequests.map(r => `${r.requestType} (${r.status})`).join(', ')
+                    : '';
+
+                userContext = `The user you are talking to is ${userName}. Their past donations are: [${donationsText}]. Their current requests are: [${requestsText}]. Use this data to answer their questions naturally. Every response to queries about user donations or requests must be highly personalized and based only on this user context data. Do not invent any donations or requests that are not in the provided lists. If the arrays are empty, tell them they haven't made any yet.`;
+            }
+            const data = await aiChat(question, projectsData, [], userContext);
             setTimeout(() => { addMessage([{ type: 'bot', text: data.reply }]); setLoading(false); }, 300);
         } catch (err) {
             setTimeout(() => {
@@ -128,9 +190,8 @@ function FullPageChat() {
                                 lineHeight: 1.7,
                                 boxShadow: msg.type === 'user' ? `0 2px 8px ${GREEN}33` : '0 1px 4px rgba(0,0,0,0.04)',
                             }}
-                            dangerouslySetInnerHTML={msg.__html ? { __html: msg.text } : undefined}
                         >
-                            {!msg.__html && msg.text}
+                            {parseMarkdownLinks(msg.text)}
                         </div>
                         {msg.isQuickReplies && (
                             <div className="flex flex-wrap gap-1 mt-2">
