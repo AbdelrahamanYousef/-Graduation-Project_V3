@@ -7,7 +7,7 @@ const { z } = require('zod');
 const router = Router();
 
 // Public / auth-optional: submit volunteer application
-router.post('/apply', validate({
+router.post('/apply', authUser, validate({
     body: z.object({
         name: z.string().min(2).regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'الاسم يجب أن يحتوي على أحرف ومسافات فقط'),
         email: z.string().email('البريد الإلكتروني غير صالح'),
@@ -19,7 +19,7 @@ router.post('/apply', validate({
         userId: z.string().optional().nullable(),
     }),
 }), async (req, res, next) => {
-    try { res.status(201).json(await service.create(req.body)); } catch (e) { next(e); }
+    try { res.status(201).json(await service.create({ ...req.body, userId: req.user.id })); } catch (e) { next(e); }
 });
 
 // User: fetch my applications

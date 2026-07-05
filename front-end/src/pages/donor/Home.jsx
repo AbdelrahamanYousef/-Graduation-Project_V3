@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { t } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import QuickDonateModal from './QuickDonateModal';
+import { paths } from '../../constants/paths';
 import DonationCategoriesSection from '../../components/donor/DonationCategoriesSection';
 import RecommendationSection from '../../components/donor/RecommendationSection';
 import HomeHero from './HomeHero';
@@ -17,7 +17,6 @@ import HomeCta from './HomeCta';
 
 function Home() {
     const { isDark, language } = useTheme();
-    const [donateProject, setDonateProject] = useState(null);
     const navigate = useNavigate();
 
     const { state } = useAdminData();
@@ -168,7 +167,7 @@ function Home() {
             <HomeUrgentCases
                 featuredProjectsList={featuredProjectsList}
                 isDark={isDark}
-                setDonateProject={setDonateProject}
+                setDonateProject={(p) => navigate(`${paths.donor.donate}?project=${p.id}`)}
                 navigate={navigate}
             />
 
@@ -189,12 +188,6 @@ function Home() {
             />
 
             <HomeCta isDark={isDark} />
-
-            <QuickDonateModal
-                open={!!donateProject}
-                onClose={() => setDonateProject(null)}
-                project={donateProject}
-            />
 
         </div>
     );

@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { AdminPageHeader, AdminDataTable, AdminStatusChip } from '../../components/admin';
+import { AdminPageHeader, AdminDataTable, AdminStatusChip, AdminFormDialog } from '../../components/admin';
 import { formatDate, t } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import { getContactMessages, updateContactStatus } from '../../api/contact.api';
+import { getContactMessages, updateContactStatus, replyToContactMessage } from '../../api/contact.api';
 
 const STATUS_MAP = {
     'NEW': 'جديد',
@@ -22,6 +22,32 @@ function AdminContactMessages() {
     const [loading, setLoading] = useState(false);
 
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
+
+    const [replyModalOpen, setReplyModalOpen] = useState(false);
+    const [selectedMessage, setSelectedMessage] = useState(null);
+    const [replyText, setReplyText] = useState('');
+    const [isSending, setIsSending] = useState(false);
+
+    const handleOpenReply = (msg) => {
+        setSelectedMessage(msg);
+        setReplyText('');
+        setReplyModalOpen(true);
+    };
+
+    const handleSendReply = async () => {
+        if (!replyText.trim()) return;
+        setIsSending(true);
+        try {
+            await replyToContactMessage(selectedMessage.id, replyText.trim());
+            await fetchMessages();
+            setReplyModalOpen(false);
+            setSnackbar({ open: true, msg: 'تم إرسال الرد وتحديث حالة الرسالة بنجاح', severity: 'success' });
+        } catch (err) {
+            setSnackbar({ open: true, msg: err.message || 'فشل إرسال الرد', severity: 'error' });
+        } finally {
+            setIsSending(false);
+        }
+    };
 
     useEffect(() => {
         if (snackbar.open) {
@@ -83,7 +109,7 @@ function AdminContactMessages() {
     ];
 
     const actions = [
-        { icon: 'fa-solid fa-check', tooltip: 'تم الرد', onClick: (row) => updateStatus(row, 'تم الرد') },
+        { icon: 'fa-solid fa-reply', tooltip: 'الرد على الرسالة', onClick: (row) => handleOpenReply(row) },
         { icon: 'fa-solid fa-spinner', tooltip: 'قيد المعالجة', onClick: (row) => updateStatus(row, 'قيد المعالجة') },
     ];
 
@@ -99,6 +125,49 @@ function AdminContactMessages() {
             ) : (
                 <AdminDataTable columns={columns} data={messages} actions={actions} />
             )}
+            <AdminFormDialog
+                open={replyModalOpen}
+                onClose={() => setReplyModalOpen(false)}
+                title="الرد على رسالة تواصل"
+                onSubmit={handleSendReply}
+                submitLabel="إرسال الرد"
+                cancelLabel="إلغاء"
+                loading={isSending}
+                loadingLabel="جاري الإرسال..."
+                maxWidth="sm"
+            >
+                {selectedMessage && (
+                    <div className="flex flex-col gap-4 text-right" dir="rtl">
+                        {/* Original Message Preview */}
+                        <div className="p-4 bg-neutral-50 dark:bg-neutral-900 rounded-xl border border-neutral-100 dark:border-neutral-800">
+                            <p className="text-xs text-neutral-400 dark:text-neutral-500 mb-1">
+                                الرسالة الأصلية من: {selectedMessage.name} ({selectedMessage.email})
+                            </p>
+                            <p className="font-semibold text-sm text-neutral-800 dark:text-neutral-200 mb-2">
+                                الموضوع: {selectedMessage.subject}
+                            </p>
+                            <div className="text-xs text-neutral-600 dark:text-neutral-400 max-h-[150px] overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                                {selectedMessage.message}
+                            </div>
+                        </div>
+
+                        {/* Reply Input */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                                نص الرد
+                            </label>
+                            <textarea
+                                placeholder="اكتب ردك هنا..."
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                rows={6}
+                                className="w-full px-3 py-2 border rounded-xl bg-transparent text-inherit focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all resize-none border-neutral-200 dark:border-neutral-700"
+                                required
+                            />
+                        </div>
+                    </div>
+                )}
+            </AdminFormDialog>
 
             {snackbar.open && (
                 <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">

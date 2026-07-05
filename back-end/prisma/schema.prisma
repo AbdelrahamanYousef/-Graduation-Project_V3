@@ -27,6 +27,7 @@ model User {
   deletedAt                DateTime?
   auditLogs                AuditLog[]
   chatbotLogs              ChatbotLog[]
+  contactMessages          ContactMessage[]
   approvedDisbursements    Disbursement[]         @relation("ApprovedBy")
   donations                Donation[]
   notifications            Notification[]
@@ -262,6 +263,7 @@ model SpecialRequestProcessLog {
 
 model ContactMessage {
   id            String        @id @default(cuid())
+  userId        String?
   name          String
   email         String
   phone         String?
@@ -271,6 +273,7 @@ model ContactMessage {
   status        ContactStatus @default(NEW)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  user          User?         @relation(fields: [userId], references: [id])
 
   @@map("contact_messages")
 }

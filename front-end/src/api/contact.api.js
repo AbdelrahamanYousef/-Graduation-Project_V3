@@ -27,3 +27,11 @@ export async function updateContactStatus(id, status) {
     const { data } = await apiClient.patch(`/contact/${id}/status`, { status });
     return data;
 }
+
+/**
+ * Reply to a contact message (admin)
+ */
+export async function replyToContactMessage(id, replyText) {
+    const { data } = await apiClient.post(`/admin/messages/${id}/reply`, { replyText });
+    return data;
+}

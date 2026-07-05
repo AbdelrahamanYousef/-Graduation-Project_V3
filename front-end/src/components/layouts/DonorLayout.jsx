@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import ChatBot from '../donor/ChatBot';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { paths } from '../../constants/paths';
 
 function useScrollTrigger(options = {}) {
     const { threshold = 0 } = options;
@@ -259,12 +260,12 @@ function DonorLayout({ children }) {
                                     </div>
                                 </>
                             ) : (
-                                <Link to="/login" className="hidden md:flex px-3 py-1.5 text-white hover:bg-white/10 rounded-md transition-all duration-280 no-underline text-sm font-medium">
+                                <Link to={paths.auth.login} className="hidden md:flex px-3 py-1.5 text-white hover:bg-white/10 rounded-md transition-all duration-280 no-underline text-sm font-medium">
                                     {t('nav.login')}
                                 </Link>
                             )}
 
-                            <Link to="/donate" className="hidden md:flex mr-1 px-4 py-1.5 bg-primary-500 text-white font-semibold rounded-md hover:bg-primary-600 transition-colors no-underline text-sm">
+                            <Link to={paths.donor.donate} className="hidden md:flex mr-1 px-4 py-1.5 bg-primary-500 text-white font-semibold rounded-md hover:bg-primary-600 transition-colors no-underline text-sm">
                                 {t('common.donate')}
                             </Link>
                         </div>
@@ -291,7 +292,7 @@ function DonorLayout({ children }) {
                             </Link>
                         ))}
                         {!isDonorLoggedIn && (
-                            <Link to="/login" onClick={handleDrawerToggle} className="flex items-center gap-3 px-3 py-2.5 rounded-lg no-underline text-inherit hover:bg-neutral-50 dark:hover:bg-neutral-700/50">
+                            <Link to={paths.auth.login} onClick={handleDrawerToggle} className="flex items-center gap-3 px-3 py-2.5 rounded-lg no-underline text-inherit hover:bg-neutral-50 dark:hover:bg-neutral-700/50">
                                 <i className="fa-solid fa-right-to-bracket w-5 text-center"></i>
                                 <span className="text-sm font-medium">{t('nav.login')}</span>
                             </Link>
@@ -304,7 +305,7 @@ function DonorLayout({ children }) {
                                 {isDark ? 'Light' : 'Dark'}
                             </button>
                         </div>
-                        <Link to="/donate" onClick={handleDrawerToggle} className="block w-full px-3 py-2 bg-primary-500 text-white font-semibold rounded-md hover:bg-primary-600 transition-colors text-center no-underline text-sm">
+                        <Link to={paths.donor.donate} onClick={handleDrawerToggle} className="block w-full px-3 py-2 bg-primary-500 text-white font-semibold rounded-md hover:bg-primary-600 transition-colors text-center no-underline text-sm">
                             {t('common.donate')}
                         </Link>
                         {isDonorLoggedIn && (

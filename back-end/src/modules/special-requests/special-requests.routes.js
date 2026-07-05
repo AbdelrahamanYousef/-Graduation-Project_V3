@@ -7,7 +7,7 @@ const { z } = require('zod');
 const router = Router();
 
 // Public / auth-optional: submit a new special aid request
-router.post('/', validate({
+router.post('/', authUser, validate({
     body: z.object({
         name: z.string().min(2).regex(/^[a-zA-Z\u0600-\u06FF\s]+$/, 'الاسم يجب أن يحتوي على أحرف ومسافات فقط'),
         email: z.string().email('البريد الإلكتروني غير صالح').optional().nullable().or(z.literal('')),
@@ -17,7 +17,7 @@ router.post('/', validate({
         userId: z.string().optional().nullable(),
     }),
 }), async (req, res, next) => {
-    try { res.status(201).json(await service.create(req.body)); } catch (e) { next(e); }
+    try { res.status(201).json(await service.create({ ...req.body, userId: req.user.id })); } catch (e) { next(e); }
 });
 
 // User: fetch my requests

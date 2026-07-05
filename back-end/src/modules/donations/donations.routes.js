@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const ctrl = require('./donations.controller');
-const { authAdmin, optionalAuth } = require('../../middleware/auth');
+const { authAdmin, authUser } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
 
@@ -12,7 +12,7 @@ router.get('/payment-methods', ctrl.getPaymentMethods);
 router.get('/amounts', ctrl.getSuggestedAmounts);
 
 // Create donation (Simulated)
-router.post('/', optionalAuth, validate({
+router.post('/', authUser, validate({
     body: z.object({
         amount: z.number().min(10, 'Minimum donation is 10 EGP'),
         type: z.enum(['sadaqah', 'zakat', 'kafala', 'waqf', 'fidya', 'SADAQAH', 'ZAKAT', 'ORPHAN_SPONSORSHIP', 'SADAQAH_JARIYAH', 'GENERAL']).optional(),

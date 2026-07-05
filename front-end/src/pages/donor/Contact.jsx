@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { t } from '../../i18n';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAdminData } from '../../contexts/AdminDataContext';
@@ -6,6 +7,8 @@ import { useInjectStyles } from '../../utils/injectStyles';
 import { submitContactMessage } from '../../api/contact.api';
 import { HeroBanner, useToast } from '../../components/common';
 import { Phone, Mail, MapPin, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { paths } from '../../constants/paths';
 
 import ContactInfoCard from './ContactInfoCard';
 import ContactSocialCard from './ContactSocialCard';
@@ -26,6 +29,9 @@ const pageStyles = `
 `;
 
 function Contact() {
+    const { isDonorLoggedIn } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const containerRef = useRef(null);
     const { isDark, language } = useTheme();
     useInjectStyles(pageStyles, 'contact-page-styles');
@@ -160,19 +166,38 @@ function Contact() {
                             </div>
 
                             <div id="contact-form" className="flex-[1_1_100%] md:flex-[1_1_0%] w-full md:w-auto order-1 md:order-2">
-                                <ContactForm
-                                    isDark={isDark}
-                                    isRTL={isRTL}
-                                    onSubmit={handleSubmit}
-                                    form={form}
-                                    setForm={setForm}
-                                    touched={touched}
-                                    setTouched={setTouched}
-                                    submitting={isLoading}
-                                    errors={getError}
-                                    handleBlur={handleBlur}
-                                    getHelper={getHelper}
-                                />
+                                {!isDonorLoggedIn ? (
+                                    <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-8 text-center font-sans" dir="rtl">
+                                        <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500">
+                                            <i className="fa-solid fa-lock text-2xl"></i>
+                                        </div>
+                                        <h3 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-3">تسجيل الدخول مطلوب</h3>
+                                        <p className="text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed">
+                                            يرجى تسجيل الدخول لتتمكن من إرسال طلبك ومتابعته من حسابك.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => navigate(paths.auth.login, { state: { from: location.pathname } })}
+                                            className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                                        >
+                                            تسجيل الدخول الآن
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <ContactForm
+                                        isDark={isDark}
+                                        isRTL={isRTL}
+                                        onSubmit={handleSubmit}
+                                        form={form}
+                                        setForm={setForm}
+                                        touched={touched}
+                                        setTouched={setTouched}
+                                        submitting={isLoading}
+                                        errors={getError}
+                                        handleBlur={handleBlur}
+                                        getHelper={getHelper}
+                                    />
+                                )}
                             </div>
                         </div>
                     </div>

@@ -8,6 +8,7 @@ function AdminFormDialog({
   maxWidth = 'sm',
   dividers = false,
   loading = false,
+  loadingLabel = 'جاري الحفظ...',
   children
 }) {
   const handleSubmit = () => {
@@ -50,7 +51,7 @@ function AdminFormDialog({
             disabled={loading}
             className="px-5 py-2 rounded-md font-semibold bg-primary-500 text-white hover:bg-primary-600 transition-colors disabled:opacity-50"
           >
-            {loading ? 'جاري الحفظ...' : submitLabel}
+            {loading ? loadingLabel : submitLabel}
           </button>
         </div>
       </div>

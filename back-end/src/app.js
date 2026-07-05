@@ -60,6 +60,16 @@ api.use('/contact', contactRoutes);
 api.get('/admin/messages', require('./middleware/auth').authAdmin, async (req, res, next) => {
     try { res.json(await require('./modules/contact/contact.service').list(req.query)); } catch (e) { next(e); }
 });
+api.post('/admin/messages/:id/reply', require('./middleware/auth').authAdmin, async (req, res, next) => {
+    try {
+        const { replyText } = req.body;
+        if (!replyText || typeof replyText !== 'string' || replyText.trim().length === 0) {
+            return res.status(400).json({ error: { status: 400, message: 'محتوى الرد مطلوب' } });
+        }
+        const contactService = require('./modules/contact/contact.service');
+        res.json(await contactService.reply(req.params.id, replyText.trim(), req.user));
+    } catch (e) { next(e); }
+});
 api.use('/settings', settingsRoutes);
 api.use('/users', userRoutes);
 api.use('/donor', accountRoutes);

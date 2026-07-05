@@ -1,13 +1,13 @@
 const { Router } = require('express');
 const service = require('./contact.service');
-const { authAdmin } = require('../../middleware/auth');
+const { authAdmin, authUser } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
 
 const router = Router();
 
 // Public: submit contact message
-router.post('/', validate({
+router.post('/', authUser, validate({
     body: z.object({
         name: z.string().min(2),
         email: z.string().email(),
@@ -19,7 +19,7 @@ router.post('/', validate({
     }),
 }), async (req, res, next) => {
     try {
-        const message = await service.create(req.body);
+        const message = await service.create(req.body, req.user.id);
         res.status(201).json({
             status: 201,
             message: "Message sent successfully",

@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatNumber, getLanguage } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
-import QuickDonateModal from './QuickDonateModal';
+import { paths } from '../../constants/paths';
 import { useInjectStyles } from '../../utils/injectStyles';
 import CampaignSidebar from './CampaignSidebar';
 
@@ -24,9 +24,9 @@ const campaignDetailStyles = `
 export default function CampaignDetail() {
     const { id } = useParams();
     const { isDark } = useTheme();
+    const navigate = useNavigate();
     const lang = getLanguage() === 'en';
 
-    const [donateCampaign, setDonateCampaign] = useState(null);
     const [donationAmount, setDonationAmount] = useState(200);
 
     useInjectStyles(campaignDetailStyles, 'campaign-detail-styles');
@@ -178,18 +178,11 @@ export default function CampaignDetail() {
                             amount={donationAmount}
                             setAmount={setDonationAmount}
                             isDark={isDark}
-                            onDonate={() => setDonateCampaign(campaign)}
+                            onDonate={() => navigate(`${paths.donor.donate}?project=${campaign.id}&amount=${donationAmount}`)}
                         />
                     </div>
                 </div>
             </div>
-
-            <QuickDonateModal
-                project={donateCampaign}
-                isOpen={!!donateCampaign}
-                onClose={() => setDonateCampaign(null)}
-                defaultAmount={donationAmount}
-            />
         </div>
     );
 }

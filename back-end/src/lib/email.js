@@ -191,4 +191,46 @@ async function sendVolunteerApprovalEmail(email, name) {
     }
 }
 
-module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail, sendVolunteerApprovalEmail };
+/**
+ * Send contact reply email
+ */
+async function sendContactReplyEmail(email, name, originalSubject, replyText) {
+    const subject = `نور - رد على رسالتك: ${originalSubject}`;
+    const html = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 20px; direction: rtl; text-align: right;">
+            <h2 style="color: #00b16a; border-bottom: 2px solid #00b16a; padding-bottom: 10px;">رد على رسالة التواصل الخاصة بك</h2>
+            <p>مرحباً <strong>${name}</strong>،</p>
+            <p>نشكرك على تواصلك مع جمعية نور الخيرية بخصوص الموضوع: <strong>"${originalSubject}"</strong>.</p>
+            <p>فيما يلي الرد من إدارة الجمعية:</p>
+            <div style="background-color: #f9f9f9; border-right: 4px solid #00b16a; padding: 15px; margin: 20px 0; white-space: pre-wrap; font-size: 15px; color: #333;">
+                ${replyText}
+            </div>
+            <br>
+            <p>مع تحيات،</p>
+            <p><strong>إدارة جمعية نور الخيرية</strong></p>
+        </body>
+        </html>
+    `;
+
+    try {
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: config.emailFrom,
+            to: email,
+            subject,
+            html,
+        });
+        console.log(`✅ Contact reply email sent to ${email}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Failed to send contact reply email to ${email}:`, error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail, sendVolunteerApprovalEmail, sendContactReplyEmail };

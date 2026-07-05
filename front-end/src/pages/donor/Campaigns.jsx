@@ -4,7 +4,6 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { getLanguage, formatNumber } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import CampaignCardItem from './CampaignCardItem';
-import QuickDonateModal from './QuickDonateModal';
 import { HeroBanner } from '../../components/common';
 import { paths } from '../../constants/paths';
 import { Megaphone, HeartHandshake, Flame, Globe } from 'lucide-react';
@@ -26,7 +25,6 @@ function Campaigns() {
 
     const [activeFilter, setActiveFilter] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
-    const [donateCampaign, setDonateCampaign] = useState(null);
     const [beneficiaryCount, setBeneficiaryCount] = useState(0);
 
     useEffect(() => {
@@ -185,7 +183,7 @@ function Campaigns() {
                                 campaign={c}
                                 index={i}
                                 onClick={() => navigate(`/campaigns/${c.id}`)}
-                                onDonate={() => setDonateCampaign(c)}
+                                onDonate={(campaign) => navigate(`${paths.donor.donate}?project=${campaign.id}`)}
                             />
                         ))}
                     </div>
@@ -203,12 +201,6 @@ function Campaigns() {
                     </div>
                 )}
             </div>
-
-            <QuickDonateModal
-                project={donateCampaign}
-                isOpen={!!donateCampaign}
-                onClose={() => setDonateCampaign(null)}
-            />
         </div>
     );
 }

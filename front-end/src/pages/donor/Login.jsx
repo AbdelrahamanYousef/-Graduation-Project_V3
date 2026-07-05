@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { forgotPassword, resetPassword } from '../../api/auth.api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -21,6 +21,7 @@ const loginStyles = `
 
 function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { isDark: _, toggleTheme } = useTheme();
     const { isDonorLoggedIn, donorLogin, registerDonor, verifyDonorEmail, resendDonorVerification } = useAuth();
     useInjectStyles(loginStyles, 'login-styles');
@@ -52,9 +53,10 @@ function Login() {
 
     useEffect(() => {
         if (isDonorLoggedIn) {
-            navigate('/account', { replace: true });
+            const from = location.state?.from || '/account';
+            navigate(from, { replace: true });
         }
-    }, [isDonorLoggedIn, navigate]);
+    }, [isDonorLoggedIn, navigate, location]);
 
     const handleSignIn = async (e) => {
         e.preventDefault();
@@ -64,7 +66,8 @@ function Login() {
         const result = await donorLogin(signInEmail, signInPassword);
         setLoading(false);
         if (result.success) {
-            navigate('/account');
+            const from = location.state?.from || '/account';
+            navigate(from, { replace: true });
         } else {
             setError(result.error);
         }
@@ -114,7 +117,8 @@ function Login() {
         setLoading(false);
 
         if (result.success) {
-            navigate('/account');
+            const from = location.state?.from || '/account';
+            navigate(from, { replace: true });
         } else {
             setError(result.error);
         }

@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { t, formatCurrency, formatNumber, formatDate, getLanguage } from '../../i18n';
 import { updates } from '../../data/mockData';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { paths } from '../../constants/paths';
 
 function ProjectDetails() {
     const { projectId } = useParams();
+    const { isDonorLoggedIn } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
     const isEn = getLanguage() === 'en';
@@ -289,33 +294,53 @@ function ProjectDetails() {
 
                                 <hr className="border-t border-slate-100 dark:border-slate-800" />
 
-                                {/* Donation Value options */}
-                                <div>
-                                    <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-3">{t('donate.selectAmount')}</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                        {[50, 100, 200, 500, 1000, 2000].map(amount => (
-                                            <button
-                                                key={amount}
-                                                onClick={() => setDonationAmount(amount)}
-                                                className={`rounded-2xl border py-3 text-xs md:text-sm font-extrabold transition-all duration-200 ${
-                                                    donationAmount === amount
-                                                        ? 'bg-emerald-600 border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 text-white shadow-lg shadow-emerald-600/20'
-                                                        : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 bg-slate-50/50 dark:bg-slate-950/30 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/20'
-                                                }`}
-                                            >
-                                                {formatCurrency(amount).replace(' ج.م', '')} <span className="text-[10px] block font-semibold opacity-85 mt-0.5">ج.م</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                {!isDonorLoggedIn ? (
+                                     <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center my-4 font-sans">
+                                         <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                                             <i className="fa-solid fa-lock text-lg"></i>
+                                         </div>
+                                         <p className="text-sm font-semibold text-slate-700 dark:text-slate-350 mb-5 leading-relaxed">
+                                             قم بتسجيل الدخول للتبرع لهذا المشروع ومتابعة سجل عطائك.
+                                         </p>
+                                         <button
+                                             type="button"
+                                             onClick={() => navigate(paths.auth.login, { state: { from: location.pathname + location.search } })}
+                                             className="w-full py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20 text-sm"
+                                         >
+                                             تسجيل الدخول للتبرع
+                                         </button>
+                                     </div>
+                                 ) : (
+                                     <>
+                                         {/* Donation Value options */}
+                                         <div className="mb-4">
+                                             <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-3">{t('donate.selectAmount')}</p>
+                                             <div className="grid grid-cols-3 gap-2">
+                                                 {[50, 100, 200, 500, 1000, 2000].map(amount => (
+                                                     <button
+                                                         key={amount}
+                                                         onClick={() => setDonationAmount(amount)}
+                                                         className={`rounded-2xl border py-3 text-xs md:text-sm font-extrabold transition-all duration-200 ${
+                                                             donationAmount === amount
+                                                                 ? 'bg-emerald-600 border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                                                                 : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 bg-slate-50/50 dark:bg-slate-950/30 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/20'
+                                                         }`}
+                                                     >
+                                                         {formatCurrency(amount).replace(' ج.م', '')} <span className="text-[10px] block font-semibold opacity-85 mt-0.5">ج.م</span>
+                                                     </button>
+                                                 ))}
+                                             </div>
+                                         </div>
 
-                                {/* Donate Button */}
-                                <Link
-                                    to={`/donate?project=${project.id}&amount=${donationAmount}`}
-                                    className="block bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white hover:text-white text-center py-4 rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-emerald-600/20 hover:-translate-y-0.5 text-sm md:text-base"
-                                >
-                                    {t('common.donate')}
-                                </Link>
+                                         {/* Donate Button */}
+                                         <Link
+                                             to={`${paths.donor.donate}?project=${project.id}&amount=${donationAmount}`}
+                                             className="block bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white hover:text-white text-center py-4 rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-emerald-600/20 hover:-translate-y-0.5 text-sm md:text-base mb-3"
+                                         >
+                                             {t('common.donate')}
+                                         </Link>
+                                     </>
+                                 )}
                                 <button className="w-full text-slate-500 dark:text-slate-400 text-xs py-1.5 flex items-center justify-center gap-2 hover:text-emerald-650 dark:hover:text-emerald-400 transition-colors font-semibold">
                                     <i className="fa-solid fa-share-nodes"></i>
                                     {t('projectDetails.shareProject')}

@@ -1,13 +1,13 @@
 const { Router } = require('express');
 const ctrl = require('./payments.controller');
-const { optionalAuth } = require('../../middleware/auth');
+const { authUser } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
 
 const router = Router();
 
 // POST /payments/intents — create a payment intent (donation in PENDING state)
-router.post('/intents', optionalAuth, validate({
+router.post('/intents', authUser, validate({
     body: z.object({
         amount: z.number().min(10, 'Minimum donation is 10 EGP'),
         paymentMethod: z.enum(['CARD', 'VODAFONE_CASH', 'ORANGE_CASH', 'INSTAPAY', 'FAWRY', 'BANK_TRANSFER']),
@@ -26,7 +26,7 @@ router.post('/intents', optionalAuth, validate({
 }), ctrl.createIntent);
 
 // POST /payments/:id/confirm — simulate payment result
-router.post('/:id/confirm', optionalAuth, validate({
+router.post('/:id/confirm', authUser, validate({
     body: z.object({
         status: z.enum(['SUCCESS', 'FAILED']).optional(), // optional explicit status for testing
     }).optional(),

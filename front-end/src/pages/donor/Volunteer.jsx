@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInjectStyles } from '../../utils/injectStyles';
+import { paths } from '../../constants/paths';
 import VolunteerHero from './VolunteerHero';
 import VolunteerStatsStrip from './VolunteerStatsStrip';
 import VolunteerReasons from './VolunteerReasons';
@@ -10,6 +12,8 @@ import VolunteerSignupForm from './VolunteerSignupForm';
 import { applyAsVolunteer, uploadCv } from '../../api';
 
 function Volunteer() {
+    const navigate = useNavigate();
+    const location = useLocation();
     const containerRef = useRef(null);
     const { isDark } = useTheme();
     const { isDonorLoggedIn, donorUser } = useAuth();
@@ -180,26 +184,45 @@ function Volunteer() {
                 <div className="max-w-[1200px] mx-auto px-4 md:px-6 mt-8 md:mt-10">
                     <VolunteerReasons isDark={isDark} />
                     <VolunteerOpportunities isDark={isDark} />
-                    <VolunteerSignupForm
-                        isDark={isDark}
-                        form={form}
-                        setForm={setForm}
-                        touched={touched}
-                        setTouched={setTouched}
-                        submitted={false} // Disable old button success layout
-                        submitting={submitting}
-                        handleSubmit={handleSubmit}
-                        handleBlur={handleBlur}
-                        getError={getError}
-                        getHelper={getHelper}
-                        cvMode={cvMode}
-                        setCvMode={setCvMode}
-                        cvError={cvError}
-                        fileInputRef={fileInputRef}
-                        handleCvFile={handleCvFile}
-                        clearCv={clearCv}
-                        volunteerAreas={volunteerAreas}
-                    />
+                    {!isDonorLoggedIn ? (
+                        <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-200 dark:border-neutral-700 p-8 text-center my-8 font-sans" dir="rtl">
+                            <div className="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/30 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-500">
+                                <i className="fa-solid fa-lock text-2xl"></i>
+                            </div>
+                            <h3 className="text-xl font-bold text-neutral-800 dark:text-neutral-200 mb-3">تسجيل الدخول مطلوب</h3>
+                            <p className="text-neutral-600 dark:text-neutral-400 mb-8 leading-relaxed">
+                                يرجى تسجيل الدخول لتتمكن من إرسال طلبك ومتابعته من حسابك.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => navigate(paths.auth.login, { state: { from: location.pathname } })}
+                                className="w-full sm:w-auto px-8 py-3 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 transition-colors shadow-lg shadow-emerald-500/20"
+                            >
+                                تسجيل الدخول الآن
+                            </button>
+                        </div>
+                    ) : (
+                        <VolunteerSignupForm
+                            isDark={isDark}
+                            form={form}
+                            setForm={setForm}
+                            touched={touched}
+                            setTouched={setTouched}
+                            submitted={false} // Disable old button success layout
+                            submitting={submitting}
+                            handleSubmit={handleSubmit}
+                            handleBlur={handleBlur}
+                            getError={getError}
+                            getHelper={getHelper}
+                            cvMode={cvMode}
+                            setCvMode={setCvMode}
+                            cvError={cvError}
+                            fileInputRef={fileInputRef}
+                            handleCvFile={handleCvFile}
+                            clearCv={clearCv}
+                            volunteerAreas={volunteerAreas}
+                        />
+                    )}
                 </div>
             </div>
 
