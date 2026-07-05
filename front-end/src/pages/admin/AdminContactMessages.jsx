@@ -1,13 +1,25 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AdminPageHeader, AdminDataTable, AdminStatusChip } from '../../components/admin';
-import { formatDate } from '../../i18n';
+import { formatDate, t } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
+import { getContactMessages, updateContactStatus } from '../../api/contact.api';
 
-const STATUS_OPTIONS = ['جديد', 'قيد المعالجة', 'تم الرد'];
+const STATUS_MAP = {
+    'NEW': 'جديد',
+    'IN_PROGRESS': 'قيد المعالجة',
+    'RESOLVED': 'تم الرد'
+};
+
+const REV_STATUS_MAP = {
+    'جديد': 'NEW',
+    'قيد المعالجة': 'IN_PROGRESS',
+    'تم الرد': 'RESOLVED'
+};
 
 function AdminContactMessages() {
     const { state, dispatch } = useAdminData();
     const messages = state.contactMessages || [];
+    const [loading, setLoading] = useState(false);
 
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
@@ -18,16 +30,44 @@ function AdminContactMessages() {
         }
     }, [snackbar.open]);
 
-    const updateStatus = (msg, newStatus) => {
-        dispatch({ type: 'UPDATE_CONTACT_MESSAGE', payload: { ...msg, status: newStatus } });
-        setSnackbar({ open: true, msg: `تم تحديث الحالة إلى "${newStatus}"`, severity: 'success' });
+    const fetchMessages = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await getContactMessages();
+            dispatch({ type: 'SYNC_STATE', payload: { contactMessages: data } });
+        } catch (err) {
+            setSnackbar({ open: true, msg: err.message || 'فشل تحميل الرسائل', severity: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    }, [dispatch]);
+
+    useEffect(() => {
+        fetchMessages();
+    }, [fetchMessages]);
+
+    const updateStatus = async (msg, newStatus) => {
+        const backendStatus = REV_STATUS_MAP[newStatus];
+        if (!backendStatus) return;
+
+        try {
+            await updateContactStatus(msg.id, backendStatus);
+            dispatch({ type: 'UPDATE_CONTACT_MESSAGE', payload: { ...msg, status: backendStatus } });
+            setSnackbar({ open: true, msg: `تم تحديث الحالة إلى "${newStatus}"`, severity: 'success' });
+        } catch (err) {
+            setSnackbar({ open: true, msg: err.message || 'فشل تحديث الحالة', severity: 'error' });
+        }
     };
 
     const columns = [
         { key: 'name', label: 'الاسم', render: (val, row) => (
             <div>
                 <p className="text-sm font-medium">{val}</p>
-                <span className="text-xs text-neutral-500 dark:text-neutral-400">{row.email}{row.phone ? ` \u2014 ${row.phone}` : ''}</span>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {row.email}
+                    {row.phone ? ` — ${row.phone}` : ''}
+                    {row.contactMethod ? ` (طريقة التواصل: ${t ? t(`contact.form.contact${row.contactMethod.charAt(0).toUpperCase() + row.contactMethod.slice(1)}`) || row.contactMethod : row.contactMethod})` : ''}
+                </span>
             </div>
         )},
         { key: 'subject', label: 'الموضوع' },
@@ -36,8 +76,9 @@ function AdminContactMessages() {
         )},
         { key: 'createdAt', label: 'التاريخ', render: (val) => val ? formatDate(val) : '-' },
         { key: 'status', label: 'الحالة', render: (val) => {
+            const displayVal = STATUS_MAP[val] || val || 'جديد';
             const chipColors = { 'جديد': 'bg-error-100 text-error-700', 'قيد المعالجة': 'bg-warning-100 text-warning-700', 'تم الرد': 'bg-success-100 text-success-700' };
-            return <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${chipColors[val] || 'bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'}`}>{val || 'جديد'}</span>;
+            return <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${chipColors[displayVal] || 'bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300'}`}>{displayVal}</span>;
         }},
     ];
 

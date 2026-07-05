@@ -16,7 +16,7 @@ export async function submitContactMessage(messageData) {
  * Get all contact messages (admin)
  */
 export async function getContactMessages(filters = {}) {
-    const { data } = await apiClient.get('/contact', { params: filters });
+    const { data } = await apiClient.get('/admin/messages', { params: filters });
     return data;
 }
 

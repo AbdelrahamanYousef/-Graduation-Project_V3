@@ -111,8 +111,8 @@ function ContactForm({ isDark, isRTL, onSubmit, form, setForm, touched, setTouch
                                 }}
                             />
                         </div>
-                        <p className="mt-0.5 text-xs min-h-[1.25em]" style={{ color: errors('phone') ? '#e57373' : (form.phone.trim() === '' ? '#aaa' : 'transparent') }}>
-                            {errors('phone') ? getHelper('phone') : (form.phone.trim() === '' ? t('contact.form.optional') : '')}
+                        <p className="mt-0.5 text-xs min-h-[1.25em]" style={{ color: errors('phone') ? '#e57373' : ((form.phone || '').trim() === '' ? '#aaa' : 'transparent') }}>
+                            {errors('phone') ? getHelper('phone') : ((form.phone || '').trim() === '' ? t('contact.form.optional') : '')}
                         </p>
                     </div>
                 </div>
