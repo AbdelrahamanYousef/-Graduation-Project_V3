@@ -12,8 +12,6 @@ import { getTransparencyStats } from '../../api/transparency.api';
 
 const EMERALD = '#10b981';
 const DARK_BG = '#0f172a';
-const DARK_TEXT = '#e2e8f0';
-const DARK_HEAD = '#f8fafc';
 const ARABIC_FONT = "'Cairo', 'Tajawal', sans-serif";
 
 const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
@@ -22,7 +20,7 @@ function Campaigns() {
     const { isDark } = useTheme();
     const navigate = useNavigate();
     const { state } = useAdminData();
-    const campaigns = state.campaigns || [];
+    const campaigns = useMemo(() => state.campaigns || [], [state.campaigns]);
 
     const [activeFilter, setActiveFilter] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
@@ -56,7 +54,8 @@ function Campaigns() {
     const governoratesCount = useMemo(() => {
         const bLocations = (state.beneficiaries || []).map(b => b.location || b.governorate);
         const pLocations = (state.projects || []).map(p => p.location || p.governorate);
-        const allLocations = [...bLocations, ...pLocations]
+        const allLocations = [...bLocations, [...pLocations]]
+            .flat()
             .filter(Boolean)
             .map(loc => loc.trim());
         const unique = new Set(allLocations);
@@ -85,7 +84,7 @@ function Campaigns() {
     }, [campaigns, activeFilter, sortBy]);
 
     return (
-        <div style={{ paddingBottom: 24, backgroundColor: isDark ? DARK_BG : '#f8fafc', minHeight: '100vh' }}>
+        <div className="pb-12 min-h-screen transition-colors duration-300" style={{ backgroundColor: isDark ? DARK_BG : '#f8fafc' }}>
             <HeroBanner 
                 themeVariant="campaigns"
                 badgeText="حملاتنا الإغاثية والموسمية"
@@ -109,16 +108,11 @@ function Campaigns() {
                 ]}
             />
 
-            <div id="campaigns-list" className="container mx-auto px-4" style={{ marginTop: -20, position: 'relative', zIndex: 10, marginBottom: 32 }}>
-                <div style={{
-                    display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', justifyContent: 'space-between',
-                    backgroundColor: isDark ? 'rgba(30,41,59,0.8)' : 'rgba(255,255,255,0.9)',
-                    backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-                    padding: '12px 20px', borderRadius: '20px',
-                    boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.3)' : '0 8px 32px rgba(0,0,0,0.06)',
-                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.5)'}`
-                }}>
-                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }} className="hide-scroll">
+            {/* Filter and Sort Bar */}
+            <div id="campaigns-list" className="relative z-10 -mt-8 mb-6 max-w-6xl mx-auto px-4">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/95 dark:bg-slate-800/90 backdrop-blur-md py-4 px-6 rounded-[24px] border border-slate-100 dark:border-slate-700/50 shadow-md shadow-slate-100/40 dark:shadow-none">
+                    {/* Categories filters */}
+                    <div className="flex gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none" style={{ direction: 'rtl' }}>
                         {[
                             { id: 'all', name: loc('الكل', 'All') },
                             { id: 'active', name: loc('نشطة', 'Active') },
@@ -130,14 +124,11 @@ function Campaigns() {
                                 <button
                                     key={f.id}
                                     onClick={() => setActiveFilter(f.id)}
-                                    style={{
-                                        padding: '8px 20px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                                        fontFamily: ARABIC_FONT, fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap',
-                                        transition: 'all 0.3s ease',
-                                        backgroundColor: active ? EMERALD : 'transparent',
-                                        color: active ? '#fff' : (isDark ? DARK_TEXT : '#475569'),
-                                        boxShadow: active ? `0 4px 12px rgba(16,185,129,0.3)` : 'none',
-                                    }}
+                                    className={`px-5 py-2 rounded-full font-arabic font-bold text-xs md:text-sm whitespace-nowrap transition-all duration-300 border-none cursor-pointer ${
+                                        active 
+                                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/25 dark:shadow-emerald-500/10' 
+                                            : 'bg-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                                    }`}
                                 >
                                     {f.name}
                                 </button>
@@ -145,23 +136,24 @@ function Campaigns() {
                         })}
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontFamily: ARABIC_FONT, fontSize: '0.85rem', color: isDark ? '#94a3b8' : '#64748b', fontWeight: 600 }}>
+                    {/* Sorting dropdown */}
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-slate-100 dark:border-slate-700/50 pt-3 md:pt-0">
+                        <span className="font-arabic font-bold text-xs md:text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap">
                             {loc('ترتيب حسب:', 'Sort by:')}
                         </span>
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
+                            className="py-2 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 font-arabic font-bold text-xs md:text-sm outline-none cursor-pointer transition-all duration-300 hover:border-slate-300 dark:hover:border-slate-600"
                             style={{
-                                padding: '8px 16px', paddingInlineEnd: 32, borderRadius: '12px',
-                                border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`,
-                                backgroundColor: isDark ? 'rgba(15,23,42,0.6)' : '#f8fafc',
-                                color: isDark ? DARK_TEXT : '#334155',
-                                fontFamily: ARABIC_FONT, fontWeight: 600, fontSize: '0.85rem',
-                                outline: 'none', cursor: 'pointer', appearance: 'none',
                                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='${isDark ? '%2394a3b8' : '%2364748b'}'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                                backgroundRepeat: 'no-repeat', backgroundPosition: getLanguage() === 'en' ? 'right 10px center' : 'left 10px center',
-                                backgroundSize: '16px'
+                                backgroundRepeat: 'no-repeat', 
+                                backgroundPosition: getLanguage() === 'en' ? 'right 12px center' : 'left 12px center',
+                                backgroundSize: '16px',
+                                paddingInlineEnd: '36px',
+                                paddingInlineStart: '16px',
+                                appearance: 'none',
+                                WebkitAppearance: 'none'
                             }}
                         >
                             <option value="newest">{loc('الأحدث', 'Newest')}</option>
@@ -172,13 +164,34 @@ function Campaigns() {
                 </div>
             </div>
 
-            <div className="container mx-auto px-4" style={{ paddingBottom: 60 }}>
+            {/* Grid display of campaigns */}
+            <div className="max-w-6xl mx-auto px-4 pb-20">
+                {/* Section Title */}
+                <div className="text-center mb-8">
+                    <h2 
+                        className="text-xl md:text-2xl font-extrabold text-slate-800 dark:text-slate-100 font-arabic mb-2"
+                        style={{ fontFamily: ARABIC_FONT }}
+                    >
+                        {loc('الحملات المتاحة', 'Available Campaigns')}
+                    </h2>
+                    <p 
+                        className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-arabic max-w-lg mx-auto leading-relaxed"
+                        style={{ fontFamily: ARABIC_FONT }}
+                    >
+                        {loc('شارك في دعم مشاريعنا الخيرية المستمرة وساهم بصدقتك لتغيير حياة المحتاجين للأفضل', 'Participate in supporting our ongoing charity projects and contribute with your donation to change lives for the better')}
+                    </p>
+                </div>
+
                 {filteredCampaigns.length > 0 ? (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                        gap: 24, justifyItems: 'center'
-                    }}>
+                    <div 
+                        className={
+                            filteredCampaigns.length === 1 
+                                ? "grid grid-cols-1 max-w-[320px] mx-auto gap-8 justify-center justify-items-center w-full" 
+                                : filteredCampaigns.length === 2 
+                                    ? "grid grid-cols-1 md:grid-cols-2 max-w-[680px] mx-auto gap-8 justify-center justify-items-center w-full" 
+                                    : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto gap-8 justify-center justify-items-center w-full"
+                        }
+                    >
                         {filteredCampaigns.map((c, i) => (
                             <CampaignCardItem
                                 key={c.id}
@@ -191,13 +204,19 @@ function Campaigns() {
                     </div>
                 ) : (
                     <div className="text-center py-20">
-                        <div style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 16px', backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>
-                            <i className="fa-solid fa-folder-open" style={{ fontSize: '2rem', color: EMERALD }} />
+                        <div className="w-20 h-20 rounded-full mx-auto mb-4 bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center">
+                            <i className="fa-solid fa-folder-open text-3xl text-emerald-500" />
                         </div>
-                        <h3 style={{ fontFamily: ARABIC_FONT, fontWeight: 800, fontSize: '1.2rem', marginBottom: 8, color: isDark ? DARK_HEAD : '#1e293b' }}>
+                        <h3 
+                            className="font-extrabold text-lg mb-2 text-slate-800 dark:text-slate-100"
+                            style={{ fontFamily: ARABIC_FONT }}
+                        >
                             {loc('لا توجد حملات', 'No Campaigns Found')}
                         </h3>
-                        <p style={{ fontFamily: ARABIC_FONT, color: isDark ? '#94a3b8' : '#64748b' }}>
+                        <p 
+                            className="text-slate-500 dark:text-slate-400"
+                            style={{ fontFamily: ARABIC_FONT }}
+                        >
                             {loc('عذراً، لم نتمكن من العثور على أي حملات تطابق بحثك حالياً.', 'Sorry, we couldn\'t find any campaigns matching your search right now.')}
                         </p>
                     </div>
