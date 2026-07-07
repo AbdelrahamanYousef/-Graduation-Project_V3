@@ -7,19 +7,44 @@ import { paths } from '../../constants/paths';
 import { useInjectStyles } from '../../utils/injectStyles';
 import CampaignSidebar from './CampaignSidebar';
 
-const G_GREEN = '#00b16a';
 const EMERALD = '#10b981';
-const TEAL = '#1a4a44';
 const DARK_BG = '#0f172a';
-const DARK_CARD = '#1e293b';
-const DARK_TEXT = '#e2e8f0';
-const DARK_HEAD = '#f8fafc';
 const ARABIC_FONT = "'Cairo', 'Tajawal', sans-serif";
 const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
 
 const campaignDetailStyles = `
     @keyframes slideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .cd-slide-up { animation: slideUp 0.55s ease-out both; }
+    .cd-slide-up-2 { animation: slideUp 0.55s ease-out 0.1s both; }
+    .cd-slide-up-3 { animation: slideUp 0.55s ease-out 0.2s both; }
 `;
+
+const STATUS_CONFIG = {
+    active:    { label: 'نشطة',    labelEn: 'Active',    cls: 'bg-emerald-500/90 text-white', icon: 'fa-circle-play' },
+    completed: { label: 'مكتملة',  labelEn: 'Completed', cls: 'bg-blue-500/90 text-white',    icon: 'fa-circle-check' },
+    upcoming:  { label: 'قادمة',   labelEn: 'Upcoming',  cls: 'bg-amber-500/90 text-white',   icon: 'fa-calendar' },
+    cancelled: { label: 'ملغاة',   labelEn: 'Cancelled', cls: 'bg-rose-500/90 text-white',    icon: 'fa-circle-xmark' },
+};
+
+function SectionCard({ children, isDark, className = '' }) {
+    return (
+        <div className={`rounded-2xl p-7 border ${isDark ? 'bg-slate-800 border-slate-700/50 shadow-lg shadow-black/20' : 'bg-white border-slate-100 shadow-sm shadow-slate-100/60'} ${className}`}>
+            {children}
+        </div>
+    );
+}
+
+function SectionHeading({ icon, title, isDark }) {
+    return (
+        <h2 className={`flex items-center gap-3 font-extrabold text-xl mb-5 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}
+            style={{ fontFamily: ARABIC_FONT }}>
+            <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 shrink-0">
+                <i className={`fa-solid ${icon} text-emerald-500 text-sm`} />
+            </span>
+            {title}
+        </h2>
+    );
+}
 
 export default function CampaignDetail() {
     const { id } = useParams();
@@ -32,147 +57,219 @@ export default function CampaignDetail() {
     useInjectStyles(campaignDetailStyles, 'campaign-detail-styles');
     const { state } = useAdminData();
     const campaigns = state.campaigns || [];
-
     const campaign = campaigns.find(c => String(c.id) === String(id));
 
+    /* ── Not Found ─────────────────────────────────── */
     if (!campaign) {
         return (
-            <div className="text-center py-12 min-h-[60vh] flex flex-col items-center justify-center" style={{ backgroundColor: isDark ? DARK_BG : '#f8fafc' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', margin: '0 auto 12px', backgroundColor: 'rgba(0,177,106,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className="fa-solid fa-search" style={{ fontSize: '2rem', color: G_GREEN }} />
+            <div className="min-h-[60vh] flex flex-col items-center justify-center text-center py-16 px-4"
+                style={{ backgroundColor: isDark ? DARK_BG : '#f8fafc' }}>
+                <div className="w-20 h-20 rounded-full bg-emerald-50 dark:bg-emerald-950/20 flex items-center justify-center mx-auto mb-4">
+                    <i className="fa-solid fa-magnifying-glass text-3xl text-emerald-500" />
                 </div>
-                <p style={{ fontFamily: ARABIC_FONT, fontWeight: 800, fontSize: '1.3rem', marginBottom: 8, color: isDark ? DARK_HEAD : '#2d3436' }}>
+                <p className="font-extrabold text-xl mb-2 text-slate-800 dark:text-slate-100" style={{ fontFamily: ARABIC_FONT }}>
                     {loc('لم يتم العثور على الحملة', 'Campaign Not Found')}
                 </p>
-                <Link to="/campaigns" style={{
-                    color: G_GREEN, textDecoration: 'none', fontWeight: 700, fontFamily: ARABIC_FONT,
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                }}>
-                    <i className="fa-solid fa-arrow-right" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-6" style={{ fontFamily: ARABIC_FONT }}>
+                    {loc('عذراً، لم نتمكن من العثور على هذه الحملة.', 'Sorry, we could not find this campaign.')}
+                </p>
+                <Link to="/campaigns"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all duration-200"
+                    style={{ fontFamily: ARABIC_FONT, textDecoration: 'none' }}>
+                    <i className={`fa-solid fa-arrow-${lang ? 'left' : 'right'}`} />
                     {loc('العودة إلى الحملات', 'Back to Campaigns')}
                 </Link>
             </div>
         );
     }
 
-    const title = campaign.title;
-    const desc = campaign.description;
+    /* ── Derived data ────────────────────────────────── */
+    const title    = campaign.title || '';
+    const desc     = campaign.description || '';
     const category = campaign.category || 'عام';
-
+    const status   = campaign.status || 'active';
+    const statusCfg = STATUS_CONFIG[status] || STATUS_CONFIG.active;
     const pct = campaign.goal > 0 ? Math.min(100, Math.round((campaign.raised / campaign.goal) * 100)) : 0;
 
+    const GOALS = [
+        { icon: 'fa-heart',                title: loc('توفير الإغاثة الفورية',    'Immediate Relief')     },
+        { icon: 'fa-hand-holding-dollar',   title: loc('دعم الفئات المحتاجة',      'Support Needy Families')},
+        { icon: 'fa-seedling',              title: loc('بناء مستقبل مستدام',       'Sustainable Future')   },
+    ];
+
+    /* ── Render ─────────────────────────────────────── */
     return (
-        <div style={{ backgroundColor: isDark ? DARK_BG : '#fafcfb', minHeight: '100vh', direction: lang ? 'ltr' : 'rtl' }}>
-            {/* Hero Section */}
-            <div style={{
-                position: 'relative', height: '55vh', minHeight: 450, maxHeight: 650,
-                display: 'flex', alignItems: 'flex-end', paddingBottom: 60,
-                backgroundImage: `url(${campaign.imageUrl})`,
-                backgroundSize: 'cover', backgroundPosition: 'center',
-            }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.85) 100%)' }} />
-                <div className="container mx-auto px-4 relative z-10" style={{ animation: 'slideUp 0.6s ease-out' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                        <Link to="/campaigns" style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                            width: 40, height: 40, borderRadius: '50%',
-                            backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)',
-                            color: '#fff', textDecoration: 'none', transition: 'all 0.2s',
-                        }}>
-                            <i className={`fa-solid fa-arrow-${lang ? 'left' : 'right'}`} />
+        <div style={{ backgroundColor: isDark ? DARK_BG : '#f8fafc', minHeight: '100vh', direction: lang ? 'ltr' : 'rtl' }}>
+
+            {/* ── HERO ─────────────────────────────────── */}
+            <div
+                className="relative flex items-end"
+                style={{
+                    height: '46vh', minHeight: 320, maxHeight: 460,
+                    paddingBottom: 48,
+                    backgroundImage: campaign.imageUrl ? `url(${campaign.imageUrl})` : 'none',
+                    backgroundColor: isDark ? '#0d2d22' : '#0d4a3a',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            >
+                {/* Directional overlay — transparent top, progressively dark toward text */}
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.78) 100%)' }} />
+
+                <div className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 cd-slide-up">
+                    {/* Back + Category row */}
+                    <div className="flex items-center gap-3 mb-4">
+                        <Link
+                            to="/campaigns"
+                            className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-white/20 bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition-all duration-200"
+                            style={{ textDecoration: 'none' }}
+                        >
+                            <i className={`fa-solid fa-arrow-${lang ? 'left' : 'right'} text-xs`} />
                         </Link>
-                        <span style={{
-                            backgroundColor: EMERALD, color: '#fff',
-                            padding: '4px 14px', borderRadius: 999, fontSize: '0.8rem', fontWeight: 700,
-                            fontFamily: ARABIC_FONT, letterSpacing: '0.5px'
-                        }}>
+
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${statusCfg.cls}`}>
+                            <i className={`fa-solid ${statusCfg.icon} text-[9px]`} />
+                            {loc(statusCfg.label, statusCfg.labelEn)}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-black/40 backdrop-blur-md text-emerald-300 border border-white/10">
+                            <i className="fa-solid fa-tag text-[9px]" />
                             {category}
                         </span>
                     </div>
 
-                    <h1 style={{ fontFamily: ARABIC_FONT, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3.2rem)', color: '#fff', marginBottom: 16, lineHeight: 1.3, maxWidth: 800 }}>
+                    {/* Title */}
+                    <h1
+                        className="font-black text-white mb-4 leading-snug"
+                        style={{ fontFamily: ARABIC_FONT, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', maxWidth: 760 }}
+                    >
                         {title}
                     </h1>
 
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px 32px', alignItems: 'center', color: 'rgba(255,255,255,0.85)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <i className="fa-solid fa-bullseye" style={{ color: EMERALD, fontSize: '1.1rem' }} />
-                            <span style={{ fontFamily: ARABIC_FONT, fontWeight: 600, fontSize: '0.95rem' }}>
-                                {loc('الهدف:', 'Goal:')} <strong style={{ color: '#fff' }}>{formatCurrency(campaign.goal)}</strong>
-                            </span>
+                    {/* Meta info chips */}
+                    <div className="flex flex-wrap gap-3">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-xs font-semibold"
+                            style={{ fontFamily: ARABIC_FONT }}>
+                            <i className="fa-solid fa-bullseye text-emerald-400 text-[10px]" />
+                            {loc('الهدف:', 'Goal:')}
+                            <strong className="font-extrabold">{formatCurrency(campaign.goal)}</strong>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <i className="fa-solid fa-users" style={{ color: EMERALD, fontSize: '1.1rem' }} />
-                            <span style={{ fontFamily: ARABIC_FONT, fontWeight: 600, fontSize: '0.95rem' }}>
-                                <strong style={{ color: '#fff' }}>{formatNumber(campaign.donorsCount || 0)}</strong> {loc('متبرع', 'Donors')}
-                            </span>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-xs font-semibold"
+                            style={{ fontFamily: ARABIC_FONT }}>
+                            <i className="fa-solid fa-users text-emerald-400 text-[10px]" />
+                            <strong className="font-extrabold">{formatNumber(campaign.donorsCount || 0)}</strong>
+                            {loc('متبرع', 'Donors')}
+                        </div>
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-white text-xs font-semibold"
+                            style={{ fontFamily: ARABIC_FONT }}>
+                            <i className="fa-solid fa-chart-simple text-emerald-400 text-[10px]" />
+                            <strong className="font-extrabold">{pct}%</strong>
+                            {loc('مكتمل', 'Funded')}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="container mx-auto px-4" style={{ marginTop: -30, position: 'relative', zIndex: 20, paddingBottom: 60 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 340px', gap: 32, alignItems: 'start' }} className="lg:grid-cols-[1fr_340px] grid-cols-1">
-                    
-                    {/* Left Column (Details) */}
-                    <div style={{ animation: 'slideUp 0.6s ease-out 0.1s both' }}>
-                        <div style={{
-                            backgroundColor: isDark ? DARK_CARD : '#fff', borderRadius: '24px', padding: '32px',
-                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eef2f7'}`,
-                            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.03)',
-                            marginBottom: 24,
-                        }}>
-                            <h2 style={{ fontFamily: ARABIC_FONT, fontWeight: 800, fontSize: '1.4rem', color: isDark ? DARK_HEAD : '#1a1a1a', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 4, height: 24, backgroundColor: EMERALD, borderRadius: 2 }} />
-                                {loc('عن الحملة', 'About the Campaign')}
-                            </h2>
-                            <div style={{
-                                fontFamily: ARABIC_FONT, fontSize: '1.05rem', lineHeight: 1.8,
-                                color: isDark ? DARK_TEXT : '#4a5568', whiteSpace: 'pre-line',
-                            }}>
-                                {desc}
-                            </div>
-                        </div>
+            {/* ── MAIN CONTENT ─────────────────────────── */}
+            <div className="max-w-6xl mx-auto px-4 pb-20" style={{ marginTop: -28, position: 'relative', zIndex: 20 }}>
+                <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
 
-                        <div style={{
-                            backgroundColor: isDark ? DARK_CARD : '#fff', borderRadius: '24px', padding: '32px',
-                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eef2f7'}`,
-                            boxShadow: isDark ? '0 10px 40px rgba(0,0,0,0.3)' : '0 10px 40px rgba(0,0,0,0.03)',
-                        }}>
-                            <h2 style={{ fontFamily: ARABIC_FONT, fontWeight: 800, fontSize: '1.4rem', color: isDark ? DARK_HEAD : '#1a1a1a', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 10 }}>
-                                <div style={{ width: 4, height: 24, backgroundColor: EMERALD, borderRadius: 2 }} />
-                                {loc('أهدافنا', 'Our Goals')}
-                            </h2>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-                                {[
-                                    { icon: 'fa-heart', title: loc('توفير الإغاثة', 'Provide Relief') },
-                                    { icon: 'fa-hand-holding-dollar', title: loc('دعم المحتاجين', 'Support Needy') },
-                                    { icon: 'fa-seedling', title: loc('تنمية مستدامة', 'Sustainable Growth') }
-                                ].map((g, i) => (
-                                    <div key={i} style={{
-                                        display: 'flex', alignItems: 'center', gap: 16, padding: '16px',
-                                        borderRadius: '16px', backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc',
-                                        border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#f1f5f9'}`
-                                    }}>
-                                        <div style={{
-                                            width: 48, height: 48, borderRadius: '12px',
-                                            backgroundColor: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5',
-                                            display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center',
-                                        }}>
-                                            <i className={`fa-solid ${g.icon}`} style={{ fontSize: '1.2rem', color: EMERALD }} />
+                    {/* ── LEFT: Main Content ─────────────── */}
+                    <div className="flex flex-col gap-6 cd-slide-up-2">
+
+                        {/* About Card */}
+                        <SectionCard isDark={isDark}>
+                            <SectionHeading icon="fa-circle-info" title={loc('عن الحملة', 'About the Campaign')} isDark={isDark} />
+                            {desc ? (
+                                <p
+                                    className={`text-sm md:text-base leading-[2] ${isDark ? 'text-slate-300' : 'text-slate-600'}`}
+                                    style={{ fontFamily: ARABIC_FONT, whiteSpace: 'pre-line' }}
+                                >
+                                    {desc}
+                                </p>
+                            ) : (
+                                <div className={`flex flex-col items-center justify-center text-center py-6 gap-3 rounded-xl ${isDark ? 'bg-slate-700/20' : 'bg-slate-50'}`}>
+                                    <i className="fa-regular fa-file-lines text-2xl text-emerald-400 opacity-60" />
+                                    <p className={`text-sm font-medium ${isDark ? 'text-slate-400' : 'text-slate-500'}`} style={{ fontFamily: ARABIC_FONT }}>
+                                        {loc('لم يتم إضافة وصف تفصيلي لهذه الحملة بعد، يمكنك التواصل معنا للاستفسار.', 'No detailed description has been added yet. Feel free to contact us for more information.')}
+                                    </p>
+                                </div>
+                            )}
+                        </SectionCard>
+
+                        {/* Goals Card */}
+                        <SectionCard isDark={isDark}>
+                            <SectionHeading icon="fa-flag" title={loc('أهدافنا', 'Our Goals')} isDark={isDark} />
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                {GOALS.map((g, i) => (
+                                    <div
+                                        key={i}
+                                        className={`flex flex-col items-center text-center gap-3 p-4 rounded-xl border ${isDark ? 'bg-slate-700/30 border-slate-700' : 'bg-slate-50 border-slate-100'}`}
+                                    >
+                                        <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center shrink-0">
+                                            <i className={`fa-solid ${g.icon} text-emerald-500 text-lg`} />
                                         </div>
-                                        <span style={{ fontFamily: ARABIC_FONT, fontWeight: 700, fontSize: '1.05rem', color: isDark ? DARK_TEXT : '#334155' }}>
+                                        <span
+                                            className={`font-bold text-sm leading-snug ${isDark ? 'text-slate-200' : 'text-slate-700'}`}
+                                            style={{ fontFamily: ARABIC_FONT }}
+                                        >
                                             {g.title}
                                         </span>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </SectionCard>
+
+                        {/* Impact Card — rendered only when valid data exists */}
+                        {(campaign.raised > 0 || (campaign.donorsCount || 0) > 0) && (
+                            <SectionCard isDark={isDark}>
+                                <SectionHeading icon="fa-hands-holding-child" title={loc('أثر مساهمتك', 'Your Impact')} isDark={isDark} />
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    {[
+                                        {
+                                            icon: 'fa-hand-holding-heart',
+                                            value: formatCurrency(campaign.raised),
+                                            label: loc('تم جمعها حتى الآن', 'Raised So Far'),
+                                        },
+                                        {
+                                            icon: 'fa-users',
+                                            value: formatNumber(campaign.donorsCount || 0),
+                                            label: loc('متبرع شارك', 'Donors Joined'),
+                                        },
+                                        {
+                                            icon: 'fa-chart-pie',
+                                            value: `${pct}%`,
+                                            label: loc('من الهدف مكتمل', 'of Goal Achieved'),
+                                        },
+                                    ].map((stat, i) => (
+                                        <div
+                                            key={i}
+                                            className={`flex flex-col items-center text-center gap-2 p-5 rounded-xl border ${isDark ? 'bg-slate-700/30 border-slate-700' : 'bg-gradient-to-b from-emerald-50/50 to-white border-emerald-100/60'}`}
+                                        >
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
+                                                <i className={`fa-solid ${stat.icon} text-emerald-500 text-sm`} />
+                                            </div>
+                                            <span
+                                                className="font-extrabold text-xl text-emerald-600 dark:text-emerald-400"
+                                                style={{ fontFamily: "'Inter','Manrope',sans-serif" }}
+                                            >
+                                                {stat.value}
+                                            </span>
+                                            <span
+                                                className={`text-xs font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}
+                                                style={{ fontFamily: ARABIC_FONT }}
+                                            >
+                                                {stat.label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
                     </div>
 
-                    {/* Right Column (Sidebar) */}
-                    <div style={{ animation: 'slideUp 0.6s ease-out 0.2s both' }}>
+                    {/* ── RIGHT: Sidebar ─────────────────── */}
+                    <div className="cd-slide-up-3">
                         <CampaignSidebar
                             campaign={campaign}
                             amount={donationAmount}
