@@ -19,6 +19,16 @@ function useScrollTrigger(options = {}) {
     return trigger;
 }
 
+const getNotificationIcon = (type) => {
+    switch (type) {
+        case 'CONTACT': return 'fa-solid fa-message';
+        case 'SPECIAL_REQUEST': return 'fa-solid fa-hand-holding-heart';
+        case 'VOLUNTEER': return 'fa-solid fa-handshake';
+        case 'DONATION': return 'fa-solid fa-coins';
+        default: return 'fa-solid fa-bell';
+    }
+};
+
 function DonorLayout({ children }) {
     const scrolled = useScrollTrigger({ threshold: 30 });
     const location = useLocation();
@@ -112,7 +122,10 @@ function DonorLayout({ children }) {
     const getUserName = useCallback(() => donorUser?.name || '', [donorUser]);
 
     const getTimeAgo = useCallback((isoTime) => {
-        const diff = Math.floor((Date.now() - new Date(isoTime).getTime()) / 60000);
+        if (!isoTime) return '';
+        const date = new Date(isoTime);
+        if (isNaN(date.getTime())) return '';
+        const diff = Math.floor((Date.now() - date.getTime()) / 60000);
         if (diff < 1) return t('notifications.justNow');
         if (diff < 60) return `${diff} ${t('notifications.minutesAgo')}`;
         return `${Math.floor(diff / 60)} ${t('notifications.hoursAgo')}`;
@@ -203,14 +216,14 @@ function DonorLayout({ children }) {
                                         ) : (
                                             notifications.map((n) => (
                                                 <button key={n.id} onClick={() => markAsRead(n.id)}
-                                                    className={`w-full text-right p-3 flex gap-3 border-b border-neutral-100 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors ${!n.read ? 'bg-primary-50/50 dark:bg-primary-900/20' : ''}`}>
-                                                    <span className="text-primary-500 mt-0.5"><i className={n.icon}></i></span>
+                                                    className={`w-full text-right p-3 flex gap-3 border-b border-neutral-100 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors ${!n.isRead ? 'bg-primary-50/50 dark:bg-primary-900/20' : ''}`}>
+                                                    <span className="text-primary-500 mt-0.5"><i className={n.icon || getNotificationIcon(n.type)}></i></span>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className={`text-sm ${!n.read ? 'font-bold' : ''}`}>{n.title}</p>
+                                                        <p className={`text-sm ${!n.isRead ? 'font-bold' : ''}`}>{n.title}</p>
                                                         <p className="text-xs text-neutral-500 mt-0.5">{n.message}</p>
-                                                        <p className="text-xs text-primary-500 mt-0.5">{getTimeAgo(n.time)}</p>
+                                                        <p className="text-xs text-primary-500 mt-0.5">{getTimeAgo(n.createdAt)}</p>
                                                     </div>
-                                                    {!n.read && <span className="w-2 h-2 rounded-full bg-primary-500 mt-1 flex-shrink-0"></span>}
+                                                    {!n.isRead && <span className="w-2 h-2 rounded-full bg-primary-500 mt-1 flex-shrink-0"></span>}
                                                 </button>
                                             ))
                                         )}

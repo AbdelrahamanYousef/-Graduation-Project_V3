@@ -19,12 +19,6 @@ async function create(data, userId = null) {
         },
     });
 
-    // Create notification for all ADMIN users
-    const admins = await prisma.user.findMany({
-        where: { role: 'ADMIN', status: 'ACTIVE', deletedAt: null },
-        select: { id: true },
-    });
-
     if (admins.length > 0) {
         await prisma.notification.createMany({
             data: admins.map((admin) => ({
@@ -32,6 +26,7 @@ async function create(data, userId = null) {
                 title: 'رسالة تواصل جديدة',
                 message: `${data.name}: ${data.subject}`,
                 type: 'CONTACT',
+                isForAdmin: true,
             })),
         });
     }
@@ -106,6 +101,18 @@ async function reply(id, replyText, adminUser) {
         where: { id },
         data: { status: 'RESOLVED' },
     });
+
+    if (message.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: message.userId,
+                title: 'تم الرد على رسالتك',
+                message: `تم الرد على رسالتك بخصوص: ${message.subject}`,
+                type: 'CONTACT',
+                isForAdmin: false,
+            },
+        });
+    }
 
     // Audit log
     await auditLog.log({

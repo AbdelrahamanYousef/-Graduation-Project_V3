@@ -8,6 +8,16 @@ import { useNotifications } from '../../contexts/NotificationContext';
 const SIDEBAR_EXPANDED = 280;
 const SIDEBAR_COLLAPSED = 120;
 
+const getNotificationIcon = (type) => {
+    switch (type) {
+        case 'CONTACT': return 'fa-solid fa-message';
+        case 'SPECIAL_REQUEST': return 'fa-solid fa-hand-holding-heart';
+        case 'VOLUNTEER': return 'fa-solid fa-handshake';
+        case 'DONATION': return 'fa-solid fa-coins';
+        default: return 'fa-solid fa-bell';
+    }
+};
+
 function AdminLayout() {
     const location = useLocation();
     const navigate = useNavigate();
@@ -56,7 +66,10 @@ function AdminLayout() {
     }, [updateAdminPhoto]);
 
     const getTimeAgo = useCallback((isoTime) => {
-        const diff = Math.floor((Date.now() - new Date(isoTime).getTime()) / 60000);
+        if (!isoTime) return '';
+        const date = new Date(isoTime);
+        if (isNaN(date.getTime())) return '';
+        const diff = Math.floor((Date.now() - date.getTime()) / 60000);
         if (diff < 1) return t('notifications.justNow');
         if (diff < 60) return `${diff} ${t('notifications.minutesAgo')}`;
         return `${Math.floor(diff / 60)} ${t('notifications.hoursAgo')}`;
@@ -261,14 +274,14 @@ function AdminLayout() {
                 ) : (
                     notifications.map(n => (
                         <button key={n.id} onClick={() => markAsRead(n.id)}
-                            className={`w-full text-right p-3 flex gap-3 border-b border-neutral-100 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors ${!n.read ? 'bg-secondary-50/50 dark:bg-secondary-900/20' : ''}`}>
-                            <span className="text-secondary-500 mt-0.5"><i className={n.icon}></i></span>
+                            className={`w-full text-right p-3 flex gap-3 border-b border-neutral-100 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors ${!n.isRead ? 'bg-secondary-50/50 dark:bg-secondary-900/20' : ''}`}>
+                            <span className="text-secondary-500 mt-0.5"><i className={n.icon || getNotificationIcon(n.type)}></i></span>
                             <div className="flex-1 min-w-0">
-                                <p className={`text-sm ${!n.read ? 'font-semibold' : ''}`}>{n.title}</p>
+                                <p className={`text-sm ${!n.isRead ? 'font-semibold' : ''}`}>{n.title}</p>
                                 <p className="text-xs text-neutral-500 my-0.5">{n.message}</p>
-                                <p className="text-xs text-neutral-400">{getTimeAgo(n.time)}</p>
+                                <p className="text-xs text-neutral-400">{getTimeAgo(n.createdAt)}</p>
                             </div>
-                            {!n.read && <span className="w-2 h-2 rounded-full bg-secondary-500 mt-1 flex-shrink-0"></span>}
+                            {!n.isRead && <span className="w-2 h-2 rounded-full bg-secondary-500 mt-1 flex-shrink-0"></span>}
                         </button>
                     ))
                 )}

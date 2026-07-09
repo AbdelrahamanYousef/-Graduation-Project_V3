@@ -189,14 +189,15 @@ model Report {
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  title     String
-  message   String
-  type      String
-  isRead    Boolean  @default(false)
-  userId    String?
-  createdAt DateTime @default(now())
-  user      User?    @relation(fields: [userId], references: [id])
+  id         String   @id @default(cuid())
+  title      String
+  message    String
+  type       String
+  isRead     Boolean  @default(false)
+  userId     String?
+  isForAdmin Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
 
   @@index([userId, isRead])
   @@map("notifications")

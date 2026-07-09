@@ -1,8 +1,21 @@
 const prisma = require('../../lib/prisma');
 
-async function list(userId) {
-    const where = {};
-    if (userId) where.userId = userId;
+async function list(user) {
+    if (!user) return [];
+    const { id, role } = user;
+
+    const where = role === 'ADMIN'
+        ? {
+            OR: [
+                { isForAdmin: true },
+                { userId: id }
+            ]
+          }
+        : {
+            userId: id,
+            isForAdmin: false
+          };
+
     return prisma.notification.findMany({ where, orderBy: { createdAt: 'desc' }, take: 50 });
 }
 

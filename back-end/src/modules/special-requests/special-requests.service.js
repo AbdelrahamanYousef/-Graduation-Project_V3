@@ -28,6 +28,24 @@ async function create(data) {
         },
     });
 
+    // Create notification for all ADMIN users
+    const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN', status: 'ACTIVE', deletedAt: null },
+        select: { id: true },
+    });
+
+    if (admins.length > 0) {
+        await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+                userId: admin.id,
+                title: 'طلب مساعدة جديد',
+                message: `${name}: ${requestType}`,
+                type: 'SPECIAL_REQUEST',
+                isForAdmin: true,
+            })),
+        });
+    }
+
     return request;
 }
 
@@ -130,8 +148,22 @@ async function updateStatus(id, adminUser, status, notes) {
             title: `تحديث حالة طلب المساعدة`,
             message: `تم تحديث حالة طلب المساعدة المقدم من ${request.name} إلى ${status}`,
             type: 'SPECIAL_REQUEST',
+            isForAdmin: true,
         },
     });
+
+    // Create notification for user if request has userId
+    if (request.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: request.userId,
+                title: `تحديث حالة طلب المساعدة`,
+                message: `تم تحديث حالة طلب المساعدة الخاص بك إلى ${status}`,
+                type: 'SPECIAL_REQUEST',
+                isForAdmin: false,
+            },
+        });
+    }
 
     // Audit log
     await auditLog.log({

@@ -112,8 +112,22 @@ async function approve(id, adminUser, notes) {
             title: 'تم قبول طلب تطوع',
             message: `تم قبول طلب تطوع ${app.name} في مجال ${app.area}`,
             type: 'VOLUNTEER',
+            isForAdmin: true,
         },
     });
+
+    // Create notification for the user who applied
+    if (app.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: app.userId,
+                title: 'تحديث حالة طلب التطوع',
+                message: `تم قبول طلب التطوع الخاص بك في مجال ${app.area}`,
+                type: 'VOLUNTEER',
+                isForAdmin: false,
+            },
+        });
+    }
 
     // Send automated email if candidate has an email
     if (app.email) {
@@ -172,8 +186,22 @@ async function reject(id, adminUser, reason) {
             title: 'تم رفض طلب تطوع',
             message: `تم رفض طلب تطوع ${app.name}: ${reason}`,
             type: 'VOLUNTEER',
+            isForAdmin: true,
         },
     });
+
+    // Create notification for the user who applied
+    if (app.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: app.userId,
+                title: 'تحديث حالة طلب التطوع',
+                message: `تم رفض طلب التطوع الخاص بك: ${reason}`,
+                type: 'VOLUNTEER',
+                isForAdmin: false,
+            },
+        });
+    }
 
     // Audit log
     await auditLog.log({
