@@ -18,7 +18,6 @@ export {
 // Programs
 export {
     getPrograms, getProgramById, createProgram, updateProgram, deleteProgram,
-    toggleProgramHighlight,
     programKeys,
 } from './programs.api';
 
@@ -59,7 +58,7 @@ export {
 // Volunteers
 export {
     applyAsVolunteer, getVolunteers, getVolunteerById, approveVolunteer, rejectVolunteer,
-    getMyVolunteerApplications,
+    getMyVolunteerApplications, submitVolunteerInfo,
     volunteerKeys,
 } from './volunteers.api';
 

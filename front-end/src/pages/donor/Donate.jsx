@@ -24,6 +24,7 @@ function Donate() {
         updateForm, nextStep, prevStep, handleSubmit,
         getTotalAmount, getDonationTypeLabel,
         amounts, steps,
+        multiplier, setMultiplier,
     } = useDonateFlow({ preSelectedAmount, preSelectedProject });
 
     if (!isDonorLoggedIn) {
@@ -67,6 +68,8 @@ function Donate() {
                                     errors={errors}
                                     getDonationTypeLabel={getDonationTypeLabel}
                                     onNext={nextStep}
+                                    multiplier={multiplier}
+                                    setMultiplier={setMultiplier}
                                 />
                             )}
 

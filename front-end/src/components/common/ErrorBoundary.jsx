@@ -21,10 +21,10 @@ class ErrorBoundary extends React.Component {
                 <div className="max-w-lg mx-auto mt-8 mb-4 text-center px-4">
                     <div className="p-6 border border-neutral-200 rounded-lg bg-white dark:bg-neutral-800 dark:border-neutral-700">
                         <h1 className="text-2xl font-bold mb-4 text-error-500">
-                            Something went wrong
+                            حدث خطأ غير متوقع
                         </h1>
                         <p className="text-neutral-500 mb-4">
-                            The application encountered an unexpected error.
+                            واجه التطبيق خطأ غير متوقع. يرجى المحاولة مرة أخرى.
                         </p>
                         {this.state.error && (
                             <div className="mt-4 p-3 bg-neutral-100 dark:bg-neutral-900 rounded text-left overflow-auto">
@@ -37,7 +37,7 @@ class ErrorBoundary extends React.Component {
                             onClick={() => window.location.reload()}
                             className="mt-6 px-6 py-2.5 bg-primary-500 text-white font-semibold rounded-md hover:bg-primary-600 transition-colors"
                         >
-                            Reload Page
+                            إعادة تحميل الصفحة
                         </button>
                     </div>
                 </div>

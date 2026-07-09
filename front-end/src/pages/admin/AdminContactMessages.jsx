@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { AdminPageHeader, AdminDataTable, AdminStatusChip, AdminFormDialog } from '../../components/admin';
+import { AdminPageHeader, AdminDataTable, AdminFormDialog } from '../../components/admin';
 import { formatDate, t } from '../../i18n';
 import { useAdminData } from '../../contexts/AdminDataContext';
 import { getContactMessages, updateContactStatus, replyToContactMessage } from '../../api/contact.api';

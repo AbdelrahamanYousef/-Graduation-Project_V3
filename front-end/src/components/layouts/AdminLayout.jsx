@@ -91,6 +91,7 @@ function AdminLayout() {
         { path: '/admin/finance', label: t('admin.finance'), icon: 'fa-solid fa-credit-card' },
         { path: '/admin/volunteers', label: 'طلبات التطوع', icon: 'fa-solid fa-handshake' },
         { path: '/admin/special-requests', label: 'الطلبات الخاصة', icon: 'fa-solid fa-hand-holding-heart' },
+        { path: '/admin/users', label: 'المستخدمون', icon: 'fa-solid fa-users-gear' },
         { path: '/admin/cms', label: 'إدارة المحتوى', icon: 'fa-solid fa-pen-nib' },
         { path: '/admin/blog', label: 'الأخبار', icon: 'fa-solid fa-newspaper' },
         { path: '/admin/gallery', label: 'المعرض', icon: 'fa-solid fa-images' },

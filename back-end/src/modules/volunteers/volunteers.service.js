@@ -1,6 +1,6 @@
 const prisma = require('../../lib/prisma');
 const auditLog = require('../audit/auditLog.service');
-const { sendVolunteerApprovalEmail } = require('../../lib/email');
+const { sendVolunteerApprovalEmail, sendVolunteerRejectionEmail, sendVolunteerInfoRequestEmail } = require('../../lib/email');
 
 /**
  * Submit a new volunteer application (public / auth-optional)
@@ -27,7 +27,7 @@ async function create(data) {
         data: {
             volunteerId: app.id,
             action: 'SUBMITTED',
-            details: { notes: 'تم تقديم طلب التطوع بنجاح' },
+            details: JSON.stringify({ notes: 'تم تقديم طلب التطوع بنجاح' }),
         },
     });
 
@@ -101,7 +101,7 @@ async function approve(id, adminUser, notes) {
             volunteerId: id,
             action: 'APPROVED',
             performedById: adminUser.id,
-            details: { notes },
+            details: JSON.stringify({ notes }),
         },
     });
 
@@ -175,7 +175,7 @@ async function reject(id, adminUser, reason) {
             volunteerId: id,
             action: 'REJECTED',
             performedById: adminUser.id,
-            details: { notes: reason },
+            details: JSON.stringify({ notes: reason }),
         },
     });
 
@@ -203,6 +203,11 @@ async function reject(id, adminUser, reason) {
         });
     }
 
+    // Send rejection email
+    if (app.email) {
+        await sendVolunteerRejectionEmail(app.email, app.name, reason);
+    }
+
     // Audit log
     await auditLog.log({
         actorId: adminUser.id,
@@ -211,6 +216,80 @@ async function reject(id, adminUser, reason) {
         entity: 'VolunteerApplication',
         entityId: id,
         payload: { name: app.name, reason },
+    });
+
+    return updated;
+}
+
+/**
+ * Request additional info from volunteer applicant (admin)
+ */
+async function requestInfo(id, adminUser, message) {
+    if (!message || message.trim() === '') {
+        throw new Error('الرسالة المطلوبة للمتطوع إجبارية');
+    }
+
+    const app = await prisma.volunteerApplication.findUnique({ where: { id } });
+    if (!app) throw new Error('Volunteer application not found');
+    if (app.status !== 'PENDING') throw new Error('Only PENDING applications can be requested info');
+
+    const updated = await prisma.volunteerApplication.update({
+        where: { id },
+        data: {
+            status: 'NEEDS_INFO',
+            reviewedById: adminUser.id,
+            reviewedAt: new Date(),
+            adminNotes: message,
+        },
+    });
+
+    // Log to process logs
+    await prisma.volunteerProcessLog.create({
+        data: {
+            volunteerId: id,
+            action: 'NEEDS_INFO',
+            performedById: adminUser.id,
+            details: JSON.stringify({ notes: message }),
+        },
+    });
+
+    // Create notification for admin
+    await prisma.notification.create({
+        data: {
+            userId: adminUser.id,
+            title: 'تم طلب معلومات إضافية من متطوع',
+            message: `تم طلب معلومات إضافية من ${app.name}: ${message}`,
+            type: 'VOLUNTEER',
+            isForAdmin: true,
+        },
+    });
+
+    // Create notification for the user
+    if (app.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: app.userId,
+                title: 'طلب معلومات إضافية لطلب التطوع',
+                message: `نحتاج معلومات إضافية لاستكمال طلبك: ${message}`,
+                type: 'VOLUNTEER',
+                isForAdmin: false,
+            },
+        });
+    }
+
+    // Send info request email
+    if (app.email) {
+        await sendVolunteerInfoRequestEmail(app.email, app.name, message);
+    }
+
+    // Audit log
+    await auditLog.log({
+        actorId: adminUser.id,
+        actorRole: 'ADMIN',
+        action: 'VOLUNTEER_INFO_REQUESTED',
+        entity: 'VolunteerApplication',
+        entityId: id,
+        payload: { name: app.name, message },
     });
 
     return updated;
@@ -250,7 +329,7 @@ async function logCall(id, adminUser, outcome, notes) {
             volunteerId: id,
             action: 'PHONE_CALL',
             performedById: adminUser.id,
-            details: { outcome, notes: notes || null },
+            details: JSON.stringify({ outcome, notes: notes || null }),
         },
     });
 
@@ -267,4 +346,68 @@ async function logCall(id, adminUser, outcome, notes) {
     return updated;
 }
 
-module.exports = { create, list, getMyApplications, approve, reject, logCall };
+/**
+ * Submit additional info / response from volunteer (auth user)
+ */
+async function submitInfo(id, userId, responseMessage) {
+    if (!responseMessage || responseMessage.trim() === '') {
+        throw new Error('الرسالة المطلوبة إجبارية');
+    }
+
+    const app = await prisma.volunteerApplication.findUnique({ where: { id } });
+    if (!app) throw new Error('Volunteer application not found');
+    if (app.status !== 'NEEDS_INFO') throw new Error('يمكن فقط الرد على الطلبات التي تطلب معلومات إضافية');
+    if (app.userId !== userId) throw new Error('لا يمكنك الرد على هذا الطلب');
+
+    const updated = await prisma.volunteerApplication.update({
+        where: { id },
+        data: {
+            status: 'PENDING',
+            applicantResponse: responseMessage,
+            respondedAt: new Date(),
+            responseNotes: responseMessage,
+        },
+    });
+
+    // Log to process logs
+    await prisma.volunteerProcessLog.create({
+        data: {
+            volunteerId: id,
+            action: 'INFO_SUBMITTED',
+            performedById: userId,
+            details: JSON.stringify({ response: responseMessage }),
+        },
+    });
+
+    // Create notification for admins
+    const admins = await prisma.user.findMany({
+        where: { role: 'ADMIN', status: 'ACTIVE', deletedAt: null },
+        select: { id: true },
+    });
+
+    if (admins.length > 0) {
+        await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+                userId: admin.id,
+                title: 'تم تقديم معلومات إضافية من متطوع',
+                message: `قام ${app.name} بتقديم معلومات إضافية لطلب التطوع`,
+                type: 'VOLUNTEER',
+                isForAdmin: true,
+            })),
+        });
+    }
+
+    // Audit log
+    await auditLog.log({
+        actorId: userId,
+        actorRole: 'USER',
+        action: 'VOLUNTEER_INFO_SUBMITTED',
+        entity: 'VolunteerApplication',
+        entityId: id,
+        payload: { name: app.name, response: responseMessage },
+    });
+
+    return updated;
+}
+
+module.exports = { create, list, getMyApplications, approve, reject, logCall, requestInfo, submitInfo };

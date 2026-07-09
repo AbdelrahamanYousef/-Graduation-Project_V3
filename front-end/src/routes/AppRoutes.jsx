@@ -42,6 +42,7 @@ const AdminContactMessages = lazy(() => import('../pages/admin/AdminContactMessa
 const AdminVolunteers = lazy(() => import('../pages/admin/AdminVolunteers'));
 const AdminSpecialRequests = lazy(() => import('../pages/admin/AdminSpecialRequests'));
 const AdminCampaigns = lazy(() => import('../pages/admin/AdminCampaigns'));
+const AdminUsers = lazy(() => import('../pages/admin/AdminUsers'));
 const AdminLogin = lazy(() => import('../pages/admin/AdminLogin'));
 
 // ─── Placeholder for unimplemented pages ────────────────────
@@ -119,6 +120,7 @@ export default function AppRoutes() {
                 <Route path="messages" element={<AdminContactMessages />} />
                 <Route path="volunteers" element={<AdminVolunteers />} />
                 <Route path="special-requests" element={<AdminSpecialRequests />} />
+                <Route path="users" element={<AdminUsers />} />
             </Route>
         </Routes>
     );

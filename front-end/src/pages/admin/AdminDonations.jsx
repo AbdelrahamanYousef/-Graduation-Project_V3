@@ -43,11 +43,12 @@ function AdminDonations() {
     }, [donations, search, statusFilter, projectFilter, dateRange]);
 
     const stats = useMemo(() => {
-        const total = filteredDonations.reduce((sum, d) => sum + d.amount, 0);
+        const completed = filteredDonations.filter(d => d.status === 'completed');
+        const total = completed.reduce((sum, d) => sum + d.amount, 0);
         return {
             total,
-            count: filteredDonations.length,
-            avgAmount: filteredDonations.length ? Math.round(total / filteredDonations.length) : 0,
+            count: completed.length,
+            avgAmount: completed.length ? Math.round(total / completed.length) : 0,
         };
     }, [filteredDonations]);
 

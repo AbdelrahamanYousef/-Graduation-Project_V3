@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AdminPageHeader, AdminFilterBar, AdminDataTable } from '../../components/admin';
 import { formatDate } from '../../i18n';
-import { getVolunteers, approveVolunteer, rejectVolunteer, logVolunteerCall } from '../../api/volunteers.api';
+import { getVolunteers, approveVolunteer, rejectVolunteer, logVolunteerCall, requestVolunteerInfo } from '../../api/volunteers.api';
 
 const STATUS_MAP = {
   PENDING: { label: 'قيد الانتظار', color: 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' },
   APPROVED: { label: 'مقبول', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
   REJECTED: { label: 'مرفوض', color: 'bg-error-100 text-error-700 dark:bg-error-500/10 dark:text-error-400' },
+  NEEDS_INFO: { label: 'بحاجة معلومات إضافية', color: 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' },
   'Accepted - Onboarding': { label: 'مقبول - قيد التوجيه', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
   'Withdrawn by Applicant': { label: 'منسحب من قبل المتقدم', color: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-600/10 dark:text-neutral-400' },
   'No Answer - Try Later': { label: 'لا يوجد رد - المحاولة لاحقاً', color: 'bg-info-100 text-info-700 dark:bg-info-500/10 dark:text-info-400' },
@@ -25,6 +26,7 @@ const PROCESS_ACTION_MAP = {
   SUBMITTED: { label: 'تقديم الطلب', icon: 'fa-solid fa-paper-plane' },
   APPROVED: { label: 'قبول الطلب', icon: 'fa-solid fa-check' },
   REJECTED: { label: 'رفض الطلب', icon: 'fa-solid fa-xmark' },
+  NEEDS_INFO: { label: 'طلب معلومات إضافية', icon: 'fa-solid fa-circle-exclamation' },
   PHONE_CALL: { label: 'مكالمة هاتفية', icon: 'fa-solid fa-phone' },
 };
 
@@ -39,6 +41,7 @@ function AdminVolunteers() {
   const [acceptDialog, setAcceptDialog] = useState({ open: false, item: null, adminNotes: '' });
   const [rejectDialog, setRejectDialog] = useState({ open: false, item: null, reason: '' });
   const [callDialog, setCallDialog] = useState({ open: false, item: null, outcome: 'Call Successful - Onboarding Initiated', notes: '' });
+  const [requestInfoDialog, setRequestInfoDialog] = useState({ open: false, item: null, message: '' });
   
   const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
@@ -110,6 +113,21 @@ function AdminVolunteers() {
     }
   };
 
+  const handleRequestInfo = async () => {
+    if (!requestInfoDialog.message.trim()) {
+      setSnackbar({ open: true, msg: 'الرسالة مطلوبة إجبارياً', severity: 'error' });
+      return;
+    }
+    try {
+      await requestVolunteerInfo(requestInfoDialog.item.id, requestInfoDialog.message);
+      setSnackbar({ open: true, msg: 'تم إرسال طلب المعلومات الإضافية للمتطوع', severity: 'success' });
+      setRequestInfoDialog({ open: false, item: null, message: '' });
+      loadVolunteers();
+    } catch (err) {
+      setSnackbar({ open: true, msg: err.response?.data?.message || 'فشل إرسال طلب المعلومات', severity: 'error' });
+    }
+  };
+
   const handleLogCall = async () => {
     try {
       await logVolunteerCall(callDialog.item.id, callDialog.outcome, callDialog.notes);
@@ -161,8 +179,15 @@ function AdminVolunteers() {
     {
       icon: 'fa-solid fa-phone',
       tooltip: 'تسجيل مكالمة هاتفية',
-      show: (row) => ['APPROVED', 'Accepted - Onboarding', 'No Answer - Try Later'].includes(row.status),
+      show: (row) => ['APPROVED', 'NEEDS_INFO', 'Accepted - Onboarding', 'No Answer - Try Later'].includes(row.status),
       onClick: (row) => setCallDialog({ open: true, item: row, outcome: 'Call Successful - Onboarding Initiated', notes: '' }),
+    },
+    {
+      icon: 'fa-solid fa-circle-exclamation',
+      tooltip: 'طلب معلومات إضافية',
+      show: (row) => row.status === 'PENDING',
+      onClick: (row) => setRequestInfoDialog({ open: true, item: row, message: '' }),
+      color: 'warning',
     },
   ];
 
@@ -241,6 +266,7 @@ function AdminVolunteers() {
         <select className={selectClass} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">جميع الحالات</option>
           <option value="PENDING">قيد الانتظار</option>
+          <option value="NEEDS_INFO">بحاجة معلومات إضافية</option>
           <option value="APPROVED">مقبول</option>
           <option value="REJECTED">مرفوض</option>
           <option value="Accepted - Onboarding">مقبول - قيد التوجيه</option>
@@ -458,6 +484,48 @@ function AdminVolunteers() {
                 }`}
               >
                 تأكيد الرفض
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Request Info Dialog */}
+      {requestInfoDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setRequestInfoDialog({ open: false, item: null, message: '' })} />
+          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl max-w-lg w-full border border-neutral-100 dark:border-neutral-700">
+            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700 text-warning-600 dark:text-warning-400">طلب معلومات إضافية</h2>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                أنت على وشك طلب معلومات إضافية من المتطوع <strong>{requestInfoDialog.item?.name}</strong>. سيتم إرسال بريد إلكتروني له.
+              </p>
+              <div>
+                <label className={labelClass}>الرسالة المطلوبة للمتطوع <span className="text-error-500">*</span></label>
+                <textarea
+                  value={requestInfoDialog.message}
+                  onChange={e => setRequestInfoDialog(p => ({ ...p, message: e.target.value }))}
+                  rows={3}
+                  placeholder="مثال: يرجى إرسال صورة من المؤهل الدراسي..."
+                  className={inputClass + " resize-none"}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-850">
+              <button
+                onClick={() => setRequestInfoDialog({ open: false, item: null, message: '' })}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-255 dark:hover:bg-neutral-750 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleRequestInfo}
+                disabled={!requestInfoDialog.message.trim()}
+                className={`px-4 py-2 rounded-md text-sm font-semibold text-white transition-colors ${
+                  requestInfoDialog.message.trim() ? 'bg-warning-500 hover:bg-warning-600' : 'bg-neutral-300 dark:bg-neutral-700 cursor-not-allowed'
+                }`}
+              >
+                إرسال الطلب
               </button>
             </div>
           </div>

@@ -1,14 +1,20 @@
 require('dotenv').config();
 
+const jwt = {
+    secret: process.env.JWT_SECRET || 'dev-secret',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+};
+
+if (jwt.secret === 'dev-secret' && process.env.NODE_ENV === 'production') {
+    console.warn('⚠️  WARNING: Using default JWT secrets in production! Set JWT_SECRET and JWT_REFRESH_SECRET in .env');
+}
+
 module.exports = {
     port: parseInt(process.env.PORT) || 5000,
     nodeEnv: process.env.NODE_ENV || 'development',
-    jwt: {
-        secret: process.env.JWT_SECRET || 'dev-secret',
-        refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
-        expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-        refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
-    },
+    jwt,
     demoOtp: process.env.DEMO_OTP || '1234',
     upload: {
         dir: process.env.UPLOAD_DIR || 'uploads',

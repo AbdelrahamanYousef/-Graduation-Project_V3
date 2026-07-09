@@ -13,6 +13,7 @@ function ProjectDetails() {
     const location = useLocation();
     const [activeTab, setActiveTab] = useState(0);
     const [donationAmount, setDonationAmount] = useState(100);
+    const [multiplier, setMultiplier] = useState(1);
     const isEn = getLanguage() === 'en';
 
     const { state } = useAdminData();
@@ -312,29 +313,39 @@ function ProjectDetails() {
                                      </div>
                                  ) : (
                                      <>
-                                         {/* Donation Value options */}
-                                         <div className="mb-4">
-                                             <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-3">{t('donate.selectAmount')}</p>
-                                             <div className="grid grid-cols-3 gap-2">
-                                                 {[50, 100, 200, 500, 1000, 2000].map(amount => (
-                                                     <button
-                                                         key={amount}
-                                                         onClick={() => setDonationAmount(amount)}
-                                                         className={`rounded-2xl border py-3 text-xs md:text-sm font-extrabold transition-all duration-200 ${
-                                                             donationAmount === amount
-                                                                 ? 'bg-emerald-600 border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 text-white shadow-lg shadow-emerald-600/20'
-                                                                 : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 bg-slate-50/50 dark:bg-slate-950/30 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/20'
-                                                         }`}
-                                                     >
-                                                         {formatCurrency(amount).replace(' ج.م', '')} <span className="text-[10px] block font-semibold opacity-85 mt-0.5">ج.م</span>
-                                                     </button>
-                                                 ))}
-                                             </div>
-                                         </div>
+                                          {/* Donation Value options */}
+                                          <div className="mb-4">
+                                              <p className="text-sm font-bold text-slate-900 dark:text-slate-50 mb-3">{t('donate.selectAmount')}</p>
+                                              <div className="grid grid-cols-3 gap-2">
+                                                  {[50, 100, 200, 500, 1000, 2000].map(amount => (
+                                                      <button
+                                                          key={amount}
+                                                          onClick={() => setDonationAmount(amount)}
+                                                          className={`rounded-2xl border py-3 text-xs md:text-sm font-extrabold transition-all duration-200 ${
+                                                              donationAmount === amount
+                                                                  ? 'bg-emerald-600 border-emerald-600 dark:bg-emerald-500 dark:border-emerald-500 text-white shadow-lg shadow-emerald-600/20'
+                                                                  : 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-350 bg-slate-50/50 dark:bg-slate-950/30 hover:border-emerald-500 dark:hover:border-emerald-400 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/20'
+                                                          }`}
+                                                      >
+                                                          {formatCurrency(amount).replace(' ج.م', '')} <span className="text-[10px] block font-semibold opacity-85 mt-0.5">ج.م</span>
+                                                      </button>
+                                                  ))}
+                                              </div>
+                                              <div className="flex gap-1.5 mt-2">
+                                                  {[1, 2, 3, 5, 10].map(m => (
+                                                      <button key={m} type="button" onClick={() => setMultiplier(m)}
+                                                          className={`flex-1 py-1.5 rounded-lg text-sm font-bold border transition-colors ${multiplier === m ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-500'}`}
+                                                      >
+                                                          ×{m}
+                                                      </button>
+                                                  ))}
+                                              </div>
+                                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 text-center">المجموع: {(donationAmount * multiplier).toLocaleString()} ج.م</p>
+                                          </div>
 
-                                         {/* Donate Button */}
-                                         <Link
-                                             to={`${paths.donor.donate}?project=${project.id}&amount=${donationAmount}`}
+                                          {/* Donate Button */}
+                                          <Link
+                                              to={`${paths.donor.donate}?project=${project.id}&amount=${donationAmount * multiplier}`}
                                              className="block bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white hover:text-white text-center py-4 rounded-2xl font-bold transition-all duration-300 hover:shadow-lg hover:shadow-emerald-600/20 hover:-translate-y-0.5 text-sm md:text-base mb-3"
                                          >
                                              {t('common.donate')}

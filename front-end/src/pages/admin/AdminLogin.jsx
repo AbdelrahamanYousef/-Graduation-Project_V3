@@ -46,7 +46,6 @@ function AdminLogin() {
         }
 
         setLoading(true);
-        await new Promise((r) => setTimeout(r, 800));
 
         const result = login(email, password);
         setLoading(false);

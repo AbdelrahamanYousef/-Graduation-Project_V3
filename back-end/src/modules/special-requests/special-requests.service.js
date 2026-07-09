@@ -24,7 +24,7 @@ async function create(data) {
         data: {
             specialRequestId: request.id,
             action: 'SUBMITTED',
-            details: { notes: 'تم تقديم طلب المساعدة بنجاح' },
+            details: JSON.stringify({ notes: 'تم تقديم طلب المساعدة بنجاح' }),
         },
     });
 
@@ -137,7 +137,7 @@ async function updateStatus(id, adminUser, status, notes) {
             specialRequestId: id,
             action: status,
             performedById: adminUser.id,
-            details: { notes },
+            details: JSON.stringify({ notes }),
         },
     });
 
@@ -206,9 +206,22 @@ async function allocateAid(id, adminUser, allocationData) {
             specialRequestId: id,
             action: 'AID_ALLOCATED',
             performedById: adminUser.id,
-            details: { aidType, aidAmount, aidQuantity, distributionStatus },
+            details: JSON.stringify({ aidType, aidAmount, aidQuantity, distributionStatus }),
         },
     });
+
+    // Create notification for user if request has userId
+    if (request.userId) {
+        await prisma.notification.create({
+            data: {
+                userId: request.userId,
+                title: 'تم تخصيص المساعدات لطلبك',
+                message: `تم تخصيص ${aidType}${aidAmount ? ` بقيمة ${aidAmount} ج.م` : ''}${aidQuantity ? ` (${aidQuantity})` : ''} لطلب المساعدة الخاص بك`,
+                type: 'SPECIAL_REQUEST',
+                isForAdmin: false,
+            },
+        });
+    }
 
     // Audit log
     await auditLog.log({

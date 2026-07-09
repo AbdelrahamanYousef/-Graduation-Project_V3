@@ -61,3 +61,19 @@ export async function logVolunteerCall(id, outcome, notes) {
     const { data } = await apiClient.patch(`/volunteers/${id}/log-call`, { outcome, notes });
     return data;
 }
+
+/**
+ * Request additional info from volunteer applicant (admin)
+ */
+export async function requestVolunteerInfo(id, message) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/request-info`, { message });
+    return data;
+}
+
+/**
+ * Submit additional info / response to admin's info request (volunteer)
+ */
+export async function submitVolunteerInfo(id, response) {
+    const { data } = await apiClient.patch(`/volunteers/${id}/submit-info`, { response });
+    return data;
+}

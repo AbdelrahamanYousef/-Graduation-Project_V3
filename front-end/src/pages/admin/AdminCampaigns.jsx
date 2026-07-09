@@ -5,7 +5,7 @@ import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 import { createCampaign, updateCampaign, deleteCampaign } from '../../api/campaigns.api';
 
 function AdminCampaigns() {
-    const { state, dispatch } = useAdminData();
+    const { state, dispatch, api } = useAdminData();
     const campaignsList = state.campaigns || [];
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,10 +84,11 @@ function AdminCampaigns() {
                 msg: `تم تغيير حالة الحملة إلى ${nextStatus === 'active' ? 'نشطة' : 'مكتملة'}`,
                 severity: 'info'
             });
+            api.refreshAdminData();
         } catch (error) {
             setSnackbar({ open: true, msg: 'حدث خطأ أثناء تغيير الحالة', severity: 'error' });
         }
-    }, [dispatch]);
+    }, [dispatch, api]);
 
     const handleSubmit = async () => {
         if (!formData.title.trim() || !formData.goal) {
@@ -184,30 +185,39 @@ function AdminCampaigns() {
                 title={selectedCampaign ? 'تعديل حملة' : 'إضافة حملة جديدة'}
                 submitLabel={selectedCampaign ? 'حفظ التعديلات' : 'إضافة'}
             >
-                <input
-                    placeholder="عنوان الحملة"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
-                />
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">عنوان الحملة</label>
+                    <input
+                        placeholder="عنوان الحملة"
+                        required
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                    />
+                </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                    <input
-                        placeholder="الهدف المالي (جنية)"
-                        type="number"
-                        required
-                        value={formData.goal}
-                        onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
-                    />
-                    <input
-                        placeholder="تم جمعه (جنية)"
-                        type="number"
-                        value={formData.raised}
-                        onChange={(e) => setFormData({ ...formData, raised: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
-                    />
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">الهدف المالي (جنية)</label>
+                        <input
+                            placeholder="الهدف المالي (جنية)"
+                            type="number"
+                            required
+                            value={formData.goal}
+                            onChange={(e) => setFormData({ ...formData, goal: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">تم جمعه (جنية)</label>
+                        <input
+                            placeholder="تم جمعه (جنية)"
+                            type="number"
+                            value={formData.raised}
+                            onChange={(e) => setFormData({ ...formData, raised: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                        />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -232,39 +242,51 @@ function AdminCampaigns() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                    <select
-                        value={formData.status}
-                        onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
-                    >
-                        <option value="active">نشطة</option>
-                        <option value="completed">مكتملة</option>
-                        <option value="cancelled">ملغاة</option>
-                        <option value="upcoming">قادمة</option>
-                    </select>
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">الحالة</label>
+                        <select
+                            value={formData.status}
+                            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                        >
+                            <option value="active">نشطة</option>
+                            <option value="completed">مكتملة</option>
+                            <option value="cancelled">ملغاة</option>
+                            <option value="upcoming">قادمة</option>
+                        </select>
+                    </div>
 
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">التصنيف</label>
+                        <input
+                            placeholder="التصنيف (مثال: إغاثة، رمضان)"
+                            value={formData.category}
+                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                        />
+                    </div>
+                </div>
+
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">رابط الصورة (URL)</label>
                     <input
-                        placeholder="التصنيف (مثال: إغاثة، رمضان)"
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                        placeholder="رابط الصورة (URL)"
+                        value={formData.imageUrl}
+                        onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                         className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
                     />
                 </div>
 
-                <input
-                    placeholder="رابط الصورة (URL)"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
-                />
-
-                <textarea
-                    placeholder="وصف الحملة"
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500 resize-none"
-                />
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">وصف الحملة</label>
+                    <textarea
+                        placeholder="وصف الحملة"
+                        rows={3}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500 resize-none"
+                    />
+                </div>
             </AdminFormDialog>
 
             {deleteConfirm.open && (

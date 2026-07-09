@@ -233,4 +233,88 @@ async function sendContactReplyEmail(email, name, originalSubject, replyText) {
     }
 }
 
-module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail, sendVolunteerApprovalEmail, sendContactReplyEmail };
+/**
+ * Send volunteer rejection email
+ */
+async function sendVolunteerRejectionEmail(email, name, reason) {
+    const subject = 'نور - اعتذار عن طلب التطوع';
+    const html = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 20px; direction: rtl;">
+            <h2 style="color: #ef4444;">نأسف، لم يتم قبول طلب التطوع</h2>
+            <p>عزيزنا المتقدم <strong>${name}</strong>،</p>
+            <p>نشكرك على اهتمامك بالانضمام إلى فريق متطوعي جمعية نور الخيرية.</p>
+            <p>نأسف لإبلاغك أنه بعد مراجعة طلبك، لم يتسنى لنا قبوله في الوقت الحالي.</p>
+            <p><strong>سبب الرفض:</strong> ${reason}</p>
+            <p>نتمنى لك التوفيق، وندعوك للتقديم مرة أخرى في المستقبل.</p>
+            <br>
+            <p>مع تحيات،</p>
+            <p><strong>فريق جمعية نور الخيرية</strong></p>
+        </body>
+        </html>
+    `;
+
+    try {
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: config.emailFrom,
+            to: email,
+            subject,
+            html,
+        });
+        console.log(`✅ Volunteer rejection email sent to ${email}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Failed to send volunteer rejection email to ${email}:`, error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Send volunteer info request email
+ */
+async function sendVolunteerInfoRequestEmail(email, name, message) {
+    const subject = 'نور - طلب معلومات إضافية لطلب التطوع';
+    const html = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 20px; direction: rtl;">
+            <h2 style="color: #f59e0b;">طلب معلومات إضافية</h2>
+            <p>عزيزنا المتقدم <strong>${name}</strong>،</p>
+            <p>نشكرك على تقديم طلب التطوع في جمعية نور الخيرية.</p>
+            <p>نود إبلاغك أننا بحاجة لبعض المعلومات الإضافية لاستكمال مراجعة طلبك:</p>
+            <div style="background-color: #fef3c7; border-right: 4px solid #f59e0b; padding: 15px; margin: 20px 0; font-size: 14px; color: #333; text-align: right;">
+                ${message}
+            </div>
+            <p>يرجى تحديث بياناتك في أقرب وقت ممكن.</p>
+            <br>
+            <p>مع تحيات،</p>
+            <p><strong>فريق جمعية نور الخيرية</strong></p>
+        </body>
+        </html>
+    `;
+
+    try {
+        const transporter = createTransporter();
+        await transporter.sendMail({
+            from: config.emailFrom,
+            to: email,
+            subject,
+            html,
+        });
+        console.log(`✅ Volunteer info request email sent to ${email}`);
+        return { success: true };
+    } catch (error) {
+        console.error(`❌ Failed to send volunteer info request email to ${email}:`, error.message);
+        return { success: false, error: error.message };
+    }
+}
+
+module.exports = { generateOtp, sendVerificationEmail, sendPasswordResetEmail, sendVolunteerApprovalEmail, sendContactReplyEmail, sendVolunteerRejectionEmail, sendVolunteerInfoRequestEmail };

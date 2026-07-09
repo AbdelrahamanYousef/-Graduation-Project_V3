@@ -8,7 +8,7 @@ import axios from 'axios';
  * - Global error handling via response interceptor
  */
 const apiClient = axios.create({
-    baseURL: '/api',
+    baseURL: import.meta.env.VITE_API_URL || '/api',
     timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
@@ -100,11 +100,17 @@ apiClient.interceptors.response.use(
             message = translateError(error.message);
         }
 
-        // 401 — clear tokens and optionally redirect
+        // 401 — clear tokens and redirect to login
         if (status === 401) {
+            const hadAdmin = localStorage.getItem('nour-admin-token');
+            const hadDonor = localStorage.getItem('nour-donor-token');
             localStorage.removeItem('nour-admin-token');
             localStorage.removeItem('nour-donor-token');
-            // Don't hard-redirect here; let the auth context/guard handle it
+            if (hadAdmin && !window.location.pathname.startsWith('/admin/login')) {
+                window.location.href = '/admin/login';
+            } else if (hadDonor && !window.location.pathname.startsWith('/login')) {
+                window.location.href = '/login';
+            }
         }
 
         // Return a normalized rejection so consumers can do:

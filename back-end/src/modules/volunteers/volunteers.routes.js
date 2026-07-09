@@ -64,4 +64,22 @@ router.patch('/:id/log-call', authAdmin, validate({
     try { res.json(await service.logCall(req.params.id, req.user, req.body.outcome, req.body.notes)); } catch (e) { next(e); }
 });
 
+// Admin: request additional info from volunteer applicant
+router.patch('/:id/request-info', authAdmin, validate({
+    body: z.object({
+        message: z.string().min(1, 'الرسالة مطلوبة إجبارياً'),
+    }),
+}), async (req, res, next) => {
+    try { res.json(await service.requestInfo(req.params.id, req.user, req.body.message)); } catch (e) { next(e); }
+});
+
+// Volunteer: submit additional info / response (authenticated user)
+router.patch('/:id/submit-info', authUser, validate({
+    body: z.object({
+        response: z.string().min(1, 'الرسالة مطلوبة إجبارياً'),
+    }),
+}), async (req, res, next) => {
+    try { res.json(await service.submitInfo(req.params.id, req.user.id, req.body.response)); } catch (e) { next(e); }
+});
+
 module.exports = router;

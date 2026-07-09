@@ -1,6 +1,6 @@
 import { t, formatCurrency } from '../../i18n';
 
-function DonateAmountStep({ formData, updateForm, amounts, donationTypes, projects, errors, getDonationTypeLabel, onNext }) {
+function DonateAmountStep({ formData, updateForm, amounts, donationTypes, projects, errors, getDonationTypeLabel, onNext, multiplier, setMultiplier }) {
     return (
         <div className="flex flex-col gap-6">
             <div>
@@ -21,6 +21,20 @@ function DonateAmountStep({ formData, updateForm, amounts, donationTypes, projec
                         </div>
                     ))}
                 </div>
+                {!formData.customAmount && (
+                    <div className="mt-3">
+                        <div className="flex gap-1.5">
+                            {[1, 2, 3, 5, 10].map(m => (
+                                <button key={m} type="button" onClick={() => setMultiplier(m)}
+                                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold border transition-colors ${multiplier === m ? 'bg-primary-500 text-white border-primary-500' : 'border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-300 hover:border-neutral-400'}`}
+                                >
+                                    ×{m}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1 text-center">المجموع: {(Number(formData.amount) * multiplier).toLocaleString()} ج.م</p>
+                    </div>
+                )}
                 <div className="relative mt-3">
                     <input
                         placeholder={t('donate.customAmount')}

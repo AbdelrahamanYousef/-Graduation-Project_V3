@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react';
-import { getMyVolunteerApplications, getMyRequests } from '../../api';
+import { getMyVolunteerApplications, getMyRequests, submitVolunteerInfo } from '../../api';
 import { formatDate } from '../../i18n';
+import { useToast } from '../../components/common/Toast';
 
 export default function SubmissionsTab() {
+    const toast = useToast();
     const [volunteers, setVolunteers] = useState([]);
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [expandedItem, setExpandedItem] = useState({ type: null, id: null });
+    const [responseText, setResponseText] = useState({});
+    const [submitting, setSubmitting] = useState({});
 
     useEffect(() => {
         async function fetchData() {
@@ -28,6 +32,10 @@ export default function SubmissionsTab() {
             }
         }
         fetchData();
+
+        const handleFocus = () => fetchData();
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
     }, []);
 
     const toggleExpand = (type, id) => {
@@ -35,6 +43,33 @@ export default function SubmissionsTab() {
             setExpandedItem({ type: null, id: null });
         } else {
             setExpandedItem({ type, id });
+        }
+    };
+
+    const parseDetails = (details) => {
+        if (!details) return null;
+        try { return typeof details === 'string' ? JSON.parse(details) : details; }
+        catch { return { notes: details }; }
+    };
+
+    const handleSubmitInfo = async (id) => {
+        const msg = responseText[id]?.trim();
+        if (!msg) { toast.error('الرجاء كتابة المعلومات المطلوبة'); return; }
+        setSubmitting((prev) => ({ ...prev, [id]: true }));
+        try {
+            await submitVolunteerInfo(id, msg);
+            toast.success('تم إرسال المعلومات بنجاح');
+            setResponseText((prev) => ({ ...prev, [id]: '' }));
+            const [vData, rData] = await Promise.all([
+                getMyVolunteerApplications(),
+                getMyRequests()
+            ]);
+            setVolunteers(vData);
+            setRequests(rData);
+        } catch (err) {
+            toast.error(err.response?.data?.message || err.message || 'فشل في إرسال المعلومات');
+        } finally {
+            setSubmitting((prev) => ({ ...prev, [id]: false }));
         }
     };
 
@@ -49,6 +84,9 @@ export default function SubmissionsTab() {
         if (s.includes('pending')) {
             return 'bg-warning-50 dark:bg-warning-50 text-warning-600 dark:text-warning-500 border border-warning-200 dark:border-warning-500/30';
         }
+        if (s.includes('needs_info')) {
+            return 'bg-warning-50 dark:bg-warning-50 text-warning-600 dark:text-warning-500 border border-warning-200 dark:border-warning-500/30';
+        }
         if (s.includes('review')) {
             return 'bg-accent-50 dark:bg-accent-50 text-accent-600 dark:text-accent-400 border border-accent-200 dark:border-accent-400/30';
         }
@@ -59,6 +97,7 @@ export default function SubmissionsTab() {
         const s = status || 'PENDING';
         switch (s) {
             case 'PENDING': return 'قيد الانتظار';
+            case 'NEEDS_INFO': return 'بحاجة معلومات إضافية';
             case 'UNDER_REVIEW': return 'قيد المراجعة والبحث';
             case 'APPROVED': return 'مقبول';
             case 'REJECTED': return 'مرفوض';
@@ -95,6 +134,7 @@ export default function SubmissionsTab() {
     const getLogActionTextArabic = (action) => {
         switch (action) {
             case 'SUBMITTED': return 'تم إرسال الطلب بنجاح';
+            case 'NEEDS_INFO': return 'تم طلب معلومات إضافية';
             case 'UNDER_REVIEW': return 'بدأ البحث الاجتماعي والمراجعة';
             case 'APPROVED': return 'تمت الموافقة وقبول الطلب';
             case 'REJECTED': return 'تم رفض الطلب لعدم استيفاء الشروط';
@@ -197,29 +237,58 @@ export default function SubmissionsTab() {
                                                 )}
                                             </div>
 
+                                            {/* NEEDS_INFO Response UI */}
+                                            {v.status === 'NEEDS_INFO' && (
+                                                <div className="p-3 bg-warning-50 dark:bg-warning-50/10 border border-warning-200 dark:border-warning-500/30 rounded-xl">
+                                                    <h6 className="font-bold text-xs text-warning-700 dark:text-warning-500 mb-2 flex items-center gap-1">
+                                                        <i className="fa-solid fa-circle-info"></i> طلب معلومات إضافية
+                                                    </h6>
+                                                    <p className="text-xs text-neutral-600 dark:text-neutral-700 mb-2">
+                                                        يرجى كتابة المعلومات المطلوبة لإكمال طلبك:
+                                                    </p>
+                                                    <textarea
+                                                        value={responseText[v.id] || ''}
+                                                        onChange={(e) => setResponseText((prev) => ({ ...prev, [v.id]: e.target.value }))}
+                                                        className="w-full p-2.5 rounded-lg border border-neutral-200 dark:border-neutral-200 bg-white dark:bg-neutral-100 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                                                        rows="3"
+                                                        placeholder="اكتب المعلومات المطلوبة هنا..."
+                                                    />
+                                                    <button
+                                                        onClick={() => handleSubmitInfo(v.id)}
+                                                        disabled={submitting[v.id]}
+                                                        className="mt-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 text-white text-xs font-bold rounded-lg transition-colors"
+                                                    >
+                                                        {submitting[v.id] ? 'جاري الإرسال...' : 'إرسال المعلومات'}
+                                                    </button>
+                                                </div>
+                                            )}
+
                                             {/* Status Timeline */}
                                             <div className="pt-2">
                                                 <span className="block text-xs text-neutral-500 mb-2.5">الجدول الزمني للطلب:</span>
                                                 <div className="relative border-r-2 border-neutral-100 dark:border-neutral-100 mr-2.5 pr-4 space-y-4">
-                                                    {v.processLogs?.map((log) => (
+                                                    {v.processLogs?.map((log) => {
+                                                        const d = parseDetails(log.details);
+                                                        return (
                                                         <div key={log.id} className="relative">
                                                             {/* Point dot */}
                                                             <span className="absolute right-[-21px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary-500 ring-4 ring-white dark:ring-neutral-100"></span>
                                                             <div className="text-xs">
                                                                 <span className="font-bold dark:text-neutral-200">{getLogActionTextArabic(log.action)}</span>
                                                                 <span className="text-neutral-500 mr-2">{formatDate(log.createdAt)}</span>
-                                                                {log.details?.notes && (
-                                                                    <p className="text-neutral-500 dark:text-neutral-700 bg-neutral-50 dark:bg-neutral-50 p-2 rounded-md mt-1 font-medium">{log.details.notes}</p>
+                                                                {d?.notes && (
+                                                                    <p className="text-neutral-500 dark:text-neutral-700 bg-neutral-50 dark:bg-neutral-50 p-2 rounded-md mt-1 font-medium">{d.notes}</p>
                                                                 )}
-                                                                {log.details?.outcome && (
+                                                                {d?.outcome && (
                                                                     <p className="text-neutral-500 mt-1">
-                                                                        <strong className="text-primary-500">نتيجة المكالمة: </strong>{getStatusTextArabic(log.details.outcome)}
-                                                                        {log.details.notes && <span> ({log.details.notes})</span>}
+                                                                        <strong className="text-primary-500">نتيجة المكالمة: </strong>{getStatusTextArabic(d.outcome)}
+                                                                        {d.notes && <span> ({d.notes})</span>}
                                                                     </p>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>
@@ -320,18 +389,21 @@ export default function SubmissionsTab() {
                                             <div className="pt-2">
                                                 <span className="block text-xs text-neutral-400 mb-2.5">الجدول الزمني للطلب:</span>
                                                 <div className="relative border-r-2 border-neutral-100 dark:border-neutral-700 mr-2.5 pr-4 space-y-4">
-                                                    {r.processLogs?.map((log) => (
+                                                    {r.processLogs?.map((log) => {
+                                                        const d = parseDetails(log.details);
+                                                        return (
                                                         <div key={log.id} className="relative">
                                                             <span className="absolute right-[-21px] top-1.5 w-2.5 h-2.5 rounded-full bg-secondary-500 ring-4 ring-white dark:ring-neutral-800"></span>
                                                             <div className="text-xs">
                                                                 <span className="font-bold dark:text-neutral-200">{getLogActionTextArabic(log.action)}</span>
                                                                 <span className="text-neutral-400 mr-2">{formatDate(log.createdAt)}</span>
-                                                                {log.details?.notes && (
-                                                                    <p className="text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/30 p-2 rounded-md mt-1 font-medium">{log.details.notes}</p>
+                                                                {d?.notes && (
+                                                                    <p className="text-neutral-500 dark:text-neutral-400 bg-neutral-50 dark:bg-neutral-900/30 p-2 rounded-md mt-1 font-medium">{d.notes}</p>
                                                                 )}
                                                             </div>
                                                         </div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>

@@ -3,7 +3,10 @@ const ApiError = require('../../shared/ApiError');
 
 async function list(query = {}) {
     const where = { deletedAt: null };
-    if (query.status) where.status = query.status.toUpperCase();
+    if (query.status) {
+        where.status = query.status.toUpperCase();
+        if (where.status === 'DRAFT') where.status = 'PENDING';
+    }
 
     const programs = await prisma.program.findMany({
         where,
@@ -29,7 +32,6 @@ async function list(query = {}) {
             projectCount: p._count.projects,
             totalDonations,
             status: p.status.toLowerCase(),
-            isHighlighted: p.isHighlighted
         };
     });
 }
@@ -40,13 +42,20 @@ async function getById(id) {
     return program;
 }
 
+function mapStatus(data) {
+    if (data.status && data.status.toUpperCase() === 'DRAFT') {
+        data.status = 'PENDING';
+    }
+    return data;
+}
+
 async function create(data) {
-    return prisma.program.create({ data });
+    return prisma.program.create({ data: mapStatus(data) });
 }
 
 async function update(id, data) {
     await getById(id);
-    return prisma.program.update({ where: { id }, data });
+    return prisma.program.update({ where: { id }, data: mapStatus(data) });
 }
 
 async function remove(id) {

@@ -8,6 +8,7 @@ async function list(query = {}) {
     if (query.search) where.title = { contains: query.search, mode: 'insensitive' };
     if (query.featured) where.featured = query.featured === 'true' || query.featured === true;
     if (query.isHighlighted !== undefined) where.isHighlighted = query.isHighlighted === 'true' || query.isHighlighted === true;
+    if (query.showAll !== 'true') where.status = 'ACTIVE';
 
     const page = parseInt(query.page) || 1;
     const limit = Math.min(parseInt(query.limit) || 20, 100);

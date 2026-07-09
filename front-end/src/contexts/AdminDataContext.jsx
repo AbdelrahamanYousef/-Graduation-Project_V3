@@ -1,7 +1,8 @@
 import { createContext, useContext, useReducer, useEffect, useMemo, useCallback } from 'react';
 import { projects as initialProjects, programs as initialPrograms, impactStats as initialStats, testimonials as initialTestimonials } from '../data/mockData';
-import { getPrograms, createProgram as apiCreateProgram, updateProgram as apiUpdateProgram, deleteProgram as apiDeleteProgram, toggleProgramHighlight as apiToggleProgramHighlight } from '../api/programs.api';
+import { getPrograms, createProgram as apiCreateProgram, updateProgram as apiUpdateProgram, deleteProgram as apiDeleteProgram } from '../api/programs.api';
 import { getProjects, createProject as apiCreateProject, updateProject as apiUpdateProject, deleteProject as apiDeleteProject, toggleProjectHighlight as apiToggleProjectHighlight } from '../api/projects.api';
+import { getCampaigns } from '../api/campaigns.api';
 import { donationsList as initialDonations, beneficiariesList as initialBeneficiaries, financeDisbursements as initialDisbursements, dashboardActivities as initialActivities } from '../data/adminMockData';
 
 // ─── Storage Keys ────────────────────────────────────────────
@@ -270,7 +271,7 @@ function adminDataReducer(state, action) {
                 ...state,
                 programs: state.programs.map(p =>
                     p.id === action.payload
-                        ? { ...p, status: p.status === 'active' ? 'inactive' : 'active' }
+                        ? { ...p, status: p.status === 'active' ? 'inactive' : p.status === 'inactive' ? 'draft' : 'active' }
                         : p
                 ),
             };
@@ -433,10 +434,13 @@ export function AdminDataProvider({ children }) {
     // ── Backend Sync Helpers ──
     const refreshAdminData = useCallback(async () => {
         try {
-            const programs = await getPrograms();
-            const projectsRes = await getProjects({ limit: 1000 });
+            const [programs, projectsRes, campaigns] = await Promise.all([
+                getPrograms(),
+                getProjects({ limit: 1000, showAll: true }),
+                getCampaigns(),
+            ]);
             const projects = projectsRes?.data || [];
-            dispatch({ type: 'SYNC_STATE', payload: { programs, projects } });
+            dispatch({ type: 'SYNC_STATE', payload: { programs, projects, campaigns } });
         } catch (e) {
             console.warn('Failed to refresh admin data', e);
         }
@@ -511,7 +515,7 @@ export function AdminDataProvider({ children }) {
         createProgram: async (data) => { const res = await apiCreateProgram(data); await refreshAdminData(); return res; },
         updateProgram: async (id, data) => { const res = await apiUpdateProgram(id, data); await refreshAdminData(); return res; },
         deleteProgram: async (id) => { const res = await apiDeleteProgram(id); await refreshAdminData(); return res; },
-        toggleProgramHighlight: async (id, isHighlighted) => { const res = await apiToggleProgramHighlight(id, isHighlighted); await refreshAdminData(); return res; },
+        toggleProgramHighlight: async () => {},
         createProject: async (data) => { const res = await apiCreateProject(data); await refreshAdminData(); return res; },
         updateProject: async (id, data) => { const res = await apiUpdateProject(id, data); await refreshAdminData(); return res; },
         deleteProject: async (id) => { const res = await apiDeleteProject(id); await refreshAdminData(); return res; },

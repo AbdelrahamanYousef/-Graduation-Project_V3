@@ -9,6 +9,7 @@ function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
     const projects = state.projects;
 
     const [step, setStep] = useState(0);
+    const [multiplier, setMultiplier] = useState(1);
     const [formData, setFormData] = useState({
         amount: preSelectedAmount || 100,
         customAmount: '',
@@ -28,6 +29,7 @@ function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
     const updateForm = useCallback((field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
         setErrors(prev => prev[field] ? { ...prev, [field]: null } : prev);
+        if (field === 'customAmount' && value) setMultiplier(1);
     }, []);
 
     const validateStep = (stepNum) => {
@@ -56,7 +58,10 @@ function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
 
     const prevStep = () => setStep(prev => prev - 1);
 
-    const getTotalAmount = () => formData.customAmount || formData.amount;
+    const getTotalAmount = () => {
+        if (formData.customAmount) return Number(formData.customAmount);
+        return Number(formData.amount) * multiplier;
+    };
 
     const getDonationTypeLabel = (type) => {
         if (!type) return '';
@@ -90,6 +95,7 @@ function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
         updateForm, nextStep, prevStep, handleSubmit,
         getTotalAmount, getDonationTypeLabel,
         amounts, steps, setErrors,
+        multiplier, setMultiplier,
     };
 }
 

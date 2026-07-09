@@ -223,31 +223,6 @@ function Dashboard() {
 
                         <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card border border-neutral-100 dark:border-neutral-700 overflow-hidden">
                             <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
-                                <h6 className="font-bold text-base">ملخص البيانات</h6>
-                            </div>
-                            <div>
-                                {[
-                                    { label: 'إجمالي المشاريع', value: state.projects.length, icon: 'fa-solid fa-clipboard-list', color: 'primary' },
-                                    { label: 'مشاريع مكتملة', value: state.projects.filter(p => p.status === 'completed').length, icon: 'fa-solid fa-circle-check', color: 'success' },
-                                    { label: 'حالات عاجلة مميزة', value: state.projects.filter(p => p.featured).length, icon: 'fa-solid fa-star', color: 'warning' },
-                                    { label: 'عدد البرامج', value: state.programs.length, icon: 'fa-solid fa-folder-open', color: 'info' },
-                                    { label: 'طلبات صرف معلقة', value: dashboardStats.pendingDisbursements || 0, icon: 'fa-solid fa-clock', color: 'secondary' },
-                                ].map((item, i) => (
-                                    <div key={i} className={`flex items-center px-4 py-3 gap-3 ${i !== 4 ? 'border-b border-neutral-200 dark:border-neutral-700' : ''}`}>
-                                        <div className="w-8 h-8 rounded flex items-center justify-center text-sm" style={{ backgroundColor: dynamicBg100(item.color), color: dynamicColor(item.color) }}>
-                                            <i className={item.icon} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm text-neutral-900 dark:text-neutral-100">{item.label}</p>
-                                        </div>
-                                        <h6 className="font-bold text-base" style={{ color: dynamicColor(item.color) }}>{item.value}</h6>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-card border border-neutral-100 dark:border-neutral-700 overflow-hidden">
-                            <div className="p-4 border-b border-neutral-200 dark:border-neutral-700">
                                 <h6 className="font-bold text-base">{t('admin.recentActivity')}</h6>
                             </div>
                             <div>

@@ -35,7 +35,7 @@ async function create(data, userId) {
       specialRequestId: request.id,
       action: 'SUBMITTED',
       performedById: userId || null,
-      details: { name: data.name, requestType: data.requestType },
+      details: JSON.stringify({ name: data.name, requestType: data.requestType }),
     },
   });
 
@@ -103,7 +103,7 @@ async function approve(id, adminUser, data = {}) {
       specialRequestId: id,
       action: 'APPROVED',
       performedById: adminUser.id,
-      details: { aidType: data.aidType, adminNotes: data.adminNotes },
+      details: JSON.stringify({ aidType: data.aidType, adminNotes: data.adminNotes }),
     },
   });
 
@@ -148,7 +148,7 @@ async function reject(id, adminUser, reason) {
       specialRequestId: id,
       action: 'REJECTED',
       performedById: adminUser.id,
-      details: { reason },
+      details: JSON.stringify({ reason }),
     },
   });
 
@@ -193,7 +193,7 @@ async function contact(id, adminUser, data) {
       specialRequestId: id,
       action: 'CONTACTED',
       performedById: adminUser.id,
-      details: { contactMethod: data.contactMethod, notes: data.notes },
+      details: JSON.stringify({ contactMethod: data.contactMethod, notes: data.notes }),
     },
   });
 
@@ -235,7 +235,7 @@ async function recordResponse(id, adminUser, data) {
       specialRequestId: id,
       action: 'RESPONDED',
       performedById: adminUser.id,
-      details: { response: data.response, notes: data.notes, newStatus },
+      details: JSON.stringify({ response: data.response, notes: data.notes, newStatus }),
     },
   });
 

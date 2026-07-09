@@ -1,19 +1,34 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminDataTable, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { t, formatCurrency } from '../../i18n';
-import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
+import { useAdminData } from '../../contexts/AdminDataContext';
 import { uploadImage } from '../../api/upload.api';
 
+const ICONS = [
+    'fa-solid fa-cube', 'fa-solid fa-folder', 'fa-solid fa-folder-open', 'fa-solid fa-heart',
+    'fa-solid fa-hand-holding-heart', 'fa-solid fa-hand-holding-hand', 'fa-solid fa-hands',
+    'fa-solid fa-graduation-cap', 'fa-solid fa-book', 'fa-solid fa-school',
+    'fa-solid fa-stethoscope', 'fa-solid fa-kit-medical', 'fa-solid fa-hospital',
+    'fa-solid fa-utensils', 'fa-solid fa-bowl-food', 'fa-solid fa-bread-slice',
+    'fa-solid fa-droplet', 'fa-solid fa-water', 'fa-solid fa-tree',
+    'fa-solid fa-house-chimney', 'fa-solid fa-tent', 'fa-solid fa-building',
+    'fa-solid fa-users', 'fa-solid fa-people-group', 'fa-solid fa-children',
+    'fa-solid fa-seedling', 'fa-solid fa-leaf', 'fa-solid fa-handshake',
+];
+
 function AdminPrograms() {
-    const { state, dispatch, api } = useAdminData();
+    const { state, api } = useAdminData();
     const programsList = state.programs;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState(null);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
     const [formData, setFormData] = useState({ name: '', nameEn: '', icon: '', color: '#0B6B6B', description: '', imageUrl: '' });
+    const [useIcon, setUseIcon] = useState(true);
     const fileInputRef = useRef(null);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, program: null });
+
+    const inputClass = "w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none";
 
     useEffect(() => {
         if (snackbar.open) {
@@ -38,12 +53,14 @@ function AdminPrograms() {
 
     const handleAdd = () => {
         setSelectedProgram(null);
+        setUseIcon(true);
         resetForm();
         setIsModalOpen(true);
     };
 
     const handleEdit = useCallback((program) => {
         setSelectedProgram(program);
+        setUseIcon(!!program.icon);
         setFormData({
             name: program.name || '',
             nameEn: program.nameEn || '',
@@ -71,34 +88,17 @@ function AdminPrograms() {
         setDeleteConfirm({ open: false, program: null });
     };
     const handleToggleStatus = useCallback(async (program) => {
+        const cycle = { active: 'INACTIVE', inactive: 'DRAFT', draft: 'ACTIVE' };
+        const nextStatus = cycle[program.status] || 'ACTIVE';
         try {
-            const nextStatus = program.status === 'active' ? 'INACTIVE' : 'ACTIVE';
             await api.updateProgram(program.id, { status: nextStatus });
             setSnackbar({
                 open: true,
-                msg: nextStatus === 'ACTIVE'
-                    ? `تم تفعيل "${program.name}" — سيظهر في الصفحة الرئيسية`
-                    : `تم إيقاف "${program.name}" — لن يظهر في الصفحة الرئيسية`,
+                msg: nextStatus === 'ACTIVE' ? `تم تفعيل "${program.name}"` : nextStatus === 'INACTIVE' ? `تم إيقاف "${program.name}"` : `تم تحويل "${program.name}" إلى مسودة`,
                 severity: 'info'
             });
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
-        }
-    }, [api]);
-
-    const handleToggleHighlight = useCallback(async (program) => {
-        try {
-            const nextVal = !program.isHighlighted;
-            await api.toggleProgramHighlight(program.id, nextVal);
-            setSnackbar({
-                open: true,
-                msg: nextVal
-                    ? `تم تمييز "${program.name}" كأشد احتياجاً ⭐`
-                    : `تم إزالة تمييز "${program.name}" من الحالات الأشد احتياجاً`,
-                severity: 'success'
-            });
-        } catch (e) {
-            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تعديل التمييز', severity: 'error' });
         }
     }, [api]);
 
@@ -107,32 +107,34 @@ function AdminPrograms() {
             setSnackbar({ open: true, msg: 'يرجى إدخال اسم البرنامج', severity: 'error' });
             return;
         }
+        if (!formData.description.trim()) {
+            setSnackbar({ open: true, msg: 'الوصف مطلوب', severity: 'error' });
+            return;
+        }
+        const payload = {
+            name: formData.name,
+            nameEn: formData.nameEn,
+            color: formData.color,
+            description: formData.description,
+            imageUrl: formData.imageUrl || undefined,
+        };
+        if (useIcon) {
+            payload.icon = formData.icon || 'fa-solid fa-cube';
+        } else {
+            payload.icon = '';
+            payload.imageUrl = formData.imageUrl || undefined;
+        }
         if (selectedProgram) {
             try {
-                await api.updateProgram(selectedProgram.id, {
-                    name: formData.name,
-                    nameEn: formData.nameEn,
-                    icon: formData.icon,
-                    color: formData.color,
-                    description: formData.description,
-                    imageUrl: formData.imageUrl || undefined,
-                });
-                setSnackbar({ open: true, msg: `تم تحديث "${formData.name}" — تم التعديل في الصفحة الرئيسية`, severity: 'success' });
+                await api.updateProgram(selectedProgram.id, payload);
+                setSnackbar({ open: true, msg: `تم تحديث "${formData.name}"`, severity: 'success' });
             } catch (e) {
                 setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
             }
         } else {
             try {
-                await api.createProgram({
-                    name: formData.name,
-                    nameEn: formData.nameEn,
-                    icon: formData.icon || 'fa-solid fa-folder',
-                    color: formData.color,
-                    description: formData.description,
-                    imageUrl: formData.imageUrl || undefined,
-                    status: 'ACTIVE',
-                });
-                setSnackbar({ open: true, msg: `تم إضافة "${formData.name}" — ظهر في الصفحة الرئيسية`, severity: 'success' });
+                await api.createProgram({ ...payload, status: 'ACTIVE' });
+                setSnackbar({ open: true, msg: `تم إضافة "${formData.name}"`, severity: 'success' });
             } catch (e) {
                 setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الإنشاء', severity: 'error' });
             }
@@ -161,20 +163,6 @@ function AdminPrograms() {
         {
             key: 'status', label: t('admin.programsPage.status'), align: 'center',
             render: (val) => <AdminStatusChip status={val || 'active'} />,
-        },
-        {
-            key: 'isHighlighted', label: 'أشد احتياجاً', align: 'center',
-            render: (val, row) => (
-                <label className="inline-flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={val || false}
-                        onChange={() => handleToggleHighlight(row)}
-                        className="sr-only peer"
-                    />
-                    <div className="relative w-9 h-5 bg-neutral-200 peer-focus:outline-none rounded-full peer dark:bg-neutral-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-neutral-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-neutral-600 peer-checked:bg-amber-500"></div>
-                </label>
-            )
         },
     ];
 
@@ -207,40 +195,68 @@ function AdminPrograms() {
                     required
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none"
+                    className={inputClass}
                 />
                 <input
                     placeholder="اسم البرنامج (إنجليزي)"
                     value={formData.nameEn}
                     onChange={(e) => setFormData(prev => ({ ...prev, nameEn: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none"
+                    className={inputClass}
                 />
-                <div>
-                    <input
-                        placeholder={t('admin.programsPage.iconLabel')}
-                        value={formData.icon}
-                        onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none"
-                    />
-                    {formData.icon && (
-                        <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
-                            <i className={formData.icon} style={{ fontSize: 24 }} />
-                            <span>معاينة الأيقونة</span>
-                        </div>
-                    )}
-                </div>
-                <div className="flex gap-2 items-center mt-2">
-                    <input
-                        placeholder="Image URL"
-                        value={formData.imageUrl}
-                        onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                        className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none"
-                    />
-                    <input type="file" accept="image/*" ref={fileInputRef} onChange={handleProgramFileSelect} className="hidden" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm">
-                        <i className="fa-solid fa-camera ml-1" /> {t('admin.programsPage.imageUpload')}
+
+                <div className="flex gap-2 items-center">
+                    <button type="button" onClick={() => setUseIcon(true)} className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${useIcon ? 'bg-primary-500 text-white border-primary-500' : 'bg-transparent text-neutral-500 border-neutral-300 dark:border-neutral-600'}`}>
+                        <i className="fa-solid fa-icons ml-1" /> أيقونة
+                    </button>
+                    <button type="button" onClick={() => setUseIcon(false)} className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${!useIcon ? 'bg-primary-500 text-white border-primary-500' : 'bg-transparent text-neutral-500 border-neutral-300 dark:border-neutral-600'}`}>
+                        <i className="fa-solid fa-image ml-1" /> صورة
                     </button>
                 </div>
+
+                {useIcon ? (
+                    <div>
+                        <div className="grid grid-cols-6 gap-1.5 max-h-40 overflow-y-auto p-2 border border-neutral-200 dark:border-neutral-700 rounded-lg">
+                            {ICONS.map(icon => (
+                                <button
+                                    key={icon}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, icon }))}
+                                    className={`w-full aspect-square flex items-center justify-center rounded-lg text-lg transition-colors ${formData.icon === icon ? 'bg-primary-500 text-white' : 'bg-neutral-100 dark:bg-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-600'}`}
+                                >
+                                    <i className={icon} />
+                                </button>
+                            ))}
+                        </div>
+                        {formData.icon && (
+                            <div className="mt-1 text-sm text-neutral-500 dark:text-neutral-400 flex items-center gap-1">
+                                <i className={formData.icon} style={{ fontSize: 24 }} />
+                                <span>معاينة الأيقونة</span>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="flex gap-2 items-center">
+                        <div className="flex-1">
+                            <input
+                                placeholder="رابط الصورة (URL)"
+                                value={formData.imageUrl}
+                                onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                                className={inputClass}
+                                dir="ltr"
+                            />
+                            {formData.imageUrl && (
+                                <div className="mt-2 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                                    <img src={formData.imageUrl} alt="preview" className="w-full h-32 object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                                </div>
+                            )}
+                        </div>
+                        <input type="file" accept="image/*" ref={fileInputRef} onChange={handleProgramFileSelect} className="hidden" />
+                        <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm mt-0">
+                            <i className="fa-solid fa-camera ml-1" /> {t('admin.programsPage.imageUpload')}
+                        </button>
+                    </div>
+                )}
+
                 <div>
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.programsPage.colorLabel')}</label>
                     <input
@@ -250,13 +266,18 @@ function AdminPrograms() {
                         className="w-full h-10 px-1 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent cursor-pointer"
                     />
                 </div>
-                <textarea
-                    placeholder={t('admin.programsPage.descLabel')}
-                    rows={4}
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none resize-none"
-                />
+
+                <div>
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.programsPage.descLabel')} <span className="text-error-500">*</span></label>
+                    <textarea
+                        placeholder={t('admin.programsPage.descLabel')}
+                        rows={4}
+                        required
+                        value={formData.description}
+                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                        className={inputClass + " resize-none"}
+                    />
+                </div>
             </AdminFormDialog>
 
             {deleteConfirm.open && (

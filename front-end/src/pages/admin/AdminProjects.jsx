@@ -36,21 +36,6 @@ function AdminProjects() {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
         }
     };
-    const toggleFeatured = useCallback(async (project) => {
-        try {
-            await api.updateProject(project.id, { featured: !project.featured });
-            setSnackbar({
-                open: true,
-                severity: 'success',
-                msg: project.featured
-                    ? `تم إزالة "${project.title}" من الحالات الأشد احتياجاً`
-                    : `تم إضافة "${project.title}" للحالات الأشد احتياجاً ⭐`,
-            });
-        } catch (e) {
-            setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تغيير الحالة', severity: 'error' });
-        }
-    }, [api]);
-
     const handleToggleHighlight = useCallback(async (project) => {
         try {
             const nextVal = !project.isHighlighted;
@@ -59,8 +44,8 @@ function AdminProjects() {
                 open: true,
                 severity: 'success',
                 msg: nextVal
-                    ? `تم تمييز "${project.title}" كأشد احتياجاً ⭐`
-                    : `تم إزالة تمييز "${project.title}" من الحالات الأشد احتياجاً`,
+                    ? `تم تمييز "${project.title}" — يظهر بالبرتقالي`
+                    : `تم إزالة تمييز "${project.title}"`,
             });
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تعديل التمييز', severity: 'error' });
@@ -212,7 +197,7 @@ function AdminProjects() {
                     const progress = Math.min(Math.round(((project.raised || 0) / (project.goal || 1)) * 100), 100);
                     return (
                         <div className="col-span-12 sm:col-span-6 lg:col-span-4" key={project.id}>
-                            <div className={`bg-white dark:bg-neutral-800 rounded-lg shadow-card overflow-hidden flex flex-col h-full border ${project.featured ? 'border-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.25)]' : 'border-neutral-100 dark:border-neutral-700'}`}>
+                            <div className={`bg-white dark:bg-neutral-800 rounded-lg shadow-card overflow-hidden flex flex-col h-full border ${project.isHighlighted ? 'border-amber-500 shadow-[0_0_0_2px_rgba(245,158,11,0.25)]' : 'border-neutral-100 dark:border-neutral-700'}`}>
                                 <div className="p-4 flex-1 flex flex-col gap-2">
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: `color-mix(in srgb, ${program?.color || 'var(--color-primary-500)'} 10%, transparent)`, color: program?.color || 'var(--color-primary-500)' }}>
@@ -220,7 +205,6 @@ function AdminProjects() {
                                             {program?.name}
                                         </div>
                                         <div className="flex items-center gap-0.5">
-                                            {project.featured && <i className="fa-solid fa-star text-amber-500 text-xs" />}
                                             <AdminStatusChip status={project.status || 'active'} />
                                         </div>
                                     </div>
@@ -265,7 +249,7 @@ function AdminProjects() {
                                         <option value="pending">قيد الانتظار</option>
                                     </select>
                                     <div className="flex-1" />
-                                    <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-bold text-neutral-600 dark:text-neutral-400 select-none">
+                                    <label className="inline-flex items-center gap-1 cursor-pointer text-xs font-bold text-amber-600 dark:text-amber-400 select-none">
                                         <input
                                             type="checkbox"
                                             checked={project.isHighlighted || false}
@@ -274,16 +258,6 @@ function AdminProjects() {
                                         />
                                         <span>أشد احتياجاً</span>
                                     </label>
-                                    <button
-                                        title={project.featured ? t('admin.projectsPage.removeFeatured') : t('admin.projectsPage.addFeatured')}
-                                        className="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-all"
-                                        style={{ color: project.featured ? '#f59e0b' : 'var(--color-neutral-400)' }}
-                                        onClick={() => toggleFeatured(project)}
-                                        onMouseEnter={e => { e.currentTarget.style.color = '#f59e0b'; e.currentTarget.style.transform = 'scale(1.15)'; }}
-                                        onMouseLeave={e => { e.currentTarget.style.color = project.featured ? '#f59e0b' : 'var(--color-neutral-400)'; e.currentTarget.style.transform = ''; }}
-                                    >
-                                        <i className={project.featured ? 'fa-solid fa-star' : 'fa-regular fa-star'} />
-                                    </button>
                                     <button
                                         title="تحديثات المشروع"
                                         className="p-2 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors text-primary-500"
@@ -328,22 +302,48 @@ function AdminProjects() {
                 maxWidth="md"
             >
                 <div className="flex flex-col md:flex-row gap-2">
-                    <input className={inputClass} placeholder={t('admin.projectsPage.titleLabel')} required value={formData.title} onChange={updateField('title')} />
-                    <select className={inputClass} value={formData.programId} onChange={updateField('programId')}>
-                        <option value="">{t('admin.projectsPage.programLabel')}</option>
-                        {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <div className="flex flex-col flex-1">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.titleLabel')}</label>
+                        <input className={inputClass} placeholder={t('admin.projectsPage.titleLabel')} required value={formData.title} onChange={updateField('title')} />
+                    </div>
+                    <div className="flex flex-col flex-1">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.programLabel')}</label>
+                        <select className={inputClass} value={formData.programId} onChange={updateField('programId')}>
+                            <option value="">{t('admin.projectsPage.programLabel')}</option>
+                            {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        </select>
+                    </div>
                 </div>
                 <div className="flex flex-col md:flex-row gap-2">
-                    <input className={inputClass} type="number" placeholder={t('admin.projectsPage.goalLabel')} required value={formData.goal} onChange={updateField('goal')} />
-                    <input className={inputClass} type="number" placeholder={t('admin.projectsPage.donationAmountLabel')} value={formData.donationAmount} onChange={updateField('donationAmount')} />
+                    <div className="flex flex-col flex-1">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.goalLabel')}</label>
+                        <input className={inputClass} type="number" placeholder={t('admin.projectsPage.goalLabel')} required value={formData.goal} onChange={updateField('goal')} />
+                    </div>
+                    <div className="flex flex-col flex-1">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.donationAmountLabel')}</label>
+                        <input className={inputClass} type="number" placeholder={t('admin.projectsPage.donationAmountLabel')} value={formData.donationAmount} onChange={updateField('donationAmount')} />
+                    </div>
                 </div>
-                <input className={inputClass} placeholder={t('admin.projectsPage.locationLabel')} value={formData.location} onChange={updateField('location')} />
-                <textarea className={inputClass + " resize-none"} rows={4} placeholder={t('admin.projectsPage.descLabel')} value={formData.description} onChange={updateField('description')} />
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.locationLabel')}</label>
+                    <input className={inputClass} placeholder={t('admin.projectsPage.locationLabel')} value={formData.location} onChange={updateField('location')} />
+                </div>
+                <div className="flex flex-col">
+                    <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.descLabel')}</label>
+                    <textarea className={inputClass + " resize-none"} rows={4} placeholder={t('admin.projectsPage.descLabel')} value={formData.description} onChange={updateField('description')} />
+                </div>
                 <div className="flex gap-2 items-center">
-                    <input className={inputClass} placeholder="Image URL" value={formData.imageUrl} onChange={updateField('imageUrl')} />
+                    <div className="flex flex-col flex-1">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">Image URL</label>
+                        <input className={inputClass} placeholder="Image URL" value={formData.imageUrl} onChange={updateField('imageUrl')} dir="ltr" />
+                        {formData.imageUrl && (
+                            <div className="mt-2 rounded-lg overflow-hidden border border-neutral-200 dark:border-neutral-700">
+                                <img src={formData.imageUrl} alt="preview" className="w-full h-32 object-cover" onError={(e) => { e.target.style.display = 'none'; }} />
+                            </div>
+                        )}
+                    </div>
                     <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileSelect} className="hidden" />
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-2 bg-neutral-100 dark:bg-neutral-700 rounded-md text-sm mt-5">
                         <i className="fa-solid fa-camera ml-1" /> {t('admin.projectsPage.imageUpload')}
                     </button>
                 </div>

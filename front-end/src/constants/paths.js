@@ -50,5 +50,6 @@ export const paths = Object.freeze({
     messages: '/admin/messages',
     volunteers: '/admin/volunteers',
     specialRequests: '/admin/special-requests',
+    users: '/admin/users',
   }),
 });

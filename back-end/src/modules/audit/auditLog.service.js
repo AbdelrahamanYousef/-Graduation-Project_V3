@@ -6,7 +6,7 @@ const prisma = require('../../lib/prisma');
  */
 async function log({ actorId, actorRole, action, entity, entityId, payload = null }) {
     return prisma.auditLog.create({
-        data: { actorId, actorRole, action, entity, entityId, payload },
+        data: { actorId, actorRole, action, entity, entityId, payload: payload ? JSON.stringify(payload) : null },
     });
 }
 
