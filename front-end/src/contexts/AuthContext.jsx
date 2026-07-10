@@ -41,14 +41,16 @@ export function AuthProvider({ children }) {
                 const result = await getCurrentUser();
                 if (result.user) {
                     // Don't restore session for unverified donors
-                    if (result.user.role !== 'ADMIN' && result.user.emailVerified === false) {
-                        clearAllAuth();
-                    } else if (result.user.role === 'ADMIN') {
+                    if (result.user.role !== 'USER') {
                         setAdminUser(result.user);
                         localStorage.setItem('nour-admin', JSON.stringify(result.user));
                     } else {
-                        setDonorUser(result.user);
-                        localStorage.setItem('nour-donor', JSON.stringify(result.user));
+                        if (result.user.emailVerified === false) {
+                            clearAllAuth();
+                        } else {
+                            setDonorUser(result.user);
+                            localStorage.setItem('nour-donor', JSON.stringify(result.user));
+                        }
                     }
                 } else {
                     clearAllAuth();

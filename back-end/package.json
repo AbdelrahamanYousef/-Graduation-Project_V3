@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Nour Charity Association Management System — Backend API",
   "main": "src/server.js",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",

@@ -27,11 +27,20 @@ router.post('/', validate({
         name: z.string().min(2),
         email: z.string().email(),
         password: z.string().min(6),
-        role: z.enum(['USER', 'ADMIN']),
+        role: z.enum(['USER', 'ADMIN', 'EDITOR', 'RESEARCHER']),
     }),
 }), async (req, res, next) => {
     try {
         const { name, email, password, role } = req.body;
+        if (!password || password.trim() === '') {
+            throw ApiError.badRequest('كلمة المرور مطلوبة إجبارياً');
+        }
+        
+        const existing = await prisma.user.findUnique({ where: { email } });
+        if (existing) {
+            throw ApiError.conflict('البريد الإلكتروني مستخدم بالفعل');
+        }
+
         const passwordHash = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
             data: { name, email, passwordHash, role },
@@ -46,14 +55,26 @@ router.put('/:id', validate({
     body: z.object({
         name: z.string().min(2).optional(),
         email: z.string().email().optional(),
-        role: z.enum(['USER', 'ADMIN']).optional(),
+        password: z.string().min(6).optional(),
+        role: z.enum(['USER', 'ADMIN', 'EDITOR', 'RESEARCHER']).optional(),
         status: z.enum(['ACTIVE', 'INACTIVE', 'PENDING']).optional(),
     }).partial(),
 }), async (req, res, next) => {
     try {
+        const updateData = { ...req.body };
+        if (updateData.email) {
+            const existing = await prisma.user.findUnique({ where: { email: updateData.email } });
+            if (existing && existing.id !== req.params.id) {
+                throw ApiError.conflict('البريد الإلكتروني مستخدم بالفعل');
+            }
+        }
+        if (updateData.password) {
+            updateData.passwordHash = await bcrypt.hash(updateData.password, 10);
+            delete updateData.password;
+        }
         const user = await prisma.user.update({
             where: { id: req.params.id },
-            data: req.body,
+            data: updateData,
             select: { id: true, name: true, email: true, role: true, status: true },
         });
         res.json(user);

@@ -92,6 +92,74 @@ async function optionalAuth(req, res, next) {
 }
 
 /**
+ * Authenticate any staff user (role !== 'USER') via JWT
+ */
+async function authStaff(req, res, next) {
+    try {
+        const token = extractToken(req);
+        if (!token) throw ApiError.unauthorized('No token provided');
+
+        const decoded = verifyToken(token);
+
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { id: true, name: true, email: true, phone: true, role: true, status: true, deletedAt: true },
+        });
+
+        if (!user || user.deletedAt || user.status !== 'ACTIVE') {
+            throw ApiError.unauthorized('User not found or inactive');
+        }
+
+        if (user.role === 'USER') {
+            throw ApiError.forbidden('Staff access required');
+        }
+
+        req.user = user;
+        next();
+    } catch (err) {
+        if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+            return next(ApiError.unauthorized('Invalid or expired token'));
+        }
+        next(err);
+    }
+}
+
+/**
+ * Authenticate specific roles via JWT
+ */
+function authRoles(allowedRoles) {
+    return async (req, res, next) => {
+        try {
+            const token = extractToken(req);
+            if (!token) throw ApiError.unauthorized('No token provided');
+
+            const decoded = verifyToken(token);
+
+            const user = await prisma.user.findUnique({
+                where: { id: decoded.id },
+                select: { id: true, name: true, email: true, phone: true, role: true, status: true, deletedAt: true },
+            });
+
+            if (!user || user.deletedAt || user.status !== 'ACTIVE') {
+                throw ApiError.unauthorized('User not found or inactive');
+            }
+
+            if (!allowedRoles.includes(user.role)) {
+                throw ApiError.forbidden('Access denied: unauthorized role');
+            }
+
+            req.user = user;
+            next();
+        } catch (err) {
+            if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+                return next(ApiError.unauthorized('Invalid or expired token'));
+            }
+            next(err);
+        }
+    };
+}
+
+/**
  * Extract Bearer token from Authorization header
  */
 function extractToken(req) {
@@ -102,4 +170,4 @@ function extractToken(req) {
     return null;
 }
 
-module.exports = { authUser, authAdmin, optionalAuth };
+module.exports = { authUser, authAdmin, optionalAuth, authStaff, authRoles };

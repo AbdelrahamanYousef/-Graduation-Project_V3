@@ -4,16 +4,32 @@ import { t } from '../../i18n';
 import { settingsUsers as initialUsers, settingsIntegrations as initialIntegrations, settingsNotifications } from '../../data/adminMockData';
 import { getStatusColor, getStatusLabel } from '../../utils/admin.helpers';
 import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
+import { getUsers, createUser, updateUser, deleteUser } from '../../api';
 
 function AdminSettings() {
     const { state, dispatch } = useAdminData();
     const [activeTab, setActiveTab] = useState('general');
-    const [users, setUsers] = useState(initialUsers || []);
+    const [users, setUsers] = useState([]);
     const [integrations, setIntegrations] = useState(initialIntegrations || []);
     const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [editUser, setEditUser] = useState(null);
     const [resetDialog, setResetDialog] = useState({ open: false, input: '' });
+
+    const loadUsers = useCallback(async () => {
+        try {
+            const data = await getUsers();
+            setUsers(data);
+        } catch (err) {
+            setSnackbar({ open: true, msg: 'فشل تحميل المستخدمين: ' + err.message, severity: 'error' });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (activeTab === 'users') {
+            loadUsers();
+        }
+    }, [activeTab, loadUsers]);
 
     useEffect(() => {
         if (snackbar.open) {
@@ -40,7 +56,7 @@ function AdminSettings() {
     const [sysData, setSysData] = useState({ language: 'ar', timezone: 'africa-cairo', currency: 'egp' });
 
     // User form state
-    const emptyUserForm = { name: '', email: '', role: 'محرر', status: 'active' };
+    const emptyUserForm = { name: '', email: '', password: '', role: 'EDITOR', status: 'ACTIVE' };
     const [userForm, setUserForm] = useState(emptyUserForm);
 
     const handleSaveOrg = () => {
@@ -67,28 +83,56 @@ function AdminSettings() {
     const handleAddUser = () => { setEditUser(null); setUserForm(emptyUserForm); setIsUserModalOpen(true); };
     const handleEditUser = useCallback((user) => {
         setEditUser(user);
-        setUserForm({ name: user.name, email: user.email, role: user.role, status: user.status || 'active' });
+        setUserForm({ name: user.name, email: user.email, password: '', role: user.role, status: user.status || 'ACTIVE' });
         setIsUserModalOpen(true);
     }, []);
 
-    const handleDeleteUser = useCallback((user) => {
-        setUsers(prev => prev.filter(u => u.id !== user.id));
-        setSnackbar({ open: true, msg: `تم حذف المستخدم "${user.name}"`, severity: 'success' });
+    const handleDeleteUser = useCallback(async (user) => {
+        try {
+            await deleteUser(user.id);
+            setUsers(prev => prev.filter(u => u.id !== user.id));
+            setSnackbar({ open: true, msg: `تم حذف المستخدم "${user.name}"`, severity: 'success' });
+        } catch (err) {
+            setSnackbar({ open: true, msg: 'فشل حذف المستخدم: ' + err.message, severity: 'error' });
+        }
     }, []);
 
-    const handleSubmitUser = () => {
+    const handleSubmitUser = async () => {
         if (!userForm.name.trim() || !userForm.email.trim()) {
             setSnackbar({ open: true, msg: 'يرجى إدخال اسم وبريد المستخدم', severity: 'error' }); return;
         }
-        if (editUser) {
-            setUsers(prev => prev.map(u => u.id === editUser.id ? { ...u, ...userForm } : u));
-            setSnackbar({ open: true, msg: `تم تحديث "${userForm.name}"`, severity: 'success' });
-        } else {
-            setUsers(prev => [...prev, { id: Math.max(...prev.map(u => u.id), 0) + 1, ...userForm }]);
-            setSnackbar({ open: true, msg: `تم إضافة "${userForm.name}" بنجاح`, severity: 'success' });
+        if (!editUser && !userForm.password.trim()) {
+            setSnackbar({ open: true, msg: 'يرجى إدخال كلمة المرور للمستخدم الجديد', severity: 'error' }); return;
         }
-        setIsUserModalOpen(false);
-        setUserForm(emptyUserForm);
+        try {
+            if (editUser) {
+                const updateData = {
+                    name: userForm.name,
+                    email: userForm.email,
+                    role: userForm.role,
+                    status: userForm.status
+                };
+                if (userForm.password && userForm.password.trim() !== '') {
+                    updateData.password = userForm.password;
+                }
+                const updated = await updateUser(editUser.id, updateData);
+                setUsers(prev => prev.map(u => u.id === editUser.id ? updated : u));
+                setSnackbar({ open: true, msg: `تم تحديث "${userForm.name}"`, severity: 'success' });
+            } else {
+                const created = await createUser({
+                    name: userForm.name,
+                    email: userForm.email,
+                    password: userForm.password,
+                    role: userForm.role
+                });
+                setUsers(prev => [created, ...prev]);
+                setSnackbar({ open: true, msg: `تم إضافة "${userForm.name}" بنجاح`, severity: 'success' });
+            }
+            setIsUserModalOpen(false);
+            setUserForm(emptyUserForm);
+        } catch (err) {
+            setSnackbar({ open: true, msg: 'حدث خطأ: ' + (err.message || 'فشلت العملية'), severity: 'error' });
+        }
     };
 
     const handleToggleIntegration = useCallback((index) => {
@@ -142,8 +186,36 @@ function AdminSettings() {
                 </div>
             ),
         },
-        { key: 'role', label: t('admin.settingsPage.role') },
-        { key: 'status', label: t('admin.settingsPage.status'), type: 'status' },
+        {
+            key: 'role', label: t('admin.settingsPage.role'),
+            render: (role) => {
+                if (role === 'ADMIN') return 'مدير النظام';
+                if (role === 'EDITOR') return 'محرر محتوى';
+                if (role === 'RESEARCHER') return 'باحث ميداني';
+                if (role === 'USER') return 'مستخدم عادي';
+                return role;
+            }
+        },
+        {
+            key: 'status', label: t('admin.settingsPage.status'),
+            render: (status) => {
+                const colors = {
+                    ACTIVE: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+                    INACTIVE: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                    PENDING: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+                };
+                const labels = {
+                    ACTIVE: 'نشط',
+                    INACTIVE: 'غير نشط',
+                    PENDING: 'معلق',
+                };
+                return (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
+                        {labels[status] || status}
+                    </span>
+                );
+            }
+        },
     ];
 
     const userActions = [
@@ -318,12 +390,25 @@ function AdminSettings() {
             >
                 <input className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" placeholder={t('admin.settingsPage.name')} required value={userForm.name} onChange={updateUserField('name')} />
                 <input className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" placeholder={t('admin.settingsPage.email')} required value={userForm.email} onChange={updateUserField('email')} type="email" />
+                {!editUser && (
+                    <input className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" placeholder="كلمة المرور" required value={userForm.password} onChange={updateUserField('password')} type="password" />
+                )}
+                {editUser && (
+                    <input className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" placeholder="كلمة المرور الجديدة (اختياري)" value={userForm.password} onChange={updateUserField('password')} type="password" />
+                )}
                 <select className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" value={userForm.role} onChange={updateUserField('role')}>
-                    <option value="مدير">مدير</option>
-                    <option value="محرر">محرر</option>
-                    <option value="مشرف">مشرف</option>
-                    <option value="مراجع">مراجع</option>
+                    <option value="ADMIN">مدير النظام</option>
+                    <option value="EDITOR">محرر محتوى</option>
+                    <option value="RESEARCHER">باحث ميداني</option>
+                    <option value="USER">مستخدم عادي</option>
                 </select>
+                {editUser && (
+                    <select className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent focus:ring-2 focus:ring-primary-500 outline-none" value={userForm.status} onChange={updateUserField('status')}>
+                        <option value="ACTIVE">نشط</option>
+                        <option value="INACTIVE">غير نشط</option>
+                        <option value="PENDING">معلق</option>
+                    </select>
+                )}
             </AdminFormDialog>
 
             {/* Reset Data Confirmation Dialog */}

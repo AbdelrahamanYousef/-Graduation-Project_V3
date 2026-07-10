@@ -65,8 +65,9 @@ export {
 // Special Requests
 export {
     submitSpecialRequest, getSpecialRequests, getMyRequests,
-    updateSpecialRequestStatus, allocateSpecialRequestAid,
-    specialRequestKeys,
+    getAssignedRequests, getSpecialRequestById, assignResearcher,
+    uploadRequestDocument, submitFieldReport, updateSpecialRequestStatus,
+    allocateSpecialRequestAid, setPendingDocs, specialRequestKeys,
 } from './specialRequests.api';
 
 // Contact
@@ -79,6 +80,11 @@ export {
 export {
     getSettings, updateSettings,
 } from './settings.api';
+
+// Users (Admin)
+export {
+    getUsers, createUser, updateUser, deleteUser, userKeys,
+} from './users.api';
 
 // Finance
 export {

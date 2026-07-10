@@ -168,7 +168,7 @@ async function adminLogin(email, password) {
     if (!user || user.deletedAt) {
         throw ApiError.unauthorized('Invalid email or password');
     }
-    if (user.role !== 'ADMIN') {
+    if (user.role === 'USER') {
         throw ApiError.unauthorized('Admin access required');
     }
     if (user.status !== 'ACTIVE') {
@@ -186,15 +186,23 @@ async function adminLogin(email, password) {
 
     await saveRefreshToken(user.id, refreshToken);
 
+    const getRoleEn = (r) => {
+        if (r === 'ADMIN') return 'Admin';
+        if (r === 'EDITOR') return 'Editor';
+        if (r === 'RESEARCHER') return 'Researcher';
+        return r;
+    };
+
     return {
         token,
         refreshToken,
         user: {
+            id: user.id,
             email: user.email,
             name: user.name,
             nameEn: '',
             role: user.role,
-            roleEn: 'Admin',
+            roleEn: getRoleEn(user.role),
             loggedInAt: new Date().toISOString(),
         },
     };
@@ -348,13 +356,21 @@ async function saveRefreshToken(userId, token) {
 function buildUserResponse(user) {
     const isPlaceholder = user.email?.includes('@placeholder.local');
 
-    if (user.role === 'ADMIN') {
+    const getRoleEn = (r) => {
+        if (r === 'ADMIN') return 'Admin';
+        if (r === 'EDITOR') return 'Editor';
+        if (r === 'RESEARCHER') return 'Researcher';
+        return r;
+    };
+
+    if (user.role !== 'USER') {
         return {
+            id: user.id,
             email: user.email,
             name: user.name,
             nameEn: '',
             role: user.role,
-            roleEn: 'Admin',
+            roleEn: getRoleEn(user.role),
             emailVerified: user.emailVerified,
             photo: user.avatarUrl,
             emailNotifications: user.emailNotifications,

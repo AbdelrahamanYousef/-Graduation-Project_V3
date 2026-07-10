@@ -98,6 +98,28 @@ function AdminLayout() {
         { path: '/admin/messages', label: 'الرسائل', icon: 'fa-solid fa-message' }
     ];
 
+    const role = adminUser?.role || 'USER';
+
+    const getFilteredSidebarItems = () => {
+        if (role === 'EDITOR') {
+            return sidebarItems.filter(item => item.path === '/admin/blog');
+        }
+        if (role === 'RESEARCHER') {
+            return [{ path: '/admin/my-cases', label: 'حالاتي', icon: 'fa-solid fa-list-check' }];
+        }
+        return sidebarItems;
+    };
+
+    const getFilteredTopNavItems = () => {
+        if (role === 'EDITOR') {
+            return [{ path: '/admin/blog', label: 'الأخبار', icon: 'fa-solid fa-newspaper' }];
+        }
+        if (role === 'RESEARCHER') {
+            return [{ path: '/admin/my-cases', label: 'حالاتي', icon: 'fa-solid fa-list-check' }];
+        }
+        return topNavItems;
+    };
+
     const isActive = (item) => {
         if (item.exact) return location.pathname === item.path;
         return location.pathname.startsWith(item.path);
@@ -120,7 +142,7 @@ function AdminLayout() {
 
             {/* Navigation */}
             <nav className="flex-1 px-1.5 py-3 overflow-y-auto">
-                {sidebarItems.map((item) => {
+                {getFilteredSidebarItems().map((item) => {
                     const active = isActive(item);
                     return (
                         <div key={item.path} className="mb-0.5" title={!sidebarExpanded ? item.label : ''}>
@@ -181,7 +203,7 @@ function AdminLayout() {
 
                     {/* Top Nav */}
                     <div className="hidden md:flex items-center gap-1 mr-1 pl-2 border-r border-neutral-200 dark:border-neutral-700">
-                        {topNavItems.map((item) => (
+                        {getFilteredTopNavItems().map((item) => (
                             <Link key={item.path} to={item.path} title={item.label}
                                 className={`p-1.5 rounded-md transition-colors no-underline ${isActive(item) ? 'text-secondary-500' : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700/50'}`}>
                                 <i className={item.icon}></i>

@@ -51,5 +51,7 @@ export const paths = Object.freeze({
     volunteers: '/admin/volunteers',
     specialRequests: '/admin/special-requests',
     users: '/admin/users',
+    myCases: '/admin/my-cases',
+    unauthorized: '/admin/unauthorized',
   }),
 });

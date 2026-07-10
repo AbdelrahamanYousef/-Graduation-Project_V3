@@ -1,6 +1,6 @@
 import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { DonorLayout, AdminLayout } from '../components/layouts';
+import { DonorLayout, AdminLayout, RoleProtectedRoute } from '../components/layouts';
 import AdminGuard from '../components/layouts/AdminGuard';
 import { paths } from '../constants/paths';
 
@@ -44,6 +44,8 @@ const AdminSpecialRequests = lazy(() => import('../pages/admin/AdminSpecialReque
 const AdminCampaigns = lazy(() => import('../pages/admin/AdminCampaigns'));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers'));
 const AdminLogin = lazy(() => import('../pages/admin/AdminLogin'));
+const ResearcherCases = lazy(() => import('../pages/admin/ResearcherCases'));
+const Unauthorized = lazy(() => import('../pages/admin/Unauthorized'));
 
 // ─── Placeholder for unimplemented pages ────────────────────
 function DonorPlaceholder({ title, icon }) {
@@ -113,14 +115,16 @@ export default function AppRoutes() {
                 <Route path="beneficiaries" element={<AdminBeneficiaries />} />
                 <Route path="finance" element={<AdminFinance />} />
                 <Route path="reports" element={<AdminReports />} />
-                <Route path="settings" element={<AdminSettings />} />
+                <Route path="settings" element={<RoleProtectedRoute allowedRoles={['ADMIN']}><AdminSettings /></RoleProtectedRoute>} />
                 <Route path="cms" element={<AdminCMS />} />
                 <Route path="blog" element={<AdminBlog />} />
                 <Route path="gallery" element={<Navigate to="/admin/blog?tab=gallery" replace />} />
                 <Route path="messages" element={<AdminContactMessages />} />
                 <Route path="volunteers" element={<AdminVolunteers />} />
-                <Route path="special-requests" element={<AdminSpecialRequests />} />
-                <Route path="users" element={<AdminUsers />} />
+                <Route path="special-requests" element={<RoleProtectedRoute allowedRoles={['ADMIN']}><AdminSpecialRequests /></RoleProtectedRoute>} />
+                <Route path="users" element={<RoleProtectedRoute allowedRoles={['ADMIN']}><AdminUsers /></RoleProtectedRoute>} />
+                <Route path="my-cases" element={<RoleProtectedRoute allowedRoles={['ADMIN', 'RESEARCHER']}><ResearcherCases /></RoleProtectedRoute>} />
+                <Route path="unauthorized" element={<Unauthorized />} />
             </Route>
         </Routes>
     );

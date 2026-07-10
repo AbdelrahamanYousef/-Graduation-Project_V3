@@ -58,6 +58,10 @@ async function main() {
     ];
 
     // Clean existing data in correct constraint order
+    await prisma.fieldReport.deleteMany();
+    await prisma.requestDocument.deleteMany();
+    await prisma.helpRequestProcessLog.deleteMany();
+    await prisma.helpRequest.deleteMany();
     await prisma.auditLog.deleteMany();
     await prisma.auditReport.deleteMany();
     await prisma.reconciliation.deleteMany();
@@ -71,24 +75,47 @@ async function main() {
     await prisma.beneficiary.deleteMany();
     await prisma.program.deleteMany();
     await prisma.orgSettings.deleteMany();
-    await prisma.user.deleteMany();
+    // Do not delete users to allow upsert and avoid breaking existing relationships.
 
     const passwordHash = await bcrypt.hash('admin123', 10);
 
-    // ── Users ──
-    const admin1 = await prisma.user.create({
-        data: { name: 'محمد أحمد', email: 'admin@nour.org', passwordHash, role: 'ADMIN' },
+    // ── Users (Upserted) ──
+    const admin1 = await prisma.user.upsert({
+        where: { email: 'admin@nour.org' },
+        update: { name: 'محمد أحمد', passwordHash, role: 'ADMIN', emailVerified: true },
+        create: { name: 'محمد أحمد', email: 'admin@nour.org', passwordHash, role: 'ADMIN', emailVerified: true },
     });
-    const admin2 = await prisma.user.create({
-        data: { name: 'سارة حسن', email: 'sara@nour.org', passwordHash, role: 'ADMIN' },
+    const admin2 = await prisma.user.upsert({
+        where: { email: 'sara@nour.org' },
+        update: { name: 'سارة حسن', passwordHash, role: 'ADMIN', emailVerified: true },
+        create: { name: 'سارة حسن', email: 'sara@nour.org', passwordHash, role: 'ADMIN', emailVerified: true },
     });
-    const donor1 = await prisma.user.create({
-        data: {
-            name: 'أحمد محمد', email: 'ahmed@donor.com', phone: '+201012345678',
-            passwordHash: '', role: 'USER',
-        },
+    const editor = await prisma.user.upsert({
+        where: { email: 'editor@nour.org' },
+        update: { name: 'عمر محرر', passwordHash, role: 'EDITOR', emailVerified: true },
+        create: { name: 'عمر محرر', email: 'editor@nour.org', passwordHash, role: 'EDITOR', emailVerified: true },
     });
-    console.log('  Created 3 users');
+    const researcher1 = await prisma.user.upsert({
+        where: { email: 'researcher@nour.org' },
+        update: { name: 'حسن باحث أ', passwordHash, role: 'RESEARCHER', emailVerified: true },
+        create: { name: 'حسن باحث أ', email: 'researcher@nour.org', passwordHash, role: 'RESEARCHER', emailVerified: true },
+    });
+    const researcher2 = await prisma.user.upsert({
+        where: { email: 'researcher2@nour.org' },
+        update: { name: 'علي باحث ب', passwordHash, role: 'RESEARCHER', emailVerified: true },
+        create: { name: 'علي باحث ب', email: 'researcher2@nour.org', passwordHash, role: 'RESEARCHER', emailVerified: true },
+    });
+    const donor1 = await prisma.user.upsert({
+        where: { email: 'ahmed@donor.com' },
+        update: { name: 'أحمد محمد', phone: '01012345678', passwordHash, role: 'USER', emailVerified: true },
+        create: { name: 'أحمد محمد', email: 'ahmed@donor.com', phone: '01012345678', passwordHash, role: 'USER', emailVerified: true },
+    });
+    const donor2 = await prisma.user.upsert({
+        where: { email: 'ali@donor.com' },
+        update: { name: 'علي أحمد', phone: '01112345678', passwordHash, role: 'USER', emailVerified: true },
+        create: { name: 'علي أحمد', email: 'ali@donor.com', phone: '01112345678', passwordHash, role: 'USER', emailVerified: true },
+    });
+    console.log('  Upserted admin, editor, researchers, and donor users');
 
     // ── Org Settings ──
     await prisma.orgSettings.create({
@@ -286,6 +313,96 @@ async function main() {
         await prisma.auditReport.create({ data: report });
     }
     console.log('  Created 4 audit reports');
+
+    // ── Seed Help Requests ──
+    const r1 = await prisma.user.findFirst({ where: { email: 'researcher@nour.org' } });
+    const r2 = await prisma.user.findFirst({ where: { email: 'researcher2@nour.org' } });
+    const d1 = await prisma.user.findFirst({ where: { email: 'ahmed@donor.com' } });
+    const d2 = await prisma.user.findFirst({ where: { email: 'ali@donor.com' } });
+
+    const req1 = await prisma.helpRequest.create({
+        data: {
+            name: d1.name,
+            email: d1.email,
+            phone: d1.phone,
+            requestType: 'financial',
+            description: 'طلب مساعدة مالية عاجلة لتسديد إيجار المنزل المتأخر.',
+            source: 'ONLINE',
+            status: 'NEW',
+            userId: d1.id,
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req1.id,
+            action: 'SUBMITTED',
+            details: 'تم تقديم طلب المساعدة أونلاين بنجاح',
+        }
+    });
+
+    const req2 = await prisma.helpRequest.create({
+        data: {
+            name: d2.name,
+            email: d2.email,
+            phone: d2.phone,
+            requestType: 'medical',
+            description: 'طلب مساعدة طبية لتغطية تكاليف عملية جراحية بالركبة.',
+            source: 'ONLINE',
+            status: 'FIELD_RESEARCH',
+            userId: d2.id,
+            assignedResearcherId: r1.id,
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req2.id,
+            action: 'SUBMITTED',
+            details: 'تم تقديم طلب المساعدة أونلاين بنجاح',
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req2.id,
+            action: 'ASSIGNED',
+            details: `تم تعيين الباحث الميداني ${r1.name} لدراسة الحالة`,
+        }
+    });
+
+    const req3 = await prisma.helpRequest.create({
+        data: {
+            requestType: 'housing',
+            description: 'طلب مساعدة لترميم سقف منزل متهالك في قرية بالصعيد.',
+            source: 'OFFLINE',
+            status: 'PENDING_DOCS',
+            offlineName: 'إبراهيم حسن',
+            offlinePhone: '01234567890',
+            offlineNationalId: '12345678901234',
+            assignedResearcherId: r2.id,
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req3.id,
+            action: 'SUBMITTED',
+            details: 'تم تسجيل الطلب يدوياً بواسطة الإدارة (مكتبياً)',
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req3.id,
+            action: 'ASSIGNED',
+            details: `تم تعيين الباحث الميداني ${r2.name} لدراسة الحالة`,
+        }
+    });
+    await prisma.helpRequestProcessLog.create({
+        data: {
+            helpRequestId: req3.id,
+            action: 'PENDING_DOCS',
+            details: 'في انتظار رفع صورة بطاقة الرقم القومي للمستفيد',
+        }
+    });
+
+    console.log('  Created 3 help requests with process logs');
 
     console.log('Seed complete!');
 }

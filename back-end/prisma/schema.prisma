@@ -33,12 +33,14 @@ model User {
   notifications            Notification[]
   refreshTokens            RefreshToken[]
   generatedReports         Report[]
-    reviewedVolunteers           VolunteerApplication[]    @relation("ReviewedBy")
-    reviewedSpecialRequests      SpecialRequest[]          @relation("ReviewedSpecialRequests")
-    volunteerApplications        VolunteerApplication[]    @relation("VolunteerApplicant")
-    performedVolunteerLogs       VolunteerProcessLog[]     @relation("VolunteerProcessLogActor")
-    performedSpecialRequestLogs  SpecialRequestProcessLog[] @relation("SpecialRequestProcessLogActor")
-    specialRequestApplications   SpecialRequest[]           @relation("SpecialRequestApplicant")
+  reviewedVolunteers           VolunteerApplication[]    @relation("ReviewedBy")
+  reviewedHelpRequests         HelpRequest[]             @relation("ReviewedHelpRequests")
+  volunteerApplications        VolunteerApplication[]    @relation("VolunteerApplicant")
+  performedVolunteerLogs       VolunteerProcessLog[]     @relation("VolunteerProcessLogActor")
+  performedHelpRequestLogs     HelpRequestProcessLog[]   @relation("HelpRequestProcessLogActor")
+  helpRequestApplications      HelpRequest[]             @relation("HelpRequestApplicant")
+  assignedHelpRequests         HelpRequest[]             @relation("AssignedResearcher")
+  fieldReports                 FieldReport[]             @relation("ResearcherFieldReports")
 
   @@map("users")
 }
@@ -248,18 +250,18 @@ model VolunteerProcessLog {
   @@map("volunteer_process_logs")
 }
 
-model SpecialRequestProcessLog {
-  id              String          @id @default(cuid())
-  specialRequestId String
-  specialRequest  SpecialRequest  @relation(fields: [specialRequestId], references: [id], onDelete: Cascade)
-  action          String
-  performedById   String?
-  performedBy     User?           @relation("SpecialRequestProcessLogActor", fields: [performedById], references: [id])
-  details         String?
-  createdAt       DateTime        @default(now())
+model HelpRequestProcessLog {
+  id            String      @id @default(cuid())
+  helpRequestId String
+  helpRequest   HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  action        String
+  performedById String?
+  performedBy   User?       @relation("HelpRequestProcessLogActor", fields: [performedById], references: [id])
+  details       String?
+  createdAt     DateTime    @default(now())
 
-  @@index([specialRequestId])
-  @@map("special_request_process_logs")
+  @@index([helpRequestId])
+  @@map("help_request_process_logs")
 }
 
 model ContactMessage {
@@ -279,39 +281,83 @@ model ContactMessage {
   @@map("contact_messages")
 }
 
-model SpecialRequest {
-  id                String                     @id @default(cuid())
-  name              String
-  email             String?
-  phone             String
-  requestType       String
-  description       String
-  status            String                     @default("PENDING")
-  aidType           String?
-  aidAmount         Decimal?            
-  aidQuantity       String?
-  distributionStatus String?
-  adminNotes        String?
-  rejectionReason   String?
-  reviewedById      String?
-  reviewedAt        DateTime?
-  userId            String?
-  contactMethod     String?
-  contactedAt       DateTime?
-  applicantResponse String?
-  respondedAt       DateTime?
-  responseNotes     String?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
-  reviewedBy        User?                      @relation("ReviewedSpecialRequests", fields: [reviewedById], references: [id])
-  user              User?                      @relation("SpecialRequestApplicant", fields: [userId], references: [id])
-  processLogs       SpecialRequestProcessLog[]
+model HelpRequest {
+  id                   String                  @id @default(cuid())
+  source               String                  @default("ONLINE")
+  status               String                  @default("NEW")
+  
+  // Basic info (for online requests or general)
+  name                 String?
+  email                String?
+  phone                String?
+  requestType          String
+  description          String
+  
+  // Offline fallback fields
+  offlineName          String?
+  offlinePhone         String?
+  offlineNationalId    String?
+
+  // Relations
+  userId               String?
+  user                 User?                   @relation("HelpRequestApplicant", fields: [userId], references: [id])
+  
+  assignedResearcherId String?
+  assignedResearcher   User?                   @relation("AssignedResearcher", fields: [assignedResearcherId], references: [id])
+
+  reviewedById         String?
+  reviewedBy           User?                   @relation("ReviewedHelpRequests", fields: [reviewedById], references: [id])
+  reviewedAt           DateTime?
+
+  aidType              String?
+  aidAmount            Decimal?
+  aidQuantity          String?
+  distributionStatus   String?
+  adminNotes           String?
+  rejectionReason      String?
+
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  fieldReports         FieldReport[]
+  documents            RequestDocument[]
+  processLogs          HelpRequestProcessLog[]
 
   @@index([status])
-  @@index([aidType])
   @@index([createdAt])
   @@index([userId])
-  @@map("special_requests")
+  @@map("help_requests")
+}
+
+model FieldReport {
+  id               String              @id @default(cuid())
+  helpRequestId    String
+  helpRequest      HelpRequest         @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  researcherId     String
+  researcher       User                @relation("ResearcherFieldReports", fields: [researcherId], references: [id])
+  visitDate        DateTime
+  housingCondition String
+  incomeEstimate   Decimal
+  researcherNotes  String
+  recommendation   String
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([helpRequestId])
+  @@index([researcherId])
+  @@map("field_reports")
+}
+
+model RequestDocument {
+  id            String         @id @default(cuid())
+  helpRequestId String
+  helpRequest   HelpRequest    @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  docType       String
+  fileUrl       String
+  createdAt     DateTime       @default(now())
+
+  @@index([helpRequestId])
+  @@map("request_documents")
 }
 
 model AuditLog {

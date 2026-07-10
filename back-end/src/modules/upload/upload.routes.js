@@ -2,7 +2,7 @@ const { Router } = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { authUser, authAdmin } = require('../../middleware/auth');
+const { authUser, authAdmin, authStaff } = require('../../middleware/auth');
 const ApiError = require('../../shared/ApiError');
 
 const router = Router();
@@ -105,7 +105,7 @@ const docUpload = multer({
   },
 });
 
-router.post('/document', authAdmin, (req, res, next) => {
+router.post('/document', authStaff, (req, res, next) => {
   docUpload.single('file')(req, res, (err) => {
     if (err) {
       if (err instanceof multer.MulterError) {

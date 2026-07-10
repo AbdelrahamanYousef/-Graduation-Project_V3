@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { AdminPageHeader, AdminFilterBar, AdminDataTable } from '../../components/admin';
 import { formatDate } from '../../i18n';
-import { getSpecialRequests, updateSpecialRequestStatus, allocateSpecialRequestAid } from '../../api/specialRequests.api';
+import { getSpecialRequests, updateSpecialRequestStatus, allocateSpecialRequestAid, assignResearcher, getUsers } from '../../api';
 
 const STATUS_MAP = {
-  PENDING: { label: 'قيد الانتظار', color: 'bg-warning-100 text-warning-700 dark:bg-warning-500/10 dark:text-warning-400' },
-  UNDER_REVIEW: { label: 'تحت الدراسة', color: 'bg-info-100 text-info-700 dark:bg-info-500/10 dark:text-info-400' },
+  NEW: { label: 'جديد', color: 'bg-neutral-100 text-neutral-700 dark:bg-neutral-500/10 dark:text-neutral-400' },
+  PENDING_DOCS: { label: 'بانتظار المستندات', color: 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400' },
+  FIELD_RESEARCH: { label: 'دراسة ميدانية', color: 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' },
+  REVIEW: { label: 'مراجعة الإدارة', color: 'bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400' },
   APPROVED: { label: 'مقبول', color: 'bg-success-100 text-success-700 dark:bg-success-500/10 dark:text-success-400' },
   REJECTED: { label: 'مرفوض', color: 'bg-error-100 text-error-700 dark:bg-error-500/10 dark:text-error-400' },
 };
@@ -18,7 +20,11 @@ const DISTRIBUTION_MAP = {
 
 const PROCESS_ACTION_MAP = {
   SUBMITTED: { label: 'تقديم الطلب', icon: 'fa-solid fa-paper-plane' },
-  UNDER_REVIEW: { label: 'بدء الدراسة والبحث', icon: 'fa-solid fa-magnifying-glass' },
+  ASSIGNED: { label: 'تعيين باحث ميداني', icon: 'fa-solid fa-user-plus' },
+  PENDING_DOCS: { label: 'تعليق الطلب للمستندات', icon: 'fa-solid fa-clock' },
+  DOCUMENT_UPLOADED: { label: 'رفع مستند', icon: 'fa-solid fa-file-arrow-up' },
+  FIELD_RESEARCH: { label: 'تحويل للدراسة الميدانية', icon: 'fa-solid fa-route' },
+  REVIEW: { label: 'إرسال للمراجعة', icon: 'fa-solid fa-magnifying-glass' },
   APPROVED: { label: 'الموافقة على الطلب', icon: 'fa-solid fa-check' },
   REJECTED: { label: 'رفض الطلب', icon: 'fa-solid fa-xmark' },
   AID_ALLOCATED: { label: 'تخصيص/تحديث المساعدة', icon: 'fa-solid fa-hand-holding-dollar' },
@@ -33,8 +39,10 @@ function AdminSpecialRequests() {
   const [dateRange, setDateRange] = useState('all');
   const [viewItem, setViewItem] = useState(null);
 
-  const [statusDialog, setStatusDialog] = useState({ open: false, item: null, status: 'UNDER_REVIEW', notes: '' });
+  const [statusDialog, setStatusDialog] = useState({ open: false, item: null, status: 'APPROVED', notes: '' });
   const [allocateDialog, setAllocateDialog] = useState({ open: false, item: null, aidType: 'مساعدة مالية', aidAmount: '', aidQuantity: '', distributionStatus: 'Assigned' });
+  const [assignDialog, setAssignDialog] = useState({ open: false, item: null, researcherId: '' });
+  const [researchers, setResearchers] = useState([]);
 
   const [snackbar, setSnackbar] = useState({ open: false, msg: '', severity: 'success' });
 
@@ -61,9 +69,42 @@ function AdminSpecialRequests() {
     }
   };
 
+  const handleOpenAssignDialog = async (item) => {
+    setAssignDialog({ open: true, item, researcherId: item.assignedResearcherId || '' });
+    try {
+      const usersList = await getUsers();
+      const filtered = usersList.filter(u => u.role === 'RESEARCHER' && u.status === 'ACTIVE');
+      setResearchers(filtered);
+    } catch (err) {
+      setSnackbar({ open: true, msg: 'فشل تحميل قائمة الباحثين الميدانيين', severity: 'error' });
+    }
+  };
+
+  const handleConfirmAssign = async () => {
+    if (!assignDialog.researcherId) {
+      setSnackbar({ open: true, msg: 'يرجى اختيار باحث ميداني', severity: 'error' });
+      return;
+    }
+    try {
+      await assignResearcher(assignDialog.item.id, assignDialog.researcherId);
+      setSnackbar({ open: true, msg: 'تم تعيين الباحث الميداني بنجاح وتحويل الحالة للدراسة', severity: 'success' });
+      setAssignDialog({ open: false, item: null, researcherId: '' });
+      loadRequests();
+    } catch (err) {
+      setSnackbar({ open: true, msg: 'فشل تعيين الباحث: ' + err.message, severity: 'error' });
+    }
+  };
+
   const filteredData = useMemo(() => {
     return requests.filter(r => {
-      if (search && !r.name.includes(search) && !r.phone.includes(search) && !(r.email && r.email.includes(search))) return false;
+      const nameVal = r.name || r.offlineName || '';
+      const phoneVal = r.phone || r.offlinePhone || '';
+      const emailVal = r.email || '';
+      
+      if (search && 
+          !nameVal.includes(search) && 
+          !phoneVal.includes(search) && 
+          !emailVal.includes(search)) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (aidTypeFilter && r.aidType !== aidTypeFilter) return false;
       
@@ -127,12 +168,19 @@ function AdminSpecialRequests() {
     {
       key: 'name',
       label: 'المستفيد',
-      render: (val, row) => (
-        <div>
-          <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">{val}</p>
-          <span className="text-xs text-neutral-500">{row.phone} {row.email ? `— ${row.email}` : ''}</span>
-        </div>
-      ),
+      render: (_, row) => {
+        const nameVal = row.name || row.offlineName || '';
+        const phoneVal = row.phone || row.offlinePhone || '';
+        const emailVal = row.email || '';
+        return (
+          <div>
+            <p className="text-sm font-semibold text-neutral-800 dark:text-neutral-200">
+              {nameVal} {row.source === 'OFFLINE' && <span className="text-xxs px-1.5 py-0.5 bg-amber-500/10 text-amber-600 rounded mr-1">مكتبي</span>}
+            </p>
+            <span className="text-xs text-neutral-500">{phoneVal} {emailVal ? `— ${emailVal}` : ''}</span>
+          </div>
+        );
+      }
     },
     { key: 'requestType', label: 'نوع الطلب' },
     { key: 'createdAt', label: 'تاريخ التقديم', render: (val) => (val ? formatDate(val) : '-') },
@@ -140,7 +188,7 @@ function AdminSpecialRequests() {
       key: 'status',
       label: 'حالة الطلب',
       render: (val) => {
-        const s = STATUS_MAP[val] || STATUS_MAP.PENDING;
+        const s = STATUS_MAP[val] || { label: val, color: 'bg-neutral-100 text-neutral-700' };
         return <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${s.color}`}>{s.label}</span>;
       },
     },
@@ -168,9 +216,15 @@ function AdminSpecialRequests() {
     { icon: 'fa-solid fa-eye', tooltip: 'عرض التفاصيل والخط الزمني', onClick: (row) => setViewItem(row) },
     {
       icon: 'fa-solid fa-rotate',
-      tooltip: 'تغيير الحالة',
-      show: (row) => row.status !== 'APPROVED' && row.status !== 'REJECTED',
-      onClick: (row) => setStatusDialog({ open: true, item: row, status: row.status === 'PENDING' ? 'UNDER_REVIEW' : 'APPROVED', notes: '' }),
+      tooltip: 'اتخاذ قرار نهائي',
+      show: (row) => row.status === 'REVIEW',
+      onClick: (row) => setStatusDialog({ open: true, item: row, status: 'APPROVED', notes: '' }),
+    },
+    {
+      icon: 'fa-solid fa-user-plus',
+      tooltip: 'تعيين باحث ميداني',
+      show: (row) => row.status === 'NEW' || row.status === 'PENDING_DOCS',
+      onClick: (row) => handleOpenAssignDialog(row),
     },
     {
       icon: 'fa-solid fa-hand-holding-dollar',
@@ -304,20 +358,51 @@ function AdminSpecialRequests() {
               {/* Main Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs text-neutral-500">اسم المستفيد</p>
-                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.name}</p>
+                  <p className="text-xs text-neutral-500">نوع التسجيل</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    {viewItem.source === 'OFFLINE' ? 'تسجيل مكتبي / ورقي (OFFLINE)' : 'تقديم إلكتروني (ONLINE)'}
+                  </p>
                 </div>
+                <div>
+                  <p className="text-xs text-neutral-500">الباحث المعين</p>
+                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">
+                    {viewItem.assignedResearcher?.name || <span className="text-neutral-400">لم يعين باحث بعد</span>}
+                  </p>
+                </div>
+                {viewItem.source === 'OFFLINE' ? (
+                  <>
+                    <div>
+                      <p className="text-xs text-neutral-500">اسم المستفيد</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.offlineName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">رقم الهاتف</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200" dir="ltr">{viewItem.offlinePhone}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">الرقم القومي للمستفيد</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.offlineNationalId || 'غير متوفر'}</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-xs text-neutral-500">اسم المستفيد</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">رقم الهاتف</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200" dir="ltr">{viewItem.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-neutral-500">البريد الإلكتروني</p>
+                      <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.email || 'غير متوفر'}</p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <p className="text-xs text-neutral-500">نوع الطلب المقدم</p>
                   <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.requestType}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-500">رقم الهاتف</p>
-                  <p className="font-semibold text-neutral-800 dark:text-neutral-200" dir="ltr">{viewItem.phone}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-neutral-500">البريد الإلكتروني</p>
-                  <p className="font-semibold text-neutral-800 dark:text-neutral-200">{viewItem.email || 'غير متوفر'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-neutral-500">تاريخ التقديم</p>
@@ -325,8 +410,8 @@ function AdminSpecialRequests() {
                 </div>
                 <div>
                   <p className="text-xs text-neutral-500">الحالة</p>
-                  <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${(STATUS_MAP[viewItem.status] || STATUS_MAP.PENDING).color}`}>
-                    {(STATUS_MAP[viewItem.status] || STATUS_MAP.PENDING).label}
+                  <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${(STATUS_MAP[viewItem.status] || STATUS_MAP.NEW).color}`}>
+                    {(STATUS_MAP[viewItem.status] || STATUS_MAP.NEW).label}
                   </span>
                 </div>
               </div>
@@ -336,6 +421,77 @@ function AdminSpecialRequests() {
                 <p className="text-sm mt-1 bg-neutral-50 dark:bg-neutral-900/40 p-3 rounded border border-neutral-100 dark:border-neutral-800 text-neutral-700 dark:text-neutral-300">
                   {viewItem.description}
                 </p>
+              </div>
+
+              {/* Documents List */}
+              <div className="border-t border-neutral-100 dark:border-neutral-700 pt-4">
+                <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mb-2">المستندات المرفقة</p>
+                {viewItem.documents && viewItem.documents.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {viewItem.documents.map((doc) => {
+                      const docLabels = { ID: 'بطاقة الرقم القومي', MEDICAL: 'تقرير طبي', OTHER: 'مستند آخر' };
+                      return (
+                        <div key={doc.id} className="flex items-center justify-between p-2 bg-neutral-50 dark:bg-neutral-900/30 rounded border border-neutral-100 dark:border-neutral-800">
+                          <div>
+                            <p className="text-xs font-semibold text-neutral-700 dark:text-neutral-300">{docLabels[doc.docType] || doc.docType}</p>
+                            <span className="text-[10px] text-neutral-400">{formatDate(doc.createdAt)}</span>
+                          </div>
+                          <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary-500 hover:underline">
+                            عرض المستند <i className="fa-solid fa-arrow-up-right-from-square mr-1" />
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-neutral-400">لا توجد مستندات مرفقة بهذا الطلب بعد.</p>
+                )}
+              </div>
+
+              {/* Field Reports List */}
+              <div className="border-t border-neutral-100 dark:border-neutral-700 pt-4">
+                <p className="text-sm font-bold text-neutral-800 dark:text-neutral-200 mb-2">تقرير الدراسة الميدانية</p>
+                {viewItem.fieldReports && viewItem.fieldReports.length > 0 ? (
+                  (() => {
+                    const report = viewItem.fieldReports[0];
+                    return (
+                      <div className="bg-primary-50/20 dark:bg-primary-950/10 p-4 rounded-lg border border-primary-100/30 space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-neutral-500">الباحث الذي زار الحالة</p>
+                            <p className="font-semibold text-neutral-800 dark:text-neutral-200">{report.researcher?.name || 'باحث غير معروف'}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-neutral-500">تاريخ الزيارة</p>
+                            <p className="font-semibold text-neutral-800 dark:text-neutral-200">{formatDate(report.visitDate)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-neutral-500">حالة السكن والمعيشة</p>
+                            <p className="font-semibold text-neutral-800 dark:text-neutral-200">{report.housingCondition}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-neutral-500">الدخل الشهري المقدر للمستفيد</p>
+                            <p className="font-semibold text-neutral-800 dark:text-neutral-200">{report.incomeEstimate} ج.م</p>
+                          </div>
+                          <div className="col-span-full">
+                            <p className="text-xs text-neutral-500">توصية الباحث</p>
+                            <span className={`inline-flex px-2.5 py-0.5 rounded text-xs font-semibold ${report.recommendation === 'APPROVE' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
+                              {report.recommendation === 'APPROVE' ? 'توصية بالموافقة على الطلب' : 'توصية بالرفض'}
+                            </span>
+                          </div>
+                          <div className="col-span-full">
+                            <p className="text-xs text-neutral-500">ملاحظات ومرئيات الباحث الميداني</p>
+                            <p className="text-xs mt-1 bg-white dark:bg-neutral-800 p-2.5 rounded border border-neutral-200/50 text-neutral-700 dark:text-neutral-300 leading-relaxed">
+                              {report.researcherNotes}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <p className="text-xs text-neutral-400">لا يوجد تقرير دراسة ميدانية مسجل لهذه الحالة حتى الآن.</p>
+                )}
               </div>
 
               {/* Allocation Info (if APPROVED) */}
@@ -425,7 +581,6 @@ function AdminSpecialRequests() {
                   onChange={e => setStatusDialog(p => ({ ...p, status: e.target.value }))}
                   className={inputClass}
                 >
-                  <option value="UNDER_REVIEW">تحت الدراسة والبحث (UNDER_REVIEW)</option>
                   <option value="APPROVED">مقبول وموافق عليه (APPROVED)</option>
                   <option value="REJECTED">مرفوض (REJECTED)</option>
                 </select>
@@ -540,6 +695,52 @@ function AdminSpecialRequests() {
                 }`}
               >
                 حفظ التخصيص
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Researcher Dialog */}
+      {assignDialog.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm" onClick={() => setAssignDialog({ open: false, item: null, researcherId: '' })} />
+          <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-2xl max-w-lg w-full border border-neutral-100 dark:border-neutral-700">
+            <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700">تعيين باحث ميداني لدراسة الحالة</h2>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-neutral-600 dark:text-neutral-400">
+                اختر الباحث الميداني الذي سيقوم بزيارة الحالة وكتابة التقرير الميداني وتدقيق المستندات.
+              </p>
+              
+              <div>
+                <label className={labelClass}>الباحث الميداني</label>
+                <select
+                  value={assignDialog.researcherId}
+                  onChange={e => setAssignDialog(p => ({ ...p, researcherId: e.target.value }))}
+                  className={inputClass}
+                >
+                  <option value="">-- اختر باحثاً --</option>
+                  {researchers.map(r => (
+                    <option key={r.id} value={r.id}>{r.name} ({r.email})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-850">
+              <button
+                onClick={() => setAssignDialog({ open: false, item: null, researcherId: '' })}
+                className="px-4 py-2 rounded-md text-sm font-semibold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-255 dark:hover:bg-neutral-750 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={handleConfirmAssign}
+                disabled={!assignDialog.researcherId}
+                className={`px-4 py-2 rounded-md text-sm font-semibold text-white transition-colors ${
+                  assignDialog.researcherId ? 'bg-primary-500 hover:bg-primary-600' : 'bg-neutral-300 dark:bg-neutral-700 cursor-not-allowed'
+                }`}
+              >
+                تعيين الباحث
               </button>
             </div>
           </div>

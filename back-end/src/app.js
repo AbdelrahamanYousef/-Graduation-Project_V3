@@ -71,7 +71,7 @@ api.post('/admin/messages/:id/reply', require('./middleware/auth').authAdmin, as
     } catch (e) { next(e); }
 });
 api.use('/settings', settingsRoutes);
-api.use('/users', userRoutes);
+api.use('/admin/users', userRoutes);
 api.use('/donor', accountRoutes);
 api.use('/audit-logs', auditRoutes);
 api.use('/reconciliation', reconciliationRoutes);
