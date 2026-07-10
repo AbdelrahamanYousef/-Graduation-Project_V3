@@ -1,0 +1,95 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nour-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nour
+      POSTGRES_USER: nour
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nour_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - nour-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nour -d nour"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: ./back-end
+      dockerfile: Dockerfile
+    container_name: nour-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://nour:${POSTGRES_PASSWORD:-nour_password}@db:5432/nour
+      - PORT=5000
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-random-secret-in-production}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-change-this-to-another-random-secret}
+      - JWT_EXPIRES_IN=7d
+      - JWT_REFRESH_EXPIRES_IN=30d
+      - DEMO_OTP=${DEMO_OTP:-1234}
+      - UPLOAD_DIR=uploads
+      - MAX_FILE_SIZE=5242880
+      - FRONTEND_URL=http://localhost:5173
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - EMAIL_FROM=${EMAIL_FROM:-Nour Charity <noreply@nour-charity.org>}
+    volumes:
+      - backend-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - nour-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./front-end
+      dockerfile: Dockerfile
+    container_name: nour-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - nour-network
+
+  mobile:
+    profiles: ["mobile"]
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: nour-mobile
+    volumes:
+      - mobile-output:/output
+    networks:
+      - nour-network
+
+volumes:
+  postgres-data:
+  backend-uploads:
+  mobile-output:
+
+networks:
+  nour-network:
+    driver: bridge

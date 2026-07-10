@@ -1,0 +1,12 @@
+.git
+.gitignore
+build/
+.dart_tool/
+.packages
+.idea/
+.vscode/
+*.iml
+android/.gradle/
+android/local.properties
+ios/Pods/
+ios/.symlinks/
