@@ -404,6 +404,54 @@ async function main() {
 
     console.log('  Created 3 help requests with process logs');
 
+    // ── Seed Campaigns ──
+    const campaignsData = [
+        {
+            title: 'حملة الشتاء دفا وأمان',
+            description: 'توفير الأغطية والملابس والتدفئة للأسر المحتاجة لمواجهة برد الشتاء القارس.',
+            imageUrl: 'https://images.unsplash.com/photo-1610484826967-09c5720778c7?w=600&h=400&fit=crop',
+            goal: 500000,
+            raised: 120000,
+            status: 'ACTIVE',
+            category: 'موسمية',
+            amountConfig: 'FLEXIBLE',
+            totalRaised: 120000,
+            featured: true,
+            startDate: new Date(),
+        },
+        {
+            title: 'إغاثة فلسطين العاجلة',
+            description: 'تقديم المساعدات الطبية والغذائية والطارئة لأهالينا في قطاع غزة.',
+            imageUrl: 'https://images.unsplash.com/photo-1469571486040-4b9b3d225147?w=600&h=400&fit=crop',
+            goal: 1000000,
+            raised: 450000,
+            status: 'ACTIVE',
+            category: 'إغاثية',
+            amountConfig: 'FLEXIBLE',
+            totalRaised: 450000,
+            featured: true,
+            startDate: new Date(),
+        },
+        {
+            title: 'حملة زكاة المال',
+            description: 'توجيه أموال الزكاة لمستحقيها الشرعيين من الفقراء والمساكين والمحتاجين.',
+            imageUrl: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&h=400&fit=crop',
+            goal: 2000000,
+            raised: 750000,
+            status: 'ACTIVE',
+            category: 'زكاة',
+            amountConfig: 'FLEXIBLE',
+            totalRaised: 750000,
+            featured: false,
+            startDate: new Date(),
+        }
+    ];
+
+    for (const camp of campaignsData) {
+        await prisma.campaign.create({ data: camp });
+    }
+    console.log('  Created 3 campaigns');
+
     console.log('Seed complete!');
 }
 

@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { formatCurrency, formatNumber, getLanguage } from '../../i18n';
-import { useAdminData } from '../../contexts/AdminDataContext';
 import { paths } from '../../constants/paths';
 import { useInjectStyles } from '../../utils/injectStyles';
 import CampaignSidebar from './CampaignSidebar';
+import { getCampaignById } from '../../api';
 
 const EMERALD = '#10b981';
 const DARK_BG = '#0f172a';
@@ -53,11 +53,40 @@ export default function CampaignDetail() {
     const lang = getLanguage() === 'en';
 
     const [donationAmount, setDonationAmount] = useState(200);
+    const [campaign, setCampaign] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useInjectStyles(campaignDetailStyles, 'campaign-detail-styles');
-    const { state } = useAdminData();
-    const campaigns = state.campaigns || [];
-    const campaign = campaigns.find(c => String(c.id) === String(id));
+
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchCampaign() {
+            try {
+                setLoading(true);
+                const data = await getCampaignById(id);
+                if (isMounted) {
+                    setCampaign(data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch campaign details:', err);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+        fetchCampaign();
+        return () => { isMounted = false; };
+    }, [id]);
+
+    /* ── Loading ─────────────────────────────────────── */
+    if (loading) {
+        return (
+            <div className="min-h-[60vh] flex items-center justify-center" style={{ backgroundColor: isDark ? DARK_BG : '#f8fafc' }}>
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-emerald-500"></div>
+            </div>
+        );
+    }
 
     /* ── Not Found ─────────────────────────────────── */
     if (!campaign) {
@@ -87,7 +116,7 @@ export default function CampaignDetail() {
     const title    = campaign.title || '';
     const desc     = campaign.description || '';
     const category = campaign.category || 'عام';
-    const status   = campaign.status || 'active';
+    const status   = String(campaign.status || 'active').toLowerCase();
     const statusCfg = STATUS_CONFIG[status] || STATUS_CONFIG.active;
     const pct = campaign.goal > 0 ? Math.min(100, Math.round((campaign.raised / campaign.goal) * 100)) : 0;
 
@@ -275,7 +304,7 @@ export default function CampaignDetail() {
                             amount={donationAmount}
                             setAmount={setDonationAmount}
                             isDark={isDark}
-                            onDonate={() => navigate(`${paths.donor.donate}?project=${campaign.id}&amount=${donationAmount}`)}
+                            onDonate={() => navigate(`${paths.donor.donate}?campaign=${campaign.id}&amount=${donationAmount}`)}
                         />
                     </div>
                 </div>

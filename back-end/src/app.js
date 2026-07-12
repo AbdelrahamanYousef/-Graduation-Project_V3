@@ -72,6 +72,7 @@ api.post('/admin/messages/:id/reply', require('./middleware/auth').authAdmin, as
 });
 api.use('/settings', settingsRoutes);
 api.use('/admin/users', userRoutes);
+api.post('/admin/donations/offline', require('./middleware/auth').authAdmin, require('./modules/donations/donations.controller').createOffline);
 api.use('/donor', accountRoutes);
 api.use('/audit-logs', auditRoutes);
 api.use('/reconciliation', reconciliationRoutes);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAdminData, adminActions } from '../contexts/AdminDataContext';
 import { getLanguage } from '../i18n';
+import { createDonation } from '../api';
 
 const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
 
@@ -29,19 +30,27 @@ function useQuickDonate({ open, onClose, project }) {
     const amount = project?.donationAmount || 0;
     const total = amount * quantity;
 
-    const submitDonation = (paymentMethod) => {
-        const newDonation = {
-            id: Date.now(),
-            donor: name || 'متبرع مجهول',
-            project: project?.title || 'تبرع عام',
-            amount: total,
-            date: new Date().toISOString().split('T')[0],
-            method: paymentMethod,
-            status: 'completed',
-            phone,
-        };
-        dispatch(adminActions.addDonation(newDonation));
-        setStep('success');
+    const submitDonation = async (paymentMethod) => {
+        try {
+            const payload = {
+                amount: total,
+                type: 'GENERAL',
+                projectId: project?.id || null,
+                paymentMethod: paymentMethod === 'card' ? 'CREDIT_CARD' : paymentMethod === 'wallet' ? 'MOBILE_WALLET' : paymentMethod,
+                isAnonymous: !name.trim(),
+                fullName: name || undefined,
+                phone: phone || undefined,
+            };
+            await createDonation(payload);
+            dispatch(adminActions.addActivity({
+                type: 'donation',
+                message: `تبرع جديد بقيمة ${total} ج.م لمشروع ${project?.title || 'تبرع عام'}`
+            }));
+            setStep('success');
+        } catch (err) {
+            console.error('Donation failed:', err);
+            setErrors({ submit: err.message || 'فشلت عملية التبرع' });
+        }
     };
 
     const handleClose = () => {

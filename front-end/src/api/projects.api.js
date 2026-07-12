@@ -71,3 +71,14 @@ export async function deleteProject(id) {
     const { data } = await apiClient.delete(`/projects/${id}`);
     return data;
 }
+
+export const projects = {
+    getAll: getProjects,
+    getById: getProjectById,
+    create: createProject,
+    update: updateProject,
+    delete: deleteProject,
+    deleteProject: deleteProject
+};
+
+export const projectsApi = projects;

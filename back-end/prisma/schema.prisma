@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -41,6 +41,7 @@ model User {
   helpRequestApplications      HelpRequest[]             @relation("HelpRequestApplicant")
   assignedHelpRequests         HelpRequest[]             @relation("AssignedResearcher")
   fieldReports                 FieldReport[]             @relation("ResearcherFieldReports")
+  donationOtps                 DonationOtp[]
 
   @@map("users")
 }
@@ -90,6 +91,9 @@ model Project {
   isHighlighted  Boolean       @default(false)
   endDate        DateTime?
   donationAmount Decimal?
+  amountConfig   String        @default("FLEXIBLE")
+  sharePrice     Float?
+  totalRaised    Float         @default(0)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   deletedAt      DateTime?
@@ -103,12 +107,14 @@ model Project {
 
 model Donation {
   id                 String              @id @default(cuid())
-  userId             String?
+  userId             String
   projectId          String?
-  amount             Decimal      
+  campaignId         String?
+  amount             Float
   type               String              @default("GENERAL")
   paymentMethod      String
   status             String              @default("PENDING")
+  source             String              @default("ONLINE")
   isAnonymous        Boolean             @default(false)
   isRecurring        Boolean             @default(false)
   recurringFrequency String?
@@ -121,15 +127,19 @@ model Donation {
   internalReference  String              @unique @default(cuid())
   walletPhone        String?
   simulatedPaymentId String?
-  paidAt             DateTime?
+  transactionId      String?
+  collectionAddress  String?
   refundReason       String?
+  paidAt             DateTime?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   project            Project?            @relation(fields: [projectId], references: [id])
-  user               User?               @relation(fields: [userId], references: [id])
+  campaign           Campaign?           @relation(fields: [campaignId], references: [id])
+  user               User                @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([projectId])
+  @@index([campaignId])
   @@index([status])
   @@index([createdAt])
   @@map("donations")
@@ -419,21 +429,25 @@ model ChatbotLog {
 }
 
 model Campaign {
-  id          String         @id @default(cuid())
-  title       String
-  description String?
-  imageUrl    String?
-  goal        Decimal 
-  raised      Decimal        @default(0)
-  donorsCount Int            @default(0)
-  status      String         @default("ACTIVE")
-  startDate   DateTime       @default(now())
-  endDate     DateTime?
-  featured    Boolean        @default(false)
-  category    String?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  deletedAt   DateTime?
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  imageUrl     String?
+  goal         Decimal 
+  raised       Decimal        @default(0)
+  donorsCount  Int            @default(0)
+  status       String         @default("ACTIVE")
+  startDate    DateTime       @default(now())
+  endDate      DateTime?
+  featured     Boolean        @default(false)
+  category     String?
+  amountConfig String         @default("FLEXIBLE")
+  sharePrice   Float?
+  totalRaised  Float          @default(0)
+  donations    Donation[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
 
   @@index([status])
   @@index([endDate])
@@ -451,4 +465,24 @@ model AuditReport {
   updatedAt DateTime @updatedAt
 
   @@map("audit_reports")
+}
+
+model DonationOtp {
+  id                String   @id @default(cuid())
+  userId            String
+  otpCode           String
+  expiresAt         DateTime
+  amount            Float
+  projectId         String?
+  campaignId        String?
+  paymentMethod     String
+  collectionAddress String?
+  fawryCode         String?
+  verified          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("donation_otps")
 }

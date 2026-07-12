@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { t, formatCurrency, formatNumber, formatDate, getLanguage } from '../../i18n';
-import { updates } from '../../data/mockData';
-import { useAdminData } from '../../contexts/AdminDataContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { paths } from '../../constants/paths';
+import { getProjectById } from '../../api';
 
 function ProjectDetails() {
     const { projectId } = useParams();
@@ -16,11 +15,38 @@ function ProjectDetails() {
     const [multiplier, setMultiplier] = useState(1);
     const isEn = getLanguage() === 'en';
 
-    const { state } = useAdminData();
-    const projects = state.projects || [];
+    const [project, setProject] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const projectUpdates = []; // mocked updates since it is not in the db schema
 
-    const project = projects.find(p => p.id === projectId);
-    const projectUpdates = updates.filter(u => u.projectId === projectId || u.projectId === parseInt(projectId));
+    useEffect(() => {
+        let isMounted = true;
+        async function fetchProject() {
+            try {
+                setLoading(true);
+                const data = await getProjectById(projectId);
+                if (isMounted) {
+                    setProject(data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch project details:', err);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+        fetchProject();
+        return () => { isMounted = false; };
+    }, [projectId]);
+
+    if (loading) {
+        return (
+            <div className="py-16 text-center">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
+            </div>
+        );
+    }
 
     if (!project) {
         return (
@@ -34,7 +60,7 @@ function ProjectDetails() {
     }
 
     const title = project.title;
-    const program = project.program;
+    const program = typeof project.program === 'object' ? (project.program?.name || '') : (project.program || '');
     const percentage = project.goal > 0 ? Math.min(100, Math.round((project.raised / project.goal) * 100)) : 0;
 
     const goals = Array.isArray(project.goals)
