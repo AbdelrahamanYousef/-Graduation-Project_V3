@@ -18,6 +18,8 @@ const campaignSchema = z.object({
     endDate: z.string().optional().nullable(),
     featured: z.boolean().optional(),
     category: z.string().optional(),
+    amountConfig: z.enum(['FLEXIBLE', 'FIXED_SHARES']).optional(),
+    sharePrice: z.number().optional().nullable(),
 });
 
 router.get('/', ctrl.list);

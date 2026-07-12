@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdminData, adminActions } from '../contexts/AdminDataContext';
 import { t } from '../i18n';
+import { createDonation } from '../api';
 
 function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
     const navigate = useNavigate();
@@ -68,19 +69,29 @@ function useDonateFlow({ preSelectedAmount, preSelectedProject }) {
         return type.title || type.label || type.name || t(`donate.${type.id}`) || type.id;
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const totalAmount = getTotalAmount();
-        const newDonation = {
-            id: Date.now(),
-            donor: formData.isAnonymous ? 'متبرع مجهول' : (formData.fullName || 'متبرع'),
-            project: selectedProject?.title || 'تبرع عام',
-            amount: Number(totalAmount),
-            date: new Date().toISOString().split('T')[0],
-            method: formData.paymentMethod,
-            status: 'completed',
-        };
-        dispatch(adminActions.addDonation(newDonation));
-        navigate('/confirmation?receipt=' + Date.now());
+        try {
+            const payload = {
+                amount: Number(totalAmount),
+                type: formData.donationType,
+                projectId: formData.projectId || null,
+                paymentMethod: formData.paymentMethod === 'card' ? 'CREDIT_CARD' : formData.paymentMethod === 'wallet' ? 'MOBILE_WALLET' : formData.paymentMethod,
+                isAnonymous: formData.isAnonymous,
+                fullName: formData.isAnonymous ? undefined : formData.fullName,
+                phone: formData.isAnonymous ? undefined : formData.phone,
+                email: formData.isAnonymous ? undefined : formData.email || undefined,
+            };
+            const result = await createDonation(payload);
+            dispatch(adminActions.addActivity({
+                type: 'donation',
+                message: `تبرع جديد بقيمة ${totalAmount} ج.م`
+            }));
+            navigate('/confirmation?receipt=' + (result.receiptNumber || Date.now()));
+        } catch (err) {
+            console.error('Donation failed:', err);
+            setErrors({ submit: err.message || 'فشلت عملية التبرع' });
+        }
     };
 
     const amounts = [50, 100, 200, 500, 1000, 2000];

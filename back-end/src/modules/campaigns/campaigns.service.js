@@ -28,6 +28,8 @@ async function list(query = {}) {
             endDate: c.endDate,
             featured: c.featured,
             category: c.category,
+            amountConfig: c.amountConfig,
+            sharePrice: c.sharePrice ? Number(c.sharePrice) : null,
             daysLeft,
             createdAt: c.createdAt,
             updatedAt: c.updatedAt,

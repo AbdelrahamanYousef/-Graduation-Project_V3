@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect } from 'react';
 import { AdminPageHeader, AdminDataTable, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { t, formatCurrency } from '../../i18n';
-import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
-import { createCampaign, updateCampaign, deleteCampaign } from '../../api/campaigns.api';
+import { campaignsApi } from '../../api';
 
 function AdminCampaigns() {
-    const { state, dispatch, api } = useAdminData();
-    const campaignsList = state.campaigns || [];
+    const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const campaignsList = campaigns || [];
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -14,9 +15,26 @@ function AdminCampaigns() {
     const [formData, setFormData] = useState({
         title: '', description: '', imageUrl: '', goal: '', raised: '0',
         donorsCount: 0, status: 'active', startDate: '', endDate: '',
-        featured: false, category: ''
+        featured: false, category: '', amountConfig: 'FIXED_SHARES', sharePrice: ''
     });
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, campaign: null });
+
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const data = await campaignsApi.getAll();
+            setCampaigns(data || []);
+        } catch (e) {
+            console.error('Failed to fetch admin campaigns:', e);
+            setSnackbar({ open: true, msg: 'خطأ أثناء تحميل البيانات', severity: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
 
     useEffect(() => {
         if (snackbar.open) {
@@ -28,7 +46,7 @@ function AdminCampaigns() {
     const resetForm = () => setFormData({
         title: '', description: '', imageUrl: '', goal: '', raised: '0',
         donorsCount: 0, status: 'active', startDate: '', endDate: '',
-        featured: false, category: ''
+        featured: false, category: '', amountConfig: 'FIXED_SHARES', sharePrice: ''
     });
 
     const handleAdd = () => {
@@ -50,7 +68,9 @@ function AdminCampaigns() {
             startDate: campaign.startDate ? campaign.startDate.split('T')[0] : '',
             endDate: campaign.endDate ? campaign.endDate.split('T')[0] : '',
             featured: campaign.featured || false,
-            category: campaign.category || ''
+            category: campaign.category || '',
+            amountConfig: campaign.amountConfig || 'FIXED_SHARES',
+            sharePrice: campaign.sharePrice || '',
         });
         setIsModalOpen(true);
     }, []);
@@ -64,10 +84,11 @@ function AdminCampaigns() {
         if (!campaign) return;
 
         try {
-            await deleteCampaign(campaign.id);
-            dispatch(adminActions.deleteCampaign(campaign.id));
+            await campaignsApi.deleteCampaign(campaign.id);
             setSnackbar({ open: true, msg: `تم حذف الحملة بنجاح`, severity: 'success' });
+            await fetchData();
         } catch (error) {
+            console.error('Delete failed:', error);
             setSnackbar({ open: true, msg: 'حدث خطأ أثناء الحذف', severity: 'error' });
         } finally {
             setDeleteConfirm({ open: false, campaign: null });
@@ -75,20 +96,19 @@ function AdminCampaigns() {
     };
 
     const handleToggleStatus = useCallback(async (campaign) => {
-        const nextStatus = campaign.status === 'active' ? 'completed' : 'active';
+        const nextStatus = String(campaign.status).toLowerCase() === 'active' ? 'completed' : 'active';
         try {
-            await updateCampaign(campaign.id, { status: nextStatus.toUpperCase() });
-            dispatch(adminActions.toggleCampaignStatus(campaign.id));
+            await campaignsApi.update(campaign.id, { status: nextStatus.toUpperCase() });
             setSnackbar({
                 open: true,
-                msg: `تم تغيير حالة الحملة إلى ${nextStatus === 'active' ? 'نشطة' : 'مكتملة'}`,
+                msg: `تم تغيير حالة الحملة إلى ${String(nextStatus).toLowerCase() === 'active' ? 'نشطة' : 'مكتملة'}`,
                 severity: 'info'
             });
-            api.refreshAdminData();
+            fetchData();
         } catch (error) {
             setSnackbar({ open: true, msg: 'حدث خطأ أثناء تغيير الحالة', severity: 'error' });
         }
-    }, [dispatch, api]);
+    }, []);
 
     const handleSubmit = async () => {
         if (!formData.title.trim() || !formData.goal) {
@@ -97,27 +117,32 @@ function AdminCampaigns() {
         }
 
         const payload = {
-            ...formData,
-            status: formData.status.toUpperCase(),
-            startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString(),
-            endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+            title: formData.title,
+            description: formData.description,
+            imageUrl: formData.imageUrl,
             goal: parseFloat(formData.goal),
             raised: parseFloat(formData.raised) || 0,
             donorsCount: parseInt(formData.donorsCount) || 0,
+            status: formData.status.toUpperCase(),
+            startDate: formData.startDate ? new Date(formData.startDate).toISOString() : new Date().toISOString(),
+            endDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+            featured: formData.featured,
+            category: formData.category,
+            amountConfig: formData.amountConfig,
+            sharePrice: formData.amountConfig === 'FIXED_SHARES' ? parseFloat(formData.sharePrice) : null,
         };
 
         try {
             if (selectedCampaign) {
-                const updated = await updateCampaign(selectedCampaign.id, payload);
-                dispatch(adminActions.updateCampaign(updated));
+                await campaignsApi.update(selectedCampaign.id, payload);
                 setSnackbar({ open: true, msg: `تم تحديث الحملة بنجاح`, severity: 'success' });
             } else {
-                const created = await createCampaign(payload);
-                dispatch(adminActions.addCampaign(created));
+                await campaignsApi.create(payload);
                 setSnackbar({ open: true, msg: `تم إضافة الحملة بنجاح`, severity: 'success' });
             }
             setIsModalOpen(false);
             resetForm();
+            fetchData();
         } catch (error) {
             setSnackbar({ open: true, msg: 'حدث خطأ أثناء الحفظ', severity: 'error' });
         }
@@ -209,12 +234,50 @@ function AdminCampaigns() {
                         />
                     </div>
                     <div className="flex flex-col">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">تم جمعه (جنية)</label>
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">نوع التبرع</label>
+                        <select
+                            value={formData.amountConfig}
+                            onChange={(e) => setFormData({ ...formData, amountConfig: e.target.value })}
+                            className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                        >
+                            <option value="FIXED_SHARES">أسهم خيرية (مبلغ سهم ثابت ومضاعفاته)</option>
+                            <option value="FLEXIBLE">مبلغ مساهمة حر (متغير)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                    {formData.amountConfig === 'FIXED_SHARES' ? (
+                        <div className="flex flex-col">
+                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">سعر السهم (جنية)</label>
+                            <input
+                                placeholder="مثال: 50"
+                                type="number"
+                                required
+                                value={formData.sharePrice}
+                                onChange={(e) => setFormData({ ...formData, sharePrice: e.target.value })}
+                                className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col">
+                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">تم جمعه (جنية)</label>
+                            <input
+                                placeholder="تم جمعه (جنية)"
+                                type="number"
+                                value={formData.raised}
+                                onChange={(e) => setFormData({ ...formData, raised: e.target.value })}
+                                className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
+                            />
+                        </div>
+                    )}
+                    <div className="flex flex-col">
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">عدد المتبرعين الافتراضي</label>
                         <input
-                            placeholder="تم جمعه (جنية)"
+                            placeholder="مثال: 10"
                             type="number"
-                            value={formData.raised}
-                            onChange={(e) => setFormData({ ...formData, raised: e.target.value })}
+                            value={formData.donorsCount}
+                            onChange={(e) => setFormData({ ...formData, donorsCount: e.target.value })}
                             className="w-full px-3 py-2.5 border border-neutral-300 dark:border-neutral-600 rounded-lg bg-transparent outline-none focus:border-primary-500"
                         />
                     </div>
@@ -290,7 +353,7 @@ function AdminCampaigns() {
             </AdminFormDialog>
 
             {deleteConfirm.open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
                     <div className="bg-white dark:bg-neutral-800 rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
                         <h3 className="text-lg font-bold mb-2">تأكيد الحذف</h3>
                         <p className="text-neutral-600 dark:text-neutral-400 mb-6">

@@ -1,6 +1,6 @@
 const { Router } = require('express');
 const ctrl = require('./donations.controller');
-const { authAdmin, authUser } = require('../../middleware/auth');
+const { authAdmin, authUser, optionalAuth } = require('../../middleware/auth');
 const validate = require('../../middleware/validate');
 const { z } = require('zod');
 
@@ -12,7 +12,7 @@ router.get('/payment-methods', ctrl.getPaymentMethods);
 router.get('/amounts', ctrl.getSuggestedAmounts);
 
 // Create donation (Simulated)
-router.post('/', authUser, validate({
+router.post('/', optionalAuth, validate({
     body: z.object({
         amount: z.number().min(10, 'Minimum donation is 10 EGP'),
         type: z.enum(['sadaqah', 'zakat', 'kafala', 'waqf', 'fidya', 'SADAQAH', 'ZAKAT', 'ORPHAN_SPONSORSHIP', 'SADAQAH_JARIYAH', 'GENERAL']).optional(),
@@ -26,10 +26,16 @@ router.post('/', authUser, validate({
     }),
 }), ctrl.createDonation);
 
+// New donation flow with OTP verification
+router.post('/initiate', authUser, ctrl.initiate);
+router.post('/verify', authUser, ctrl.verify);
+router.post('/offline', authAdmin, ctrl.createOffline);
+
 // Admin endpoints
 router.get('/', authAdmin, ctrl.list);
 router.get('/stats', authAdmin, ctrl.getStats);
 router.get('/:id', authAdmin, ctrl.getById);
+router.patch('/:id/confirm', authAdmin, ctrl.confirmPayment);
 
 // Admin refund endpoint (Part 3)
 router.post('/:id/refund', authAdmin, validate({

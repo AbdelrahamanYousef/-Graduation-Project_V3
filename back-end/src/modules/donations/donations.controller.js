@@ -11,7 +11,7 @@ async function list(req, res, next) {
         const mapped = result.data.map(d => ({
             id: d.id,
             donor: d.fullName || d.user?.name || 'متبرع مجهول',
-            project: d.project?.title || 'عام',
+            project: d.project?.title || d.campaign?.title || 'عام',
             amount: Number(d.amount),
             date: d.createdAt.toISOString().split('T')[0],
             method: service.getPaymentMethods().find(m => m.value === d.paymentMethod)?.label || d.paymentMethod,
@@ -77,4 +77,46 @@ async function getTypes(req, res) { res.json(service.getTypes()); }
 async function getPaymentMethods(req, res) { res.json(service.getPaymentMethods()); }
 async function getSuggestedAmounts(req, res) { res.json(service.getSuggestedAmounts()); }
 
-module.exports = { list, getById, getStats, refund, getTypes, getPaymentMethods, getSuggestedAmounts, createDonation };
+async function initiate(req, res, next) {
+    try {
+        const result = await service.initiateDonation(req.user.id, req.body);
+        res.json(result);
+    } catch (e) { next(e); }
+}
+
+async function verify(req, res, next) {
+    try {
+        const { otpCode } = req.body;
+        const result = await service.verifyDonation(req.user.id, otpCode);
+        res.json(result);
+    } catch (e) { next(e); }
+}
+
+async function createOffline(req, res, next) {
+    try {
+        const result = await service.createOfflineDonation(req.user.id, req.body);
+        res.status(201).json(result);
+    } catch (e) { next(e); }
+}
+
+async function confirmPayment(req, res, next) {
+    try {
+        const result = await service.confirmPayment(req.params.id, req.user);
+        res.json(result);
+    } catch (e) { next(e); }
+}
+
+module.exports = {
+    list,
+    getById,
+    getStats,
+    refund,
+    getTypes,
+    getPaymentMethods,
+    getSuggestedAmounts,
+    createDonation,
+    initiate,
+    verify,
+    createOffline,
+    confirmPayment
+};

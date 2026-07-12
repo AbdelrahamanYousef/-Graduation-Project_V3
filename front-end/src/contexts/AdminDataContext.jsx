@@ -41,8 +41,8 @@ function saveToStorage(key, value) {
 // ─── Initial State ───────────────────────────────────────────
 function buildInitialState() {
     return {
-        projects: loadFromStorage(STORAGE_KEYS.projects, initialProjects),
-        programs: loadFromStorage(STORAGE_KEYS.programs, initialPrograms),
+        projects: [],
+        programs: [],
         blogPosts: loadFromStorage(STORAGE_KEYS.blogPosts, [
             {
                 id: 101,
@@ -101,8 +101,8 @@ function buildInitialState() {
             { id: 6, title: 'تعبئة وتغليف الوجبات', description: 'اللمسات النهائية قبل توزيع وجبات الإفطار', image: 'https://images.unsplash.com/photo-1541802645635-11f2286a7482?w=800&h=600&fit=crop', eventId: 103, order: 2 }
         ]),
         contactMessages: loadFromStorage(STORAGE_KEYS.contactMessages, []),
-        campaigns: loadFromStorage(STORAGE_KEYS.campaigns, []),
-        donations: loadFromStorage(STORAGE_KEYS.donations, initialDonations),
+        campaigns: [],
+        donations: [],
         beneficiaries: loadFromStorage(STORAGE_KEYS.beneficiaries, initialBeneficiaries || []),
         disbursements: loadFromStorage(STORAGE_KEYS.disbursements, initialDisbursements || []),
         activities: loadFromStorage(STORAGE_KEYS.activities, initialActivities || []),
@@ -364,15 +364,6 @@ const AdminDataContext = createContext(null);
 export function AdminDataProvider({ children }) {
     const [state, dispatch] = useReducer(adminDataReducer, null, buildInitialState);
 
-    // Persist to localStorage whenever state changes
-    useEffect(() => {
-        saveToStorage(STORAGE_KEYS.projects, state.projects);
-    }, [state.projects]);
-
-    useEffect(() => {
-        saveToStorage(STORAGE_KEYS.programs, state.programs);
-    }, [state.programs]);
-
     useEffect(() => {
         saveToStorage(STORAGE_KEYS.blogPosts, state.blogPosts);
     }, [state.blogPosts]);
@@ -384,14 +375,6 @@ export function AdminDataProvider({ children }) {
     useEffect(() => {
         saveToStorage(STORAGE_KEYS.contactMessages, state.contactMessages);
     }, [state.contactMessages]);
-
-    useEffect(() => {
-        saveToStorage(STORAGE_KEYS.campaigns, state.campaigns);
-    }, [state.campaigns]);
-
-    useEffect(() => {
-        saveToStorage(STORAGE_KEYS.donations, state.donations);
-    }, [state.donations]);
 
     useEffect(() => {
         saveToStorage(STORAGE_KEYS.beneficiaries, state.beneficiaries);
@@ -453,17 +436,17 @@ export function AdminDataProvider({ children }) {
     // ── Derived State (Computed in real-time from raw state) ──
     const derivedState = useMemo(() => {
         // 1. Projects with auto-calculated raised & donors (matched by projectId or title)
-        const derivedProjects = state.projects.map(proj => {
-            const projDonations = state.donations.filter(d =>
-                (d.projectId === proj.id || d.project === proj.title) && d.status === 'completed'
-            );
-            const raised = projDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
-            const donors = new Set(projDonations.map(d => d.donorName || d.donor || d.donorId)).size;
-            return { ...proj, raised, donors, image: proj.imageUrl || proj.image };
+        const derivedProjects = (state.projects || []).map(proj => {
+            return {
+                ...proj,
+                raised: Number(proj.raised || 0),
+                donors: Number(proj.donorsCount || proj.donors || 0),
+                image: proj.imageUrl || proj.image
+            };
         });
 
         // 2. Programs with linked project count & total raised
-        const derivedPrograms = state.programs.map(prog => {
+        const derivedPrograms = (state.programs || []).map(prog => {
             const linkedProjects = derivedProjects.filter(p =>
                 p.programId === prog.id || p.program === prog.name || p.program === prog.title
             );
@@ -496,18 +479,26 @@ export function AdminDataProvider({ children }) {
             };
         });
 
-        // 4. Dashboard summary stats
-        const completedDonations = state.donations.filter(d => d.status === 'completed');
+        // 4. Campaigns with auto-calculated raised & donors
+        const derivedCampaigns = (state.campaigns || []).map(camp => {
+            return {
+                ...camp,
+                raised: Number(camp.raised || 0),
+                donorsCount: Number(camp.donorsCount || 0)
+            };
+        });
+
+        // 5. Dashboard summary stats
         const dashboardStats = {
-            totalDonations: completedDonations.reduce((sum, d) => sum + Number(d.amount || 0), 0),
+            totalDonations: derivedProjects.reduce((sum, p) => sum + p.raised, 0) + derivedCampaigns.reduce((sum, c) => sum + c.raised, 0),
             totalProjects: derivedProjects.length,
-            activeProjects: derivedProjects.filter(p => p.status === 'active').length,
-            beneficiaries: state.beneficiaries.length,
+            activeProjects: derivedProjects.filter(p => p.status === 'active' || p.status === 'ACTIVE').length,
+            beneficiaries: (state.beneficiaries || []).length,
             totalPrograms: derivedPrograms.length,
             pendingDisbursements: (state.disbursements || []).filter(d => d.status === 'pending').length,
         };
 
-        return { ...state, projects: derivedProjects, programs: derivedPrograms, dashboardStats, donationCategories };
+        return { ...state, projects: derivedProjects, programs: derivedPrograms, campaigns: derivedCampaigns, dashboardStats, donationCategories };
     }, [state]);
 
     const api = {

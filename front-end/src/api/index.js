@@ -25,13 +25,14 @@ export {
 export {
     getProjects, getFeaturedProjects, getProjectById,
     createProject, updateProject, toggleProjectFeatured, toggleProjectHighlight, deleteProject,
-    projectKeys,
+    projectKeys, projects, projectsApi,
 } from './projects.api';
 
 // Donations
 export {
     getDonations, getDonationById, createDonation, getDonationStats,
     getDonationTypes, getPaymentMethods, getDonationAmounts, refundDonation,
+    initiateDonation, verifyDonation, createOfflineDonation, confirmDonation,
     donationKeys,
 } from './donations.api';
 
@@ -113,5 +114,11 @@ export {
 export {
     getTransparencyStats, getAuditReports, createAuditReport, updateAuditReport, deleteAuditReport,
 } from './transparency.api';
+
+// Campaigns
+export {
+    getCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
+    campaigns, campaignsApi,
+} from './campaigns.api';
 
 

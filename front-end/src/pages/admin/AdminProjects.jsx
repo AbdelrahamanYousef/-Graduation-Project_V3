@@ -1,13 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AdminPageHeader, AdminFilterBar, AdminFormDialog, AdminStatusChip } from '../../components/admin';
 import { formatCurrency, t } from '../../i18n';
-import { useAdminData, adminActions } from '../../contexts/AdminDataContext';
 import { uploadImage } from '../../api/upload.api';
+import { projectsApi, getPrograms, toggleProjectHighlight } from '../../api';
 
 function AdminProjects() {
-    const { state, dispatch, api } = useAdminData();
-    const projectsList = state.projects;
-    const programsList = state.programs;
+    const [projects, setProjects] = useState([]);
+    const [programs, setPrograms] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const projectsList = projects;
+    const programsList = programs;
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editProject, setEditProject] = useState(null);
@@ -17,6 +20,27 @@ function AdminProjects() {
     const [updatesProject, setUpdatesProject] = useState(null);
     const [newUpdateText, setNewUpdateText] = useState('');
 
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const [projRes, progRes] = await Promise.all([
+                projectsApi.getAll({ limit: 1000, showAll: true }),
+                getPrograms()
+            ]);
+            setProjects(projRes?.data || []);
+            setPrograms(progRes || []);
+        } catch (e) {
+            console.error('Failed to fetch admin projects:', e);
+            setSnackbar({ open: true, msg: 'خطأ أثناء تحميل البيانات', severity: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
     useEffect(() => {
         if (snackbar.open) {
             const timer = setTimeout(() => setSnackbar(s => ({ ...s, open: false })), 3500);
@@ -24,22 +48,24 @@ function AdminProjects() {
         }
     }, [snackbar.open]);
 
-    const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '', imageUrl: '' };
+    const emptyForm = { title: '', programId: '', goal: '', donationAmount: '', location: '', description: '', imageUrl: '', amountConfig: 'FIXED_SHARES', sharePrice: '' };
     const [formData, setFormData] = useState(emptyForm);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, project: null });
 
     const handleStatusChange = async (project, newStatus) => {
         try {
-            await api.updateProject(project.id, { status: newStatus.toUpperCase() });
+            await projectsApi.update(project.id, { status: newStatus.toUpperCase() });
             setSnackbar({ open: true, msg: `تم تغيير حالة المشروع إلى ${newStatus}`, severity: 'success' });
+            fetchData();
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
         }
     };
+
     const handleToggleHighlight = useCallback(async (project) => {
         try {
             const nextVal = !project.isHighlighted;
-            await api.toggleProjectHighlight(project.id, nextVal);
+            await toggleProjectHighlight(project.id, nextVal);
             setSnackbar({
                 open: true,
                 severity: 'success',
@@ -47,10 +73,11 @@ function AdminProjects() {
                     ? `تم تمييز "${project.title}" — يظهر بالبرتقالي`
                     : `تم إزالة تمييز "${project.title}"`,
             });
+            fetchData();
         } catch (e) {
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء تعديل التمييز', severity: 'error' });
         }
-    }, [api]);
+    }, []);
 
     const handleAdd = () => {
         setEditProject(null);
@@ -68,6 +95,8 @@ function AdminProjects() {
             location: project.location || '',
             description: project.description || '',
             imageUrl: project.image || project.imageUrl || '',
+            amountConfig: project.amountConfig || 'FIXED_SHARES',
+            sharePrice: project.sharePrice || '',
         });
         setIsModalOpen(true);
     }, []);
@@ -78,35 +107,35 @@ function AdminProjects() {
             return;
         }
 
+        const payload = {
+            title: formData.title,
+            programId: formData.programId,
+            goal: Number(formData.goal) || 100000,
+            donationAmount: Number(formData.donationAmount) || 0,
+            location: formData.location,
+            description: formData.description,
+            imageUrl: formData.imageUrl || undefined,
+            amountConfig: formData.amountConfig,
+            sharePrice: formData.amountConfig === 'FIXED_SHARES' ? Number(formData.sharePrice) : null,
+        };
+
         if (editProject) {
             try {
-                await api.updateProject(editProject.id, {
-                    title: formData.title,
-                    programId: formData.programId,
-                    goal: Number(formData.goal),
-                    donationAmount: Number(formData.donationAmount),
-                    location: formData.location,
-                    description: formData.description,
-                    imageUrl: formData.imageUrl || undefined,
-                });
+                await projectsApi.update(editProject.id, payload);
                 setSnackbar({ open: true, msg: `تم تحديث المشروع "${formData.title}"`, severity: 'success' });
+                fetchData();
             } catch (e) {
                 setSnackbar({ open: true, msg: e.message || 'خطأ أثناء التحديث', severity: 'error' });
             }
         } else {
             try {
-                await api.createProject({
-                    title: formData.title,
-                    programId: formData.programId,
-                    goal: Number(formData.goal) || 100000,
-                    donationAmount: Number(formData.donationAmount) || 0,
-                    location: formData.location,
-                    description: formData.description,
+                await projectsApi.create({
+                    ...payload,
                     status: 'ACTIVE',
                     featured: false,
-                    imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?w=600&h=400&fit=crop',
                 });
                 setSnackbar({ open: true, msg: `تم إنشاء المشروع "${formData.title}"`, severity: 'success' });
+                fetchData();
             } catch (e) {
                 setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الإنشاء', severity: 'error' });
             }
@@ -123,9 +152,11 @@ function AdminProjects() {
         const { project } = deleteConfirm;
         if (!project) return;
         try {
-            await api.deleteProject(project.id);
+            await projectsApi.deleteProject(project.id);
             setSnackbar({ open: true, msg: `تم حذف المشروع "${project.title}"`, severity: 'success' });
+            await fetchData();
         } catch (e) {
+            console.error('Delete failed:', e);
             setSnackbar({ open: true, msg: e.message || 'خطأ أثناء الحذف', severity: 'error' });
         }
         setDeleteConfirm({ open: false, project: null });
@@ -139,10 +170,7 @@ function AdminProjects() {
     const handleAddUpdate = () => {
         if (!newUpdateText.trim()) return;
         const newUpdate = { id: Date.now(), text: newUpdateText, date: new Date().toLocaleDateString('ar-EG') };
-        dispatch(adminActions.updateProject({
-            ...updatesProject,
-            updates: [...(updatesProject.updates || []), newUpdate]
-        }));
+        setProjects(prev => prev.map(p => p.id === updatesProject.id ? { ...p, updates: [...(p.updates || []), newUpdate] } : p));
         setUpdatesProject(prev => ({ ...prev, updates: [...(prev.updates || []), newUpdate] }));
         setNewUpdateText('');
         setSnackbar({ open: true, msg: 'تم إضافة التحديث بنجاح', severity: 'success' });
@@ -150,18 +178,18 @@ function AdminProjects() {
 
     const handleDeleteUpdate = (updateId) => {
         const newUpdates = (updatesProject.updates || []).filter(u => u.id !== updateId);
-        dispatch(adminActions.updateProject({ ...updatesProject, updates: newUpdates }));
+        setProjects(prev => prev.map(p => p.id === updatesProject.id ? { ...p, updates: newUpdates } : p));
         setUpdatesProject(prev => ({ ...prev, updates: newUpdates }));
         setSnackbar({ open: true, msg: 'تم حذف التحديث', severity: 'success' });
     };
 
-    const filteredProjects = filter === 'all' ? projectsList : projectsList.filter(p => p.status === filter);
+    const filteredProjects = filter === 'all' ? projectsList : projectsList.filter(p => String(p.status).toLowerCase() === filter.toLowerCase());
 
     const tabs = [
         { label: `${t('admin.projectsPage.all')} (${projectsList.length})`, value: 'all' },
-        { label: `${t('admin.projectsPage.active')} (${projectsList.filter(p => p.status === 'active').length})`, value: 'active' },
-        { label: `${t('admin.projectsPage.completed')} (${projectsList.filter(p => p.status === 'completed').length})`, value: 'completed' },
-        { label: `${t('admin.projectsPage.pending')} (${projectsList.filter(p => p.status === 'pending').length})`, value: 'pending' },
+        { label: `${t('admin.projectsPage.active')} (${projectsList.filter(p => String(p.status).toLowerCase() === 'active').length})`, value: 'active' },
+        { label: `${t('admin.projectsPage.completed')} (${projectsList.filter(p => String(p.status).toLowerCase() === 'completed').length})`, value: 'completed' },
+        { label: `${t('admin.projectsPage.pending')} (${projectsList.filter(p => String(p.status).toLowerCase() === 'pending').length})`, value: 'pending' },
     ];
 
     const updateField = (field) => (e) => setFormData(prev => ({ ...prev, [field]: e.target.value }));
@@ -320,9 +348,25 @@ function AdminProjects() {
                         <input className={inputClass} type="number" placeholder={t('admin.projectsPage.goalLabel')} required value={formData.goal} onChange={updateField('goal')} />
                     </div>
                     <div className="flex flex-col flex-1">
-                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.donationAmountLabel')}</label>
-                        <input className={inputClass} type="number" placeholder={t('admin.projectsPage.donationAmountLabel')} value={formData.donationAmount} onChange={updateField('donationAmount')} />
+                        <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">نوع التبرع</label>
+                        <select className={inputClass} value={formData.amountConfig} onChange={updateField('amountConfig')}>
+                            <option value="FIXED_SHARES">أسهم خيرية (مبلغ سهم ثابت ومضاعفاته)</option>
+                            <option value="FLEXIBLE">مبلغ مساهمة حر (متغير)</option>
+                        </select>
                     </div>
+                </div>
+                <div className="flex flex-col md:flex-row gap-2">
+                    {formData.amountConfig === 'FIXED_SHARES' ? (
+                        <div className="flex flex-col flex-1">
+                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">سعر السهم (ج.م)</label>
+                            <input className={inputClass} type="number" placeholder="مثال: 50" required value={formData.sharePrice} onChange={updateField('sharePrice')} />
+                        </div>
+                    ) : (
+                        <div className="flex flex-col flex-1">
+                            <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">متوسط مبلغ التبرع الافتراضي</label>
+                            <input className={inputClass} type="number" placeholder="مثال: 100" value={formData.donationAmount} onChange={updateField('donationAmount')} />
+                        </div>
+                    )}
                 </div>
                 <div className="flex flex-col">
                     <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.locationLabel')}</label>
@@ -350,7 +394,7 @@ function AdminProjects() {
             </AdminFormDialog>
 
             {deleteConfirm.open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center">
                     <div className="fixed inset-0 bg-black/50" onClick={() => setDeleteConfirm({ open: false, project: null })} />
                     <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto">
                         <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100">تأكيد الحذف</h2>

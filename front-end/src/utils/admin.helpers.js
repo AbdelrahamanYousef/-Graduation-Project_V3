@@ -21,7 +21,7 @@ export const STATUS_CONFIG = {
  * @returns {string} color key
  */
 export const getStatusColor = (status) =>
-    STATUS_CONFIG[status]?.color || 'default';
+    STATUS_CONFIG[String(status).toLowerCase()]?.color || 'default';
 
 /**
  * Get localized label for a given status string
@@ -29,10 +29,12 @@ export const getStatusColor = (status) =>
  * @param {string} lang - 'ar' or 'en'
  * @returns {string}
  */
-export const getStatusLabel = (status, lang = 'ar') =>
-    lang === 'en'
-        ? (STATUS_CONFIG[status]?.labelEn || status)
-        : (STATUS_CONFIG[status]?.labelAr || status);
+export const getStatusLabel = (status, lang = 'ar') => {
+    const key = String(status).toLowerCase();
+    return lang === 'en'
+        ? (STATUS_CONFIG[key]?.labelEn || status)
+        : (STATUS_CONFIG[key]?.labelAr || status);
+};
 
 // ─── Priority Configuration ─────────────────────────────────
 export const PRIORITY_CONFIG = {
@@ -64,7 +66,7 @@ export const getDonationTypeColor = (type) => {
  * @returns {Array}
  */
 export const filterByStatus = (items, tabValue) =>
-    tabValue === 'all' ? items : items.filter(item => item.status === tabValue);
+    tabValue === 'all' ? items : items.filter(item => String(item.status).toLowerCase() === String(tabValue).toLowerCase());
 
 /**
  * Count items by status
@@ -73,4 +75,4 @@ export const filterByStatus = (items, tabValue) =>
  * @returns {number}
  */
 export const countByStatus = (items, status) =>
-    items.filter(item => item.status === status).length;
+    items.filter(item => String(item.status).toLowerCase() === String(status).toLowerCase()).length;

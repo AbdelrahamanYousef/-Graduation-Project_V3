@@ -49,8 +49,9 @@ function CampaignCardItem({ campaign, project, index, onClick, onDonate }) {
     const title = campaignData.title || '';
     const desc = campaignData.description || '';
     const category = campaignData.category || 'عام';
-    const statusLabel = STATUS_LABELS[campaignData.status] || 'نشطة';
-    const statusInfo = STATUS_CONFIG[campaignData.status] || STATUS_CONFIG.active;
+    const cleanStatus = String(campaignData.status || '').toLowerCase();
+    const statusLabel = STATUS_LABELS[cleanStatus] || 'نشطة';
+    const statusInfo = STATUS_CONFIG[cleanStatus] || STATUS_CONFIG.active;
 
     const daysLeft = campaignData.endDate 
         ? Math.max(0, Math.ceil((new Date(campaignData.endDate) - new Date()) / 86400000))
@@ -174,12 +175,12 @@ function CampaignCardItem({ campaign, project, index, onClick, onDonate }) {
                     </div>
 
                     {/* Action Button / Completed State */}
-                    {campaignData.status === 'completed' ? (
+                    {cleanStatus === 'completed' ? (
                         <div className="w-full py-2.5 px-4 rounded-xl font-arabic font-bold text-xs bg-slate-50 dark:bg-slate-800/80 text-emerald-600 dark:text-emerald-400 text-center border border-emerald-100 dark:border-emerald-900/30 select-none flex items-center justify-center gap-1.5">
                             <i className="fa-solid fa-circle-check text-emerald-500 dark:text-emerald-400" />
                             <span>{loc('تم اكتمال الحملة بنجاح', 'Campaign Completed')}</span>
                         </div>
-                    ) : campaignData.status === 'cancelled' ? (
+                    ) : cleanStatus === 'cancelled' ? (
                         <div className="w-full py-2.5 px-4 rounded-xl font-arabic font-bold text-xs bg-rose-50/50 dark:bg-rose-950/20 text-rose-500 dark:text-rose-400 text-center border border-rose-100 dark:border-rose-900/30 select-none flex items-center justify-center gap-1.5">
                             <i className="fa-solid fa-circle-xmark text-rose-500" />
                             <span>{loc('تم إلغاء الحملة', 'Campaign Cancelled')}</span>

@@ -16,6 +16,8 @@ const projectSchema = z.object({
     status: z.enum(['ACTIVE', 'COMPLETED', 'PENDING']).optional(),
     isHighlighted: z.boolean().optional(),
     donationAmount: z.number().optional().nullable(),
+    amountConfig: z.enum(['FLEXIBLE', 'FIXED_SHARES']).optional(),
+    sharePrice: z.number().optional().nullable(),
 });
 
 router.get('/featured', ctrl.getFeatured);

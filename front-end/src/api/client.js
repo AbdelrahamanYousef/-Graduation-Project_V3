@@ -8,7 +8,7 @@ import axios from 'axios';
  * - Global error handling via response interceptor
  */
 const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     timeout: 15000,
     headers: {
         'Content-Type': 'application/json',
@@ -21,7 +21,10 @@ apiClient.interceptors.request.use(
         // Attempt to read the JWT from localStorage
         const adminToken = localStorage.getItem('nour-admin-token');
         const donorToken = localStorage.getItem('nour-donor-token');
-        const token = adminToken || donorToken;
+        
+        // Select token based on the currently visited page to avoid cross-session issues
+        const isAdminPage = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin');
+        const token = isAdminPage ? (adminToken || donorToken) : (donorToken || adminToken);
 
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
@@ -86,7 +89,9 @@ apiClient.interceptors.response.use(
         const responseData = error.response?.data;
         if (responseData?.error) {
             const serverError = responseData.error;
-            if (serverError.details && Array.isArray(serverError.details)) {
+            if (typeof serverError === 'string') {
+                message = translateError(serverError);
+            } else if (serverError.details && Array.isArray(serverError.details)) {
                 // If there are multiple validation details
                 message = serverError.details
                     .map((d) => translateError(d.message))

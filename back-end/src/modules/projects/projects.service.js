@@ -48,7 +48,9 @@ async function list(query = {}) {
             image: p.imageUrl || null,
             status: p.status.toLowerCase(),
             featured: p.featured,
-            isHighlighted: p.isHighlighted
+            isHighlighted: p.isHighlighted,
+            amountConfig: p.amountConfig,
+            sharePrice: p.sharePrice ? Number(p.sharePrice) : null,
         };
     });
 

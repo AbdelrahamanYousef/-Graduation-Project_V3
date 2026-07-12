@@ -89,3 +89,35 @@ export async function refundDonation(id, reason) {
     const { data } = await apiClient.post(`/donations/${id}/refund`, { reason });
     return data;
 }
+
+/**
+ * Initiate a donation (send OTP)
+ */
+export async function initiateDonation(data) {
+    const { data: result } = await apiClient.post('/donations/initiate', data);
+    return result;
+}
+
+/**
+ * Verify donation with OTP
+ */
+export async function verifyDonation(data) {
+    const { data: result } = await apiClient.post('/donations/verify', data);
+    return result;
+}
+
+/**
+ * Create offline/manual cash donation (admin)
+ */
+export async function createOfflineDonation(data) {
+    const { data: result } = await apiClient.post('/admin/donations/offline', data);
+    return result;
+}
+
+/**
+ * Confirm a pending donation (admin)
+ */
+export async function confirmDonation(id) {
+    const { data } = await apiClient.patch(`/donations/${id}/confirm`);
+    return data;
+}

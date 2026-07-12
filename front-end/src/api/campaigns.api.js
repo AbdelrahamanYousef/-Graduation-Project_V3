@@ -47,3 +47,14 @@ export async function deleteCampaign(id) {
     const { data } = await apiClient.delete(`/campaigns/${id}`);
     return data;
 }
+
+export const campaigns = {
+    getAll: getCampaigns,
+    getById: getCampaignById,
+    create: createCampaign,
+    update: updateCampaign,
+    delete: deleteCampaign,
+    deleteCampaign: deleteCampaign
+};
+
+export const campaignsApi = campaigns;

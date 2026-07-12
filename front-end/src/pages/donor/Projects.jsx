@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { t, formatNumber, formatCurrency } from '../../i18n';
-import { useAdminData } from '../../contexts/AdminDataContext';
 import { paths } from '../../constants/paths';
+import { projectsApi, getPrograms } from '../../api';
 
 function Projects() {
     const { isDark } = useTheme();
@@ -12,14 +12,38 @@ function Projects() {
     const [selectedProgram, setSelectedProgram] = useState(searchParams.get('program') || 'all');
     const [sortBy, setSortBy] = useState('newest');
 
-    const { state } = useAdminData();
-    const activePrograms = state.programs?.filter(p => !p.status || p.status === 'active') || [];
-    const projects = state.projects;
-    const programs = activePrograms;
+    const [programs, setPrograms] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function loadProjectsData() {
+            try {
+                setLoading(true);
+                const [progRes, projRes] = await Promise.all([
+                    getPrograms(),
+                    projectsApi.getAll({ limit: 1000, showAll: true })
+                ]);
+                if (isMounted) {
+                    setPrograms(progRes || []);
+                    setProjects(projRes?.data || []);
+                }
+            } catch (err) {
+                console.error('Failed to load projects page data:', err);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+        loadProjectsData();
+        return () => { isMounted = false; };
+    }, []);
 
     const filteredProjects = projects.filter(project => {
-        const matchesSearch = project.title.includes(searchQuery) ||
-            project.description.includes(searchQuery);
+        const matchesSearch = (project.title || '').includes(searchQuery) ||
+            (project.description || '').includes(searchQuery);
         const matchesProgram = selectedProgram === 'all' ||
             project.programId.toString() === selectedProgram;
         return matchesSearch && matchesProgram;
@@ -30,9 +54,9 @@ function Projects() {
             case 'mostFunded':
                 return (b.raised / b.goal) - (a.raised / a.goal);
             case 'endingSoon':
-                return a.daysLeft - b.daysLeft;
+                return (a.daysLeft || 0) - (b.daysLeft || 0);
             default:
-                return b.id - a.id;
+                return String(b.id).localeCompare(String(a.id));
         }
     });
 
@@ -74,7 +98,11 @@ function Projects() {
                     </select>
                 </div>
 
-                {sortedProjects.length === 0 ? (
+                {loading ? (
+                    <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary-500"></div>
+                    </div>
+                ) : sortedProjects.length === 0 ? (
                     <div className="text-center py-8">
                         <h2 className="text-4xl mb-2">🔍</h2>
                         <h5 className="text-lg mb-1">{t('states.noSearchResults')}</h5>

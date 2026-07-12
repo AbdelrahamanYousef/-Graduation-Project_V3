@@ -281,7 +281,7 @@ function AdminPrograms() {
             </AdminFormDialog>
 
             {deleteConfirm.open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                <div className="fixed inset-0 z-[1200] flex items-center justify-center">
                     <div className="fixed inset-0 bg-black/50" onClick={() => setDeleteConfirm({ open: false, program: null })} />
                     <div className="relative bg-white dark:bg-neutral-800 rounded-xl shadow-modal max-w-lg w-full mx-4 max-h-[85vh] overflow-y-auto">
                         <h2 className="text-lg font-bold p-4 border-b border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100">تأكيد الحذف</h2>

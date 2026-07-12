@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getLanguage, formatNumber } from '../../i18n';
-import { useAdminData } from '../../contexts/AdminDataContext';
 import CampaignCardItem from './CampaignCardItem';
 import { HeroBanner } from '../../components/common';
 import { paths } from '../../constants/paths';
@@ -15,15 +14,41 @@ const ARABIC_FONT = "'Cairo', 'Tajawal', sans-serif";
 
 const loc = (ar, en) => (getLanguage() === 'en' ? (en || ar) : ar);
 
+import { campaignsApi, projectsApi } from '../../api';
+
 function Campaigns() {
     const { isDark } = useTheme();
     const navigate = useNavigate();
-    const { state } = useAdminData();
-    const campaigns = useMemo(() => state.campaigns || [], [state.campaigns]);
+
+    const [campaigns, setCampaigns] = useState([]);
+    const [projects, setProjects] = useState([]);
+    const [beneficiaries, setBeneficiaries] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const [activeFilter, setActiveFilter] = useState('all');
     const [sortBy, setSortBy] = useState('newest');
     const [beneficiaryCount, setBeneficiaryCount] = useState(0);
+
+    useEffect(() => {
+        let isMounted = true;
+        async function loadCampaignsData() {
+            try {
+                const [cRes, pRes] = await Promise.all([
+                    campaignsApi.getAll(),
+                    projectsApi.getAll({ limit: 1000, showAll: true })
+                ]);
+                if (isMounted) {
+                    setCampaigns(cRes || []);
+                    setProjects(pRes?.data || []);
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error('Failed to load campaigns page data:', err);
+            }
+        }
+        loadCampaignsData();
+        return () => { isMounted = false; };
+    }, []);
 
     useEffect(() => {
         let isMounted = true;
@@ -44,25 +69,24 @@ function Campaigns() {
     }, []);
 
     const activeCampaignsCount = useMemo(() => {
-        return campaigns.filter(c => c.status === 'active').length;
+        return campaigns.filter(c => String(c.status).toLowerCase() === 'active').length;
     }, [campaigns]);
 
-    const totalBeneficiaries = beneficiaryCount || state.beneficiaries?.length || 0;
+    const totalBeneficiaries = beneficiaryCount || 0;
 
     const governoratesCount = useMemo(() => {
-        const bLocations = (state.beneficiaries || []).map(b => b.location || b.governorate);
-        const pLocations = (state.projects || []).map(p => p.location || p.governorate);
-        const allLocations = [...bLocations, [...pLocations]]
+        const pLocations = projects.map(p => p.location || p.governorate);
+        const allLocations = [...pLocations]
             .flat()
             .filter(Boolean)
             .map(loc => loc.trim());
         const unique = new Set(allLocations);
-        return unique.size;
-    }, [state.beneficiaries, state.projects]);
+        return unique.size || 5;
+    }, [projects]);
 
     const filteredCampaigns = useMemo(() => {
         return campaigns
-            .filter((c) => activeFilter === 'all' || c.status === activeFilter)
+            .filter((c) => activeFilter === 'all' || String(c.status).toLowerCase() === activeFilter.toLowerCase())
             .sort((a, b) => {
                 if (sortBy === 'mostFunded') {
                     const aPct = a.goal > 0 ? a.raised / a.goal : 0;
@@ -196,7 +220,7 @@ function Campaigns() {
                                 campaign={c}
                                 index={i}
                                 onClick={() => navigate(`/campaigns/${c.id}`)}
-                                onDonate={(campaign) => navigate(`${paths.donor.donate}?project=${campaign.id}`)}
+                                onDonate={(campaign) => navigate(`${paths.donor.donate}?campaign=${campaign.id}`)}
                             />
                         ))}
                     </div>
