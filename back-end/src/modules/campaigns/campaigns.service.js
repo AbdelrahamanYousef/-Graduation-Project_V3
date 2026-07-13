@@ -58,7 +58,7 @@ async function update(id, data) {
 
 async function remove(id) {
     await getById(id);
-    return prisma.campaign.update({ where: { id }, data: { deletedAt: new Date() } });
+    return prisma.campaign.delete({ where: { id } });
 }
 
 module.exports = { list, getById, create, update, remove };

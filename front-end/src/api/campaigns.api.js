@@ -7,10 +7,12 @@ export const campaignKeys = {
 
 /**
  * Get all campaigns
+ * @param {object} [params] - Query parameters
+ * @param {boolean} [params.includeDeleted] - Include soft-deleted campaigns
  * @returns {Promise<object[]>}
  */
-export async function getCampaigns() {
-    const { data } = await apiClient.get('/campaigns');
+export async function getCampaigns(params = {}) {
+    const { data } = await apiClient.get('/campaigns', { params });
     return data;
 }
 
