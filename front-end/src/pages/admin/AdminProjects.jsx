@@ -106,6 +106,14 @@ function AdminProjects() {
             setSnackbar({ open: true, msg: 'يرجى إدخال عنوان المشروع', severity: 'error' });
             return;
         }
+        if (!formData.programId) {
+            setSnackbar({ open: true, msg: 'يرجى اختيار برنامج للمشروع', severity: 'error' });
+            return;
+        }
+        if (!formData.goal || Number(formData.goal) <= 0) {
+            setSnackbar({ open: true, msg: 'يرجى إدخال هدف مالي صحيح', severity: 'error' });
+            return;
+        }
 
         const payload = {
             title: formData.title,
@@ -147,6 +155,7 @@ function AdminProjects() {
     const handleDelete = useCallback((project) => {
         setDeleteConfirm({ open: true, project });
     }, []);
+
 
     const confirmDelete = async () => {
         const { project } = deleteConfirm;
@@ -336,7 +345,7 @@ function AdminProjects() {
                     </div>
                     <div className="flex flex-col flex-1">
                         <label className="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-1">{t('admin.projectsPage.programLabel')}</label>
-                        <select className={inputClass} value={formData.programId} onChange={updateField('programId')}>
+                        <select className={inputClass} value={formData.programId} onChange={updateField('programId')} required>
                             <option value="">{t('admin.projectsPage.programLabel')}</option>
                             {programsList.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                         </select>

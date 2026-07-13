@@ -77,7 +77,7 @@ async function update(id, data) {
 
 async function remove(id) {
     await getById(id);
-    return prisma.project.update({ where: { id }, data: { deletedAt: new Date() } });
+    return prisma.project.delete({ where: { id } });
 }
 
 module.exports = { list, getById, create, update, remove };

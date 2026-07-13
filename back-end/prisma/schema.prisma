@@ -8,40 +8,40 @@ datasource db {
 }
 
 model User {
-  id                       String                 @id @default(cuid())
+  id                       String                  @id @default(cuid())
   name                     String
-  email                    String                 @unique
+  email                    String                  @unique
   phone                    String?
   passwordHash             String
-  role                     String                 @default("USER")
-  status                   String                 @default("ACTIVE")
   avatarUrl                String?
-  emailNotifications       Boolean                @default(true)
-  emailVerified            Boolean                @default(false)
+  emailVerified            Boolean                 @default(false)
   verificationOtp          String?
   verificationOtpExpiry    DateTime?
   resetPasswordToken       String?
   resetPasswordTokenExpiry DateTime?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
   deletedAt                DateTime?
+  emailNotifications       Boolean                 @default(true)
+  role                     String                  @default("USER")
+  status                   String                  @default("ACTIVE")
   auditLogs                AuditLog[]
   chatbotLogs              ChatbotLog[]
   contactMessages          ContactMessage[]
-  approvedDisbursements    Disbursement[]         @relation("ApprovedBy")
+  approvedDisbursements    Disbursement[]          @relation("ApprovedBy")
+  donationOtps             DonationOtp[]
   donations                Donation[]
+  fieldReports             FieldReport[]           @relation("ResearcherFieldReports")
+  performedHelpRequestLogs HelpRequestProcessLog[] @relation("HelpRequestProcessLogActor")
+  assignedHelpRequests     HelpRequest[]           @relation("AssignedResearcher")
+  reviewedHelpRequests     HelpRequest[]           @relation("ReviewedHelpRequests")
+  helpRequestApplications  HelpRequest[]           @relation("HelpRequestApplicant")
   notifications            Notification[]
   refreshTokens            RefreshToken[]
   generatedReports         Report[]
-  reviewedVolunteers           VolunteerApplication[]    @relation("ReviewedBy")
-  reviewedHelpRequests         HelpRequest[]             @relation("ReviewedHelpRequests")
-  volunteerApplications        VolunteerApplication[]    @relation("VolunteerApplicant")
-  performedVolunteerLogs       VolunteerProcessLog[]     @relation("VolunteerProcessLogActor")
-  performedHelpRequestLogs     HelpRequestProcessLog[]   @relation("HelpRequestProcessLogActor")
-  helpRequestApplications      HelpRequest[]             @relation("HelpRequestApplicant")
-  assignedHelpRequests         HelpRequest[]             @relation("AssignedResearcher")
-  fieldReports                 FieldReport[]             @relation("ResearcherFieldReports")
-  donationOtps                 DonationOtp[]
+  reviewedVolunteers       VolunteerApplication[]  @relation("ReviewedBy")
+  volunteerApplications    VolunteerApplication[]  @relation("VolunteerApplicant")
+  performedVolunteerLogs   VolunteerProcessLog[]   @relation("VolunteerProcessLogActor")
 
   @@map("users")
 }
@@ -64,12 +64,12 @@ model Program {
   icon          String?
   color         String?
   description   String?
-  status        String        @default("ACTIVE")
-  isHighlighted Boolean       @default(false)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   deletedAt     DateTime?
   imageUrl      String?
+  isHighlighted Boolean       @default(false)
+  status        String        @default("ACTIVE")
   beneficiaries Beneficiary[]
   projects      Project[]
 
@@ -77,28 +77,28 @@ model Program {
 }
 
 model Project {
-  id             String        @id @default(cuid())
+  id             String     @id @default(cuid())
   programId      String
   title          String
   description    String?
   goal           Decimal
-  raised         Decimal       @default(0)
-  donorsCount    Int           @default(0)
+  raised         Decimal    @default(0)
+  donorsCount    Int        @default(0)
   imageUrl       String?
   location       String?
-  status         String        @default("ACTIVE")
-  featured       Boolean       @default(false)
-  isHighlighted  Boolean       @default(false)
+  featured       Boolean    @default(false)
   endDate        DateTime?
   donationAmount Decimal?
-  amountConfig   String        @default("FLEXIBLE")
-  sharePrice     Float?
-  totalRaised    Float         @default(0)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
   deletedAt      DateTime?
+  isHighlighted  Boolean    @default(false)
+  amountConfig   String     @default("FLEXIBLE")
+  sharePrice     Float?
+  totalRaised    Float      @default(0)
+  status         String     @default("ACTIVE")
   donations      Donation[]
-  program        Program       @relation(fields: [programId], references: [id])
+  program        Program    @relation(fields: [programId], references: [id])
 
   @@index([programId])
   @@index([status])
@@ -106,36 +106,36 @@ model Project {
 }
 
 model Donation {
-  id                 String              @id @default(cuid())
+  id                 String    @id @default(cuid())
   userId             String
   projectId          String?
-  campaignId         String?
   amount             Float
-  type               String              @default("GENERAL")
-  paymentMethod      String
-  status             String              @default("PENDING")
-  source             String              @default("ONLINE")
-  isAnonymous        Boolean             @default(false)
-  isRecurring        Boolean             @default(false)
-  recurringFrequency String?
+  isAnonymous        Boolean   @default(false)
+  isRecurring        Boolean   @default(false)
   fullName           String?
   phone              String?
   email              String?
   notes              String?
-  receiptNumber      String              @unique
-  idempotencyKey     String?             @unique
-  internalReference  String              @unique @default(cuid())
+  receiptNumber      String    @unique
+  idempotencyKey     String?   @unique
+  internalReference  String    @unique @default(cuid())
   walletPhone        String?
   simulatedPaymentId String?
-  transactionId      String?
-  collectionAddress  String?
-  refundReason       String?
   paidAt             DateTime?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  project            Project?            @relation(fields: [projectId], references: [id])
-  campaign           Campaign?           @relation(fields: [campaignId], references: [id])
-  user               User                @relation(fields: [userId], references: [id])
+  refundReason       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  campaignId         String?
+  collectionAddress  String?
+  source             String    @default("ONLINE")
+  transactionId      String?
+  type               String    @default("GENERAL")
+  paymentMethod      String
+  status             String    @default("PENDING")
+  recurringFrequency String?
+  campaign           Campaign? @relation(fields: [campaignId], references: [id])
+  project            Project?  @relation(fields: [projectId], references: [id])
+  user               User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([projectId])
@@ -146,23 +146,23 @@ model Donation {
 }
 
 model Beneficiary {
-  id            String          @id @default(cuid())
+  id            String         @id @default(cuid())
   name          String
-  type          String @default("FAMILY")
   phone         String?
-  nationalId    String?         @unique
+  nationalId    String?        @unique
   governorate   String?
   address       String?
   notes         String?
   programId     String?
-  status        String        @default("PENDING")
-  monthlyAid    Decimal? 
+  monthlyAid    Decimal?
   membersCount  Int?
   startDate     DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   deletedAt     DateTime?
-  program       Program?        @relation(fields: [programId], references: [id])
+  type          String         @default("FAMILY")
+  status        String         @default("PENDING")
+  program       Program?       @relation(fields: [programId], references: [id])
   disbursements Disbursement[]
 
   @@index([status])
@@ -171,16 +171,16 @@ model Beneficiary {
 }
 
 model Disbursement {
-  id            String             @id @default(cuid())
+  id            String      @id @default(cuid())
   beneficiaryId String
-  amount        Decimal     
+  amount        Decimal
   type          String
-  status        String              @default("PENDING")
   approvedById  String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  approvedBy    User?              @relation("ApprovedBy", fields: [approvedById], references: [id])
-  beneficiary   Beneficiary        @relation(fields: [beneficiaryId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  status        String      @default("PENDING")
+  approvedBy    User?       @relation("ApprovedBy", fields: [approvedById], references: [id])
+  beneficiary   Beneficiary @relation(fields: [beneficiaryId], references: [id])
 
   @@index([beneficiaryId])
   @@index([status])
@@ -188,14 +188,14 @@ model Disbursement {
 }
 
 model Report {
-  id            String     @id @default(cuid())
+  id            String   @id @default(cuid())
   title         String
-  type          String
   period        String
   fileUrl       String?
   generatedById String
-  createdAt     DateTime   @default(now())
-  generatedBy   User       @relation(fields: [generatedById], references: [id])
+  createdAt     DateTime @default(now())
+  type          String
+  generatedBy   User     @relation(fields: [generatedById], references: [id])
 
   @@map("reports")
 }
@@ -207,8 +207,8 @@ model Notification {
   type       String
   isRead     Boolean  @default(false)
   userId     String?
-  isForAdmin Boolean  @default(false)
   createdAt  DateTime @default(now())
+  isForAdmin Boolean  @default(false)
   user       User?    @relation(fields: [userId], references: [id])
 
   @@index([userId, isRead])
@@ -216,30 +216,30 @@ model Notification {
 }
 
 model VolunteerApplication {
-  id                String             @id @default(cuid())
+  id                String                @id @default(cuid())
   name              String
   email             String
   phone             String
-  area              String
   message           String?
-  status            String             @default("PENDING")
   reviewedById      String?
   reviewedAt        DateTime?
   rejectionReason   String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
   adminNotes        String?
   nextSteps         String?
-  cvFile            String?
-  cvUrl             String?
-  userId            String?
+  applicantResponse String?
   contactMethod     String?
   contactedAt       DateTime?
-  applicantResponse String?
+  cvFile            String?
+  cvUrl             String?
   respondedAt       DateTime?
   responseNotes     String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  reviewedBy        User?              @relation("ReviewedBy", fields: [reviewedById], references: [id])
-  user              User?              @relation("VolunteerApplicant", fields: [userId], references: [id])
+  userId            String?
+  status            String                @default("PENDING")
+  area              String
+  reviewedBy        User?                 @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  user              User?                 @relation("VolunteerApplicant", fields: [userId], references: [id])
   processLogs       VolunteerProcessLog[]
 
   @@index([userId])
@@ -247,14 +247,14 @@ model VolunteerApplication {
 }
 
 model VolunteerProcessLog {
-  id            String             @id @default(cuid())
+  id            String               @id @default(cuid())
   volunteerId   String
-  volunteer     VolunteerApplication @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
   action        String
   performedById String?
-  performedBy   User?              @relation("VolunteerProcessLogActor", fields: [performedById], references: [id])
   details       String?
-  createdAt     DateTime           @default(now())
+  createdAt     DateTime             @default(now())
+  performedBy   User?                @relation("VolunteerProcessLogActor", fields: [performedById], references: [id])
+  volunteer     VolunteerApplication @relation(fields: [volunteerId], references: [id], onDelete: Cascade)
 
   @@index([volunteerId])
   @@map("volunteer_process_logs")
@@ -263,30 +263,30 @@ model VolunteerProcessLog {
 model HelpRequestProcessLog {
   id            String      @id @default(cuid())
   helpRequestId String
-  helpRequest   HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
   action        String
   performedById String?
-  performedBy   User?       @relation("HelpRequestProcessLogActor", fields: [performedById], references: [id])
   details       String?
   createdAt     DateTime    @default(now())
+  helpRequest   HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  performedBy   User?       @relation("HelpRequestProcessLogActor", fields: [performedById], references: [id])
 
   @@index([helpRequestId])
   @@map("help_request_process_logs")
 }
 
 model ContactMessage {
-  id            String        @id @default(cuid())
-  userId        String?
+  id            String   @id @default(cuid())
   name          String
   email         String
   phone         String?
   subject       String
   message       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   contactMethod String?
-  status        String        @default("NEW")
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  user          User?         @relation(fields: [userId], references: [id])
+  userId        String?
+  status        String   @default("NEW")
+  user          User?    @relation(fields: [userId], references: [id])
 
   @@map("contact_messages")
 }
@@ -295,43 +295,32 @@ model HelpRequest {
   id                   String                  @id @default(cuid())
   source               String                  @default("ONLINE")
   status               String                  @default("NEW")
-  
-  // Basic info (for online requests or general)
   name                 String?
   email                String?
   phone                String?
   requestType          String
   description          String
-  
-  // Offline fallback fields
   offlineName          String?
   offlinePhone         String?
   offlineNationalId    String?
-
-  // Relations
   userId               String?
-  user                 User?                   @relation("HelpRequestApplicant", fields: [userId], references: [id])
-  
   assignedResearcherId String?
-  assignedResearcher   User?                   @relation("AssignedResearcher", fields: [assignedResearcherId], references: [id])
-
   reviewedById         String?
-  reviewedBy           User?                   @relation("ReviewedHelpRequests", fields: [reviewedById], references: [id])
   reviewedAt           DateTime?
-
   aidType              String?
   aidAmount            Decimal?
   aidQuantity          String?
   distributionStatus   String?
   adminNotes           String?
   rejectionReason      String?
-
   createdAt            DateTime                @default(now())
   updatedAt            DateTime                @updatedAt
-
   fieldReports         FieldReport[]
-  documents            RequestDocument[]
   processLogs          HelpRequestProcessLog[]
+  assignedResearcher   User?                   @relation("AssignedResearcher", fields: [assignedResearcherId], references: [id])
+  reviewedBy           User?                   @relation("ReviewedHelpRequests", fields: [reviewedById], references: [id])
+  user                 User?                   @relation("HelpRequestApplicant", fields: [userId], references: [id])
+  documents            RequestDocument[]
 
   @@index([status])
   @@index([createdAt])
@@ -340,18 +329,18 @@ model HelpRequest {
 }
 
 model FieldReport {
-  id               String              @id @default(cuid())
+  id               String      @id @default(cuid())
   helpRequestId    String
-  helpRequest      HelpRequest         @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
   researcherId     String
-  researcher       User                @relation("ResearcherFieldReports", fields: [researcherId], references: [id])
   visitDate        DateTime
   housingCondition String
   incomeEstimate   Decimal
   researcherNotes  String
   recommendation   String
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  helpRequest      HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
+  researcher       User        @relation("ResearcherFieldReports", fields: [researcherId], references: [id])
 
   @@index([helpRequestId])
   @@index([researcherId])
@@ -359,12 +348,12 @@ model FieldReport {
 }
 
 model RequestDocument {
-  id            String         @id @default(cuid())
+  id            String      @id @default(cuid())
   helpRequestId String
-  helpRequest   HelpRequest    @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
   docType       String
   fileUrl       String
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime    @default(now())
+  helpRequest   HelpRequest @relation(fields: [helpRequestId], references: [id], onDelete: Cascade)
 
   @@index([helpRequestId])
   @@map("request_documents")
@@ -429,31 +418,30 @@ model ChatbotLog {
 }
 
 model Campaign {
-  id           String         @id @default(cuid())
+  id           String     @id @default(cuid())
   title        String
   description  String?
   imageUrl     String?
-  goal         Decimal 
-  raised       Decimal        @default(0)
-  donorsCount  Int            @default(0)
-  status       String         @default("ACTIVE")
-  startDate    DateTime       @default(now())
+  goal         Decimal
+  raised       Decimal    @default(0)
+  donorsCount  Int        @default(0)
+  startDate    DateTime   @default(now())
   endDate      DateTime?
-  featured     Boolean        @default(false)
+  featured     Boolean    @default(false)
   category     String?
-  amountConfig String         @default("FLEXIBLE")
-  sharePrice   Float?
-  totalRaised  Float          @default(0)
-  donations    Donation[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   deletedAt    DateTime?
+  amountConfig String     @default("FLEXIBLE")
+  sharePrice   Float?
+  totalRaised  Float      @default(0)
+  status       String     @default("ACTIVE")
+  donations    Donation[]
 
   @@index([status])
   @@index([endDate])
   @@map("campaigns")
 }
-
 
 model AuditReport {
   id        String   @id @default(cuid())
@@ -480,8 +468,7 @@ model DonationOtp {
   fawryCode         String?
   verified          Boolean  @default(false)
   createdAt         DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("donation_otps")
